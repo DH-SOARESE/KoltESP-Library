@@ -1,4 +1,4 @@
--- KoltESP Library
+-- KoltESP Library Melhorada
 -- Suporte: Tracer, Name, Distance, HighlightOutline, HighlightFill
 -- Orientada a objetos com configuração global e individual
 
@@ -18,11 +18,8 @@ local Settings = {
     RainbowMode = false,
     ESPColor = Color3.fromRGB(255, 0, 0),
 
-    -- NOVO: Distância máxima e mínima
-    MaxDistance = math.huge, -- sem limite
+    MaxDistance = math.huge,
     MinDistance = 0,
-
-    -- Container padrão (pode ser "", "[]", "{}", "()", etc)
     DistanceContainer = ""
 }
 
@@ -39,7 +36,7 @@ function KoltESP.new(target)
     self.Color = Settings.ESPColor
     self.Elements = {}
     self.Name = nil
-    self.DistanceSuffix = " m" -- padrão
+    self.DistanceSuffix = " m"
     self:Init()
     return self
 end
@@ -48,49 +45,37 @@ end
 function KoltESP:Init()
     -- Highlight
     local highlight = Instance.new("Highlight")
-    highlight.Adornee = self.Target
     highlight.FillTransparency = 1 - Settings.FillOpacity
     highlight.OutlineTransparency = 1 - Settings.OutlineOpacity
     highlight.Parent = game.CoreGui
     self.Elements.Highlight = highlight
 
-    -- Billboard (Nome e Distância separados)
-    local billboard = Instance.new("BillboardGui")
-    billboard.Size = UDim2.new(0, 200, 0, 50)
-    billboard.AlwaysOnTop = true
-    billboard.Parent = game.CoreGui
-    self.Elements.Billboard = billboard
-
-    -- Label do Nome
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
-    nameLabel.Position = UDim2.new(0, 0, 0, 0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.TextColor3 = self.Color
-    nameLabel.TextStrokeTransparency = 0
-    nameLabel.Font = Enum.Font.SourceSansBold
-    nameLabel.TextSize = 14
-    nameLabel.Parent = billboard
-    self.Elements.NameLabel = nameLabel
-
-    -- Label da Distância
-    local distLabel = Instance.new("TextLabel")
-    distLabel.Size = UDim2.new(1, 0, 0.5, 0)
-    distLabel.Position = UDim2.new(0, 0, 0.5, 0)
-    distLabel.BackgroundTransparency = 1
-    distLabel.TextColor3 = self.Color
-    distLabel.TextStrokeTransparency = 0
-    distLabel.Font = Enum.Font.SourceSans
-    distLabel.TextSize = 13
-    distLabel.Parent = billboard
-    self.Elements.DistanceLabel = distLabel
-
-    -- Tracer (linha)
+    -- Tracer
     local tracer = Drawing.new("Line")
     tracer.Color = self.Color
     tracer.Thickness = 2
     tracer.Visible = true
     self.Elements.Tracer = tracer
+
+    -- Nome
+    local nameDraw = Drawing.new("Text")
+    nameDraw.Size = 16
+    nameDraw.Center = true
+    nameDraw.Outline = true
+    nameDraw.Color = self.Color
+    nameDraw.Visible = false
+    nameDraw.Font = 2
+    self.Elements.NameDrawing = nameDraw
+
+    -- Distância
+    local distDraw = Drawing.new("Text")
+    distDraw.Size = 14
+    distDraw.Center = true
+    distDraw.Outline = true
+    distDraw.Color = self.Color
+    distDraw.Visible = false
+    distDraw.Font = 1
+    self.Elements.DistanceDrawing = distDraw
 
     -- Loop update
     self.Connection = RunService.RenderStepped:Connect(function()
@@ -105,13 +90,24 @@ function KoltESP:Update()
         return
     end
 
-    local root = self.Target.PrimaryPart or self.Target:FindFirstChildWhichIsA("BasePart")
-    if not root then return end
+    -- Pega posição dependendo do tipo
+    local rootPos, rootInstance
+    if self.Target:IsA("Model") then
+        rootInstance = self.Target.PrimaryPart or self.Target:FindFirstChildWhichIsA("BasePart")
+        if not rootInstance then return end
+        rootPos = rootInstance.Position
+    elseif self.Target:IsA("BasePart") then
+        rootInstance = self.Target
+        rootPos = rootInstance.Position
+    else
+        return
+    end
 
-    local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+    local pos, onScreen = Camera:WorldToViewportPoint(rootPos)
     if not onScreen then
         self.Elements.Tracer.Visible = false
-        self.Elements.Billboard.Enabled = false
+        self.Elements.NameDrawing.Visible = false
+        self.Elements.DistanceDrawing.Visible = false
         return
     end
 
@@ -139,22 +135,19 @@ function KoltESP:Update()
 
     -- Nome
     if Settings.NameVisible and self.Name then
-        self.Elements.NameLabel.Text = self.Name
-        self.Elements.NameLabel.TextColor3 = self.Color
+        self.Elements.NameDrawing.Text = self.Name
+        self.Elements.NameDrawing.Position = Vector2.new(pos.X, pos.Y - 20)
+        self.Elements.NameDrawing.Color = self.Color
+        self.Elements.NameDrawing.Visible = true
     else
-        self.Elements.NameLabel.Text = ""
+        self.Elements.NameDrawing.Visible = false
     end
 
     -- Distância
-    if Settings.DistanceVisible then
-        local distance = (LocalPlayer.Character and LocalPlayer.Character.PrimaryPart and
-            (root.Position - LocalPlayer.Character.PrimaryPart.Position).Magnitude) or 0
-
-        -- Checa Min/Max
+    if Settings.DistanceVisible and LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
+        local distance = (rootPos - LocalPlayer.Character.PrimaryPart.Position).Magnitude
         if distance >= Settings.MinDistance and distance <= Settings.MaxDistance then
             local value = string.format("%.1f%s", distance, self.DistanceSuffix or " m")
-
-            -- Container
             if Settings.DistanceContainer ~= "" then
                 value = string.format("%s%s%s",
                     string.sub(Settings.DistanceContainer, 1, 1),
@@ -162,18 +155,16 @@ function KoltESP:Update()
                     string.sub(Settings.DistanceContainer, -1)
                 )
             end
-
-            self.Elements.DistanceLabel.Text = value
-            self.Elements.DistanceLabel.TextColor3 = self.Color
+            self.Elements.DistanceDrawing.Text = value
+            self.Elements.DistanceDrawing.Position = Vector2.new(pos.X, pos.Y + 10)
+            self.Elements.DistanceDrawing.Color = self.Color
+            self.Elements.DistanceDrawing.Visible = true
         else
-            self.Elements.DistanceLabel.Text = ""
+            self.Elements.DistanceDrawing.Visible = false
         end
     else
-        self.Elements.DistanceLabel.Text = ""
+        self.Elements.DistanceDrawing.Visible = false
     end
-
-    self.Elements.Billboard.Enabled = (Settings.NameVisible or Settings.DistanceVisible)
-    self.Elements.Billboard.Adornee = root
 
     -- Highlight
     if self.Elements.Highlight then
@@ -181,6 +172,7 @@ function KoltESP:Update()
         self.Elements.Highlight.OutlineTransparency = 1 - Settings.OutlineOpacity
         self.Elements.Highlight.FillColor = self.Color
         self.Elements.Highlight.OutlineColor = self.Color
+        self.Elements.Highlight.Adornee = rootInstance
         self.Elements.Highlight.Enabled = (Settings.HighlightOutlineVisible or Settings.HighlightFillVisible)
     end
 end
