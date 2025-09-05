@@ -1,124 +1,180 @@
 -- KoltESP Library
--- Github ready, loadable via loadstring
+-- Suporte: Tracer, Name, Distance, HighlightOutline, HighlightFill
+-- Orientada a objetos com configuração global e individual
 
 local KoltESP = {}
 KoltESP.__index = KoltESP
 
--- ===== Configurações Globais =====
-KoltESP.Settings = {
-    TracerOrigin = "Top", -- Top, Center, Bottom
-    HighlightOutlineOpacity = 0.5,
-    HighlightFillOpacity = 0.5,
+-- Configurações globais
+local Settings = {
+    TracerOrigin = "Bottom", -- Top, Center, Bottom
     TracerVisible = true,
     NameVisible = true,
     DistanceVisible = true,
     HighlightOutlineVisible = true,
     HighlightFillVisible = true,
-    RainbowMode = false
+    OutlineOpacity = 0.5,
+    FillOpacity = 0.5,
+    RainbowMode = false,
+    ESPColor = Color3.fromRGB(255, 0, 0)
 }
 
--- Armazena os targets e ESPs
-KoltESP.Targets = {}
+-- Serviços
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- ===== Função para criar ESP para um alvo =====
-function KoltESP:NewTarget(target)
-    if not target then return end
-    local t = {
-        Object = target,
-        ESPs = {}
-    }
-    table.insert(self.Targets, t)
-    return t
+-- Cria um objeto ESP
+function KoltESP.new(target)
+    local self = setmetatable({}, KoltESP)
+    self.Target = target
+    self.Color = Settings.ESPColor
+    self.Elements = {}
+    self:Init()
+    return self
 end
 
--- ===== Adiciona ESP a um alvo =====
-function KoltESP:AddESP(target, data)
-    if not target or not data.type then return end
-    local t = target
-    local espType = data.type
-    t.ESPs[espType] = data
-end
+-- Inicializa elementos ESP
+function KoltESP:Init()
+    -- Highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Adornee = self.Target
+    highlight.FillTransparency = 1 - Settings.FillOpacity
+    highlight.OutlineTransparency = 1 - Settings.OutlineOpacity
+    highlight.Parent = game.CoreGui
+    self.Elements.Highlight = highlight
 
--- ===== Configurações Individuais ou Globais =====
-function KoltESP:SetESP(data)
-    local espType = data.type
-    if not espType then return end
-    for _, t in ipairs(self.Targets) do
-        if t.ESPs[espType] then
-            for k,v in pairs(data) do
-                if k ~= "type" then
-                    t.ESPs[espType][k] = v
-                end
-            end
-        end
-    end
-    -- Atualiza global se não for target específico
-    for k,v in pairs(data) do
-        if k ~= "type" then
-            local key = k
-            if key == "Origin" then self.Settings.TracerOrigin = v end
-            if key == "Visible" then
-                if espType == "Tracer" then self.Settings.TracerVisible = v end
-                if espType == "Name" then self.Settings.NameVisible = v end
-                if espType == "Distance" then self.Settings.DistanceVisible = v end
-                if espType == "HighlightOutline" then self.Settings.HighlightOutlineVisible = v end
-                if espType == "HighlightFill" then self.Settings.HighlightFillVisible = v end
-            end
-            if key == "Opacity" then
-                if espType == "HighlightOutline" then self.Settings.HighlightOutlineOpacity = v end
-                if espType == "HighlightFill" then self.Settings.HighlightFillOpacity = v end
-            end
-            if key == "RainbowMode" then self.Settings.RainbowMode = v end
-        end
-    end
-end
+    -- Billboard para texto (Nome + Distância)
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = game.CoreGui
 
--- ===== Remove um target =====
-function KoltESP:RemoveTarget(target)
-    for i, t in ipairs(self.Targets) do
-        if t.Object == target then
-            table.remove(self.Targets, i)
-            break
-        end
-    end
-end
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = self.Color
+    label.TextStrokeTransparency = 0
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 14
+    label.Parent = billboard
 
--- ===== Unload todos ESPs =====
-function KoltESP:Unload()
-    for i, t in ipairs(self.Targets) do
-        t.ESPs = {}
-    end
-    self.Targets = {}
-end
+    self.Elements.Billboard = billboard
+    self.Elements.Label = label
 
--- ===== Render loop =====
-spawn(function()
-    local RunService = game:GetService("RunService")
-    RunService.RenderStepped:Connect(function()
-        for _, t in ipairs(KoltESP.Targets) do
-            if not t.Object then continue end
-            local position
-            if t.Object:IsA("BasePart") then
-                position = t.Object.Position
-            elseif t.Object:IsA("Model") and t.Object.PrimaryPart then
-                position = t.Object.PrimaryPart.Position
-            end
+    -- Tracer (linha)
+    local tracer = Drawing.new("Line")
+    tracer.Color = self.Color
+    tracer.Thickness = 2
+    tracer.Visible = true
+    self.Elements.Tracer = tracer
 
-            for espType, esp in pairs(t.ESPs) do
-                if espType == "Tracer" and KoltESP.Settings.TracerVisible then
-                    -- Aqui você pode adicionar seu desenho de linha (tracer)
-                elseif espType == "Name" and KoltESP.Settings.NameVisible then
-                    -- Adicionar BillboardGui ou TextLabel
-                elseif espType == "Distance" and KoltESP.Settings.DistanceVisible then
-                    -- Calcula distância e exibe
-                elseif espType == "HighlightOutline" and KoltESP.Settings.HighlightOutlineVisible then
-                    -- Highlight Outline
-                elseif espType == "HighlightFill" and KoltESP.Settings.HighlightFillVisible then
-                    -- Highlight Fill
-                end
-            end
-        end
+    -- Loop update
+    self.Connection = RunService.RenderStepped:Connect(function()
+        self:Update()
     end)
-end)
+end
+
+-- Atualiza ESP
+function KoltESP:Update()
+    if not self.Target or not self.Target:IsDescendantOf(workspace) then
+        self:Destroy()
+        return
+    end
+
+    local root = self.Target.PrimaryPart or self.Target:FindFirstChildWhichIsA("BasePart")
+    if not root then return end
+
+    local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+    if not onScreen then
+        self.Elements.Tracer.Visible = false
+        self.Elements.Billboard.Enabled = false
+        return
+    end
+
+    -- Rainbow mode
+    if Settings.RainbowMode then
+        local t = tick()
+        self.Color = Color3.fromHSV((t % 5) / 5, 1, 1)
+    end
+
+    -- Tracer
+    if Settings.TracerVisible then
+        local originY = Camera.ViewportSize.Y
+        if Settings.TracerOrigin == "Top" then
+            originY = 0
+        elseif Settings.TracerOrigin == "Center" then
+            originY = Camera.ViewportSize.Y / 2
+        end
+        self.Elements.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, originY)
+        self.Elements.Tracer.To = Vector2.new(pos.X, pos.Y)
+        self.Elements.Tracer.Color = self.Color
+        self.Elements.Tracer.Visible = true
+    else
+        self.Elements.Tracer.Visible = false
+    end
+
+    -- Nome e distância
+    local labelText = ""
+    if Settings.NameVisible and self.Name then
+        labelText = self.Name
+    end
+    if Settings.DistanceVisible then
+        local distance = (LocalPlayer.Character and LocalPlayer.Character.PrimaryPart and
+            (root.Position - LocalPlayer.Character.PrimaryPart.Position).Magnitude) or 0
+        labelText = labelText .. string.format(" (%.1f m)", distance)
+    end
+    self.Elements.Label.Text = labelText
+    self.Elements.Label.TextColor3 = self.Color
+    self.Elements.Billboard.Enabled = (Settings.NameVisible or Settings.DistanceVisible)
+    self.Elements.Billboard.Adornee = root
+
+    -- Highlight
+    if self.Elements.Highlight then
+        self.Elements.Highlight.FillTransparency = 1 - Settings.FillOpacity
+        self.Elements.Highlight.OutlineTransparency = 1 - Settings.OutlineOpacity
+        self.Elements.Highlight.FillColor = self.Color
+        self.Elements.Highlight.OutlineColor = self.Color
+        self.Elements.Highlight.Enabled = (Settings.HighlightOutlineVisible or Settings.HighlightFillVisible)
+    end
+end
+
+-- Adiciona ESP
+function KoltESP:AddESP(config)
+    if config.type == "Name" then
+        self.Name = config.name or "Target"
+    end
+end
+
+-- Configurações globais
+function KoltESP.SetESP(config)
+    for k, v in pairs(config) do
+        Settings[k] = v
+    end
+end
+
+-- Remover ESP
+function KoltESP:Destroy()
+    if self.Connection then self.Connection:Disconnect() end
+    for _, v in pairs(self.Elements) do
+        if typeof(v) == "Instance" then
+            v:Destroy()
+        elseif typeof(v) == "table" and v.Remove then
+            v:Remove()
+        elseif v.Destroy then
+            v:Destroy()
+        end
+    end
+    self.Elements = {}
+end
+
+-- Unload global
+function KoltESP.Unload()
+    for _, obj in pairs(KoltESP.Objects or {}) do
+        obj:Destroy()
+    end
+    KoltESP.Objects = {}
+end
 
 return KoltESP
