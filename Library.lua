@@ -16,7 +16,14 @@ local Settings = {
     OutlineOpacity = 0.5,
     FillOpacity = 0.5,
     RainbowMode = false,
-    ESPColor = Color3.fromRGB(255, 0, 0)
+    ESPColor = Color3.fromRGB(255, 0, 0),
+
+    -- NOVO: Distância máxima e mínima
+    MaxDistance = math.huge, -- sem limite
+    MinDistance = 0,
+
+    -- Container padrão (pode ser "", "[]", "{}", "()", etc)
+    DistanceContainer = ""
 }
 
 -- Serviços
@@ -47,23 +54,36 @@ function KoltESP:Init()
     highlight.Parent = game.CoreGui
     self.Elements.Highlight = highlight
 
-    -- Billboard para texto (Nome + Distância)
+    -- Billboard (Nome e Distância separados)
     local billboard = Instance.new("BillboardGui")
     billboard.Size = UDim2.new(0, 200, 0, 50)
     billboard.AlwaysOnTop = true
     billboard.Parent = game.CoreGui
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = self.Color
-    label.TextStrokeTransparency = 0
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 14
-    label.Parent = billboard
-
     self.Elements.Billboard = billboard
-    self.Elements.Label = label
+
+    -- Label do Nome
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    nameLabel.Position = UDim2.new(0, 0, 0, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextColor3 = self.Color
+    nameLabel.TextStrokeTransparency = 0
+    nameLabel.Font = Enum.Font.SourceSansBold
+    nameLabel.TextSize = 14
+    nameLabel.Parent = billboard
+    self.Elements.NameLabel = nameLabel
+
+    -- Label da Distância
+    local distLabel = Instance.new("TextLabel")
+    distLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    distLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    distLabel.BackgroundTransparency = 1
+    distLabel.TextColor3 = self.Color
+    distLabel.TextStrokeTransparency = 0
+    distLabel.Font = Enum.Font.SourceSans
+    distLabel.TextSize = 13
+    distLabel.Parent = billboard
+    self.Elements.DistanceLabel = distLabel
 
     -- Tracer (linha)
     local tracer = Drawing.new("Line")
@@ -117,18 +137,41 @@ function KoltESP:Update()
         self.Elements.Tracer.Visible = false
     end
 
-    -- Nome e distância
-    local labelText = ""
+    -- Nome
     if Settings.NameVisible and self.Name then
-        labelText = self.Name
+        self.Elements.NameLabel.Text = self.Name
+        self.Elements.NameLabel.TextColor3 = self.Color
+    else
+        self.Elements.NameLabel.Text = ""
     end
+
+    -- Distância
     if Settings.DistanceVisible then
         local distance = (LocalPlayer.Character and LocalPlayer.Character.PrimaryPart and
             (root.Position - LocalPlayer.Character.PrimaryPart.Position).Magnitude) or 0
-        labelText = labelText .. string.format(" (%.1f%s)", distance, self.DistanceSuffix or " m")
+
+        -- Checa Min/Max
+        if distance >= Settings.MinDistance and distance <= Settings.MaxDistance then
+            local value = string.format("%.1f%s", distance, self.DistanceSuffix or " m")
+
+            -- Container
+            if Settings.DistanceContainer ~= "" then
+                value = string.format("%s%s%s",
+                    string.sub(Settings.DistanceContainer, 1, 1),
+                    value,
+                    string.sub(Settings.DistanceContainer, -1)
+                )
+            end
+
+            self.Elements.DistanceLabel.Text = value
+            self.Elements.DistanceLabel.TextColor3 = self.Color
+        else
+            self.Elements.DistanceLabel.Text = ""
+        end
+    else
+        self.Elements.DistanceLabel.Text = ""
     end
-    self.Elements.Label.Text = labelText
-    self.Elements.Label.TextColor3 = self.Color
+
     self.Elements.Billboard.Enabled = (Settings.NameVisible or Settings.DistanceVisible)
     self.Elements.Billboard.Adornee = root
 
