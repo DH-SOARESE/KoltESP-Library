@@ -1,4 +1,4 @@
--- KoltESP Library Melhorada
+-- KoltESP Library 1.1
 -- Suporte: Tracer, Name, Distance, HighlightOutline, HighlightFill
 -- Orientada a objetos com configuração global e individual
 
@@ -103,11 +103,18 @@ function KoltESP:Update()
         return
     end
 
+    if not LocalPlayer.Character or not LocalPlayer.Character.PrimaryPart then return end
+    local distance = (rootPos - LocalPlayer.Character.PrimaryPart.Position).Magnitude
+
+    -- Checa distância mínima/máxima
+    if distance < Settings.MinDistance or distance > Settings.MaxDistance then
+        self:HideAll()
+        return
+    end
+
     local pos, onScreen = Camera:WorldToViewportPoint(rootPos)
     if not onScreen then
-        self.Elements.Tracer.Visible = false
-        self.Elements.NameDrawing.Visible = false
-        self.Elements.DistanceDrawing.Visible = false
+        self:HideAll()
         return
     end
 
@@ -144,24 +151,19 @@ function KoltESP:Update()
     end
 
     -- Distância
-    if Settings.DistanceVisible and LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
-        local distance = (rootPos - LocalPlayer.Character.PrimaryPart.Position).Magnitude
-        if distance >= Settings.MinDistance and distance <= Settings.MaxDistance then
-            local value = string.format("%.1f%s", distance, self.DistanceSuffix or " m")
-            if Settings.DistanceContainer ~= "" then
-                value = string.format("%s%s%s",
-                    string.sub(Settings.DistanceContainer, 1, 1),
-                    value,
-                    string.sub(Settings.DistanceContainer, -1)
-                )
-            end
-            self.Elements.DistanceDrawing.Text = value
-            self.Elements.DistanceDrawing.Position = Vector2.new(pos.X, pos.Y + 10)
-            self.Elements.DistanceDrawing.Color = self.Color
-            self.Elements.DistanceDrawing.Visible = true
-        else
-            self.Elements.DistanceDrawing.Visible = false
+    if Settings.DistanceVisible then
+        local value = string.format("%.1f%s", distance, self.DistanceSuffix or " m")
+        if Settings.DistanceContainer ~= "" then
+            value = string.format("%s%s%s",
+                string.sub(Settings.DistanceContainer, 1, 1),
+                value,
+                string.sub(Settings.DistanceContainer, -1)
+            )
         end
+        self.Elements.DistanceDrawing.Text = value
+        self.Elements.DistanceDrawing.Position = Vector2.new(pos.X, pos.Y + 10)
+        self.Elements.DistanceDrawing.Color = self.Color
+        self.Elements.DistanceDrawing.Visible = true
     else
         self.Elements.DistanceDrawing.Visible = false
     end
@@ -175,6 +177,14 @@ function KoltESP:Update()
         self.Elements.Highlight.Adornee = rootInstance
         self.Elements.Highlight.Enabled = (Settings.HighlightOutlineVisible or Settings.HighlightFillVisible)
     end
+end
+
+-- Esconde todos os elementos da ESP
+function KoltESP:HideAll()
+    if self.Elements.Tracer then self.Elements.Tracer.Visible = false end
+    if self.Elements.NameDrawing then self.Elements.NameDrawing.Visible = false end
+    if self.Elements.DistanceDrawing then self.Elements.DistanceDrawing.Visible = false end
+    if self.Elements.Highlight then self.Elements.Highlight.Enabled = false end
 end
 
 -- Adiciona ESP
