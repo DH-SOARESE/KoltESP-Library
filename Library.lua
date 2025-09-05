@@ -31,6 +31,8 @@ function KoltESP.new(target)
     self.Target = target
     self.Color = Settings.ESPColor
     self.Elements = {}
+    self.Name = nil
+    self.DistanceSuffix = " m" -- padrão
     self:Init()
     return self
 end
@@ -123,7 +125,7 @@ function KoltESP:Update()
     if Settings.DistanceVisible then
         local distance = (LocalPlayer.Character and LocalPlayer.Character.PrimaryPart and
             (root.Position - LocalPlayer.Character.PrimaryPart.Position).Magnitude) or 0
-        labelText = labelText .. string.format(" (%.1f m)", distance)
+        labelText = labelText .. string.format(" (%.1f%s)", distance, self.DistanceSuffix or " m")
     end
     self.Elements.Label.Text = labelText
     self.Elements.Label.TextColor3 = self.Color
@@ -144,6 +146,8 @@ end
 function KoltESP:AddESP(config)
     if config.type == "Name" then
         self.Name = config.name or "Target"
+    elseif config.type == "Distance" then
+        self.DistanceSuffix = config.Suffix or " m"
     end
 end
 
