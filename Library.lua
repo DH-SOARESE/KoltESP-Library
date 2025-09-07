@@ -1,5 +1,5 @@
--- KoltESP Library 1.1
--- Suporte: Tracer, Name, Distance, HighlightOutline, HighlightFill
+-- KoltESP Library 2.0
+-- Suporte: Tracer, Name, Distance, HighlightOutline, HighlightFill, FOV alto, Camera Offset
 -- Orientada a objetos com configuração global e individual
 
 local KoltESP = {}
@@ -20,7 +20,10 @@ local Settings = {
 
     MaxDistance = math.huge,
     MinDistance = 0,
-    DistanceContainer = ""
+    DistanceContainer = "",
+
+    FOVMultiplier = 1,        -- Novo: Multiplicador de FOV para ajustar tracer e distância
+    CameraOffset = Vector3.new(0, 0, 0) -- Novo: Deslocamento da câmera
 }
 
 -- Serviços
@@ -104,7 +107,8 @@ function KoltESP:Update()
     end
 
     if not LocalPlayer.Character or not LocalPlayer.Character.PrimaryPart then return end
-    local distance = (rootPos - LocalPlayer.Character.PrimaryPart.Position).Magnitude
+    local camPos = Camera.CFrame.Position + Settings.CameraOffset
+    local distance = (rootPos - camPos).Magnitude
 
     -- Checa distância mínima/máxima
     if distance < Settings.MinDistance or distance > Settings.MaxDistance then
@@ -132,7 +136,11 @@ function KoltESP:Update()
         elseif Settings.TracerOrigin == "Center" then
             originY = Camera.ViewportSize.Y / 2
         end
-        self.Elements.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, originY)
+
+        local originX = Camera.ViewportSize.X / 2
+        -- Aplica multiplicador de FOV
+        local fovOffset = (Settings.FOVMultiplier - 1) * distance
+        self.Elements.Tracer.From = Vector2.new(originX, originY + fovOffset)
         self.Elements.Tracer.To = Vector2.new(pos.X, pos.Y)
         self.Elements.Tracer.Color = self.Color
         self.Elements.Tracer.Visible = true
