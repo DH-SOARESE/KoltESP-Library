@@ -1,6 +1,6 @@
---// 📦 Library Kolt V1.3
+--// 📦 Library Kolt V1.2--
 --// 👤 Autor: DH_SOARES
---// 🎨 Estilo: Minimalista, eficiente e responsivo, orientado a endereço de objetos
+--// 🎨 Estilo: Minimalista, eficiente e responsivo
 
 local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
@@ -11,33 +11,29 @@ local ModelESP = {
     Theme = {
         PrimaryColor = Color3.fromRGB(130, 200, 255),
         SecondaryColor = Color3.fromRGB(255, 255, 255),
-        OutlineColor = Color3.fromRGB(0, 0, 0),
+        OutlineColor = Color3.fromRGB(0, 0, 0), -- Outline global
     },
     GlobalSettings = {
-        TracerOrigin = "Bottom", -- Origem global para todos
-        TracerStack = true,      -- Agrupa origem dos tracers juntos
-        TracerScreenRefs = true, -- Usa múltiplas referências do alvo (box corners) para render
+        TracerOrigin = "Bottom",
         ShowTracer = true,
         ShowHighlightFill = true,
         ShowHighlightOutline = true,
         ShowName = true,
         ShowDistance = true,
         ShowBox = true,
+        ShowSkeleton = false,
         RainbowMode = false,
         MaxDistance = math.huge,
         MinDistance = 0,
         Opacity = 0.8,
         LineThickness = 1.5,
         BoxThickness = 1.5,
+        SkeletonThickness = 1.2,
         BoxTransparency = 0.5,
-        HighlightOutlineTransparency = 0.65,
-        HighlightFillTransparency = 0.85,
+        HighlightOutlineTransparency = 0.65, -- Nova config global
+        HighlightFillTransparency = 0.85, -- Nova config global
         FontSize = 14,
         AutoRemoveInvalid = true,
-        BoxPadding = 5,
-        TracerPadding = 0, -- Distância dos tracers entre si (0 = stack total)
-        BoxType = "Dynamic", -- Dynamic = usa bounds, Fixed = tamanho fixo
-        ShowTeamColor = false, -- Exemplo de config útil
     }
 }
 
@@ -53,41 +49,23 @@ end
 
 --// 📍 Tracer Origins
 local tracerOrigins = {
-    Bottom = function(vs) return Vector2.new(vs.X/2, vs.Y) end,
     Top = function(vs) return Vector2.new(vs.X/2, 0) end,
     Center = function(vs) return Vector2.new(vs.X/2, vs.Y/2) end,
+    Bottom = function(vs) return Vector2.new(vs.X/2, vs.Y) end,
     Left = function(vs) return Vector2.new(0, vs.Y/2) end,
     Right = function(vs) return Vector2.new(vs.X, vs.Y/2) end,
 }
 
---// 📍 Centro e bounds do modelo
-local function getModelScreenBounds(model)
-    local min, max
-    for _, part in ipairs(model:GetDescendants()) do
-        if part:IsA("BasePart") and part.Transparency < 1 then
-            local cf = part.CFrame
-            local size = part.Size/2
-            for _, off in ipairs({
-                Vector3.new(-size.X,-size.Y,-size.Z),
-                Vector3.new(size.X,-size.Y,-size.Z),
-                Vector3.new(-size.X,size.Y,-size.Z),
-                Vector3.new(size.X,size.Y,-size.Z),
-                Vector3.new(-size.X,-size.Y,size.Z),
-                Vector3.new(size.X,-size.Y,size.Z),
-                Vector3.new(-size.X,size.Y,size.Z),
-                Vector3.new(size.X,size.Y,size.Z)
-            }) do
-                local corner = (cf.Position + (cf.Rotation * off))
-                local _, screen = pcall(function() return camera:WorldToViewportPoint(corner) end)
-                if screen and screen.Z > 0 then
-                    local v2 = Vector2.new(screen.X, screen.Y)
-                    min = min and Vector2.new(math.min(min.X,v2.X), math.min(min.Y,v2.Y)) or v2
-                    max = max and Vector2.new(math.max(max.X,v2.X), math.max(max.Y,v2.Y)) or v2
-                end
-            end
+--// 📍 Centro do modelo
+local function getModelCenter(model)
+    local total, count = Vector3.zero, 0
+    for _, p in ipairs(model:GetDescendants()) do
+        if p:IsA("BasePart") and p.Transparency < 1 then
+            total += p.Position
+            count += 1
         end
     end
-    return min,max
+    return count > 0 and total/count or (model.PrimaryPart and model.PrimaryPart.Position or model:GetPivot().Position)
 end
 
 --// 🛠️ Cria Drawing
@@ -117,17 +95,13 @@ function ModelESP:Add(target, config)
         TracerColor = config and config.TracerColor or nil,
     }
 
-    -- Tracer: sempre cria, pode desenhar múltiplos
-    cfg.tracerLines = {}
-    for i=1, (self.GlobalSettings.TracerScreenRefs and 4 or 1) do
-        table.insert(cfg.tracerLines, createDrawing("Line", {
-            Thickness = self.GlobalSettings.LineThickness,
-            Color = cfg.TracerColor or cfg.Color,
-            Transparency = self.GlobalSettings.Opacity,
-            Visible = false
-        }))
-    end
-
+    -- Drawings básicos
+    cfg.tracerLine = createDrawing("Line", {
+        Thickness = self.GlobalSettings.LineThickness,
+        Color = cfg.TracerColor or cfg.Color,
+        Transparency = self.GlobalSettings.Opacity,
+        Visible = false
+    })
     cfg.nameText = createDrawing("Text", {
         Text = cfg.Name,
         Color = cfg.Color,
@@ -174,6 +148,22 @@ function ModelESP:Add(target, config)
         })
     end
 
+    -- Skeleton ESP (simplificado)
+    if self.GlobalSettings.ShowSkeleton and target:IsA("Model") then
+        cfg.skeletonLines = {}
+        for _, part in ipairs(target:GetDescendants()) do
+            if part:IsA("BasePart") then
+                local line = createDrawing("Line", {
+                    Thickness = self.GlobalSettings.SkeletonThickness,
+                    Color = cfg.Color,
+                    Transparency = self.GlobalSettings.Opacity,
+                    Visible = false
+                })
+                table.insert(cfg.skeletonLines, line)
+            end
+        end
+    end
+
     table.insert(self.Objects, cfg)
 end
 
@@ -182,27 +172,31 @@ function ModelESP:Remove(target)
     for i=#self.Objects,1,-1 do
         local obj = self.Objects[i]
         if obj.Target == target then
-            for _, draw in ipairs(obj.tracerLines or {}) do if draw then pcall(draw.Remove,draw) end end
-            for _, draw in ipairs({obj.nameText,obj.distanceText,obj.box}) do if draw then pcall(draw.Remove,draw) end end
+            for _, draw in ipairs({obj.tracerLine,obj.nameText,obj.distanceText}) do if draw then pcall(draw.Remove,draw) end end
             if obj.highlight then pcall(obj.highlight.Destroy,obj.highlight) end
+            if obj.box then pcall(obj.box.Remove,obj.box) end
+            if obj.skeletonLines then for _, l in ipairs(obj.skeletonLines) do if l then pcall(l.Remove,l) end end end
             table.remove(self.Objects,i)
             break
         end
     end
 end
 
+--// 🧹 Limpa todos ESP
 function ModelESP:Clear()
     for _, obj in ipairs(self.Objects) do
-        for _, draw in ipairs(obj.tracerLines or {}) do if draw then pcall(draw.Remove,draw) end end
-        for _, draw in ipairs({obj.nameText,obj.distanceText,obj.box}) do if draw then pcall(draw.Remove,draw) end end
+        for _, draw in ipairs({obj.tracerLine,obj.nameText,obj.distanceText}) do if draw then pcall(draw.Remove,draw) end end
         if obj.highlight then pcall(obj.highlight.Destroy,obj.highlight) end
+        if obj.box then pcall(obj.box.Remove,obj.box) end
+        if obj.skeletonLines then for _, l in ipairs(obj.skeletonLines) do if l then pcall(l.Remove,l) end end end
     end
     self.Objects = {}
 end
 
+--// 🌐 Update GlobalSettings
 function ModelESP:UpdateGlobalSettings()
     for _, esp in ipairs(self.Objects) do
-        for _, line in ipairs(esp.tracerLines or {}) do line.Thickness = self.GlobalSettings.LineThickness end
+        if esp.tracerLine then esp.tracerLine.Thickness = self.GlobalSettings.LineThickness end
         if esp.nameText then esp.nameText.Size = self.GlobalSettings.FontSize end
         if esp.distanceText then esp.distanceText.Size = self.GlobalSettings.FontSize-2 end
         if esp.box then esp.box.Thickness = self.GlobalSettings.BoxThickness esp.box.Transparency = self.GlobalSettings.BoxTransparency end
@@ -210,18 +204,19 @@ function ModelESP:UpdateGlobalSettings()
             esp.highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and esp.FilledTransparency or 1
             esp.highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and esp.HighlightOutlineTransparency or 1
         end
+        if esp.skeletonLines then
+            for _, l in ipairs(esp.skeletonLines) do
+                l.Thickness = self.GlobalSettings.SkeletonThickness
+            end
+        end
     end
 end
 
---// Configs Globais (APIs)
+--// ✅ Configs Globais (APIs)
 function ModelESP:SetGlobalTracerOrigin(origin)
-    if tracerOrigins[origin] then self.GlobalSettings.TracerOrigin = origin end
-end
-function ModelESP:SetGlobalTracerStack(enable)
-    self.GlobalSettings.TracerStack = enable
-end
-function ModelESP:SetGlobalTracerScreenRefs(enable)
-    self.GlobalSettings.TracerScreenRefs = enable
+    if tracerOrigins[origin] then
+        self.GlobalSettings.TracerOrigin = origin
+    end
 end
 function ModelESP:SetGlobalESPType(typeName, enabled)
     self.GlobalSettings[typeName] = enabled
@@ -242,8 +237,13 @@ function ModelESP:SetGlobalLineThickness(thick)
     self.GlobalSettings.LineThickness = math.max(1,thick)
     self:UpdateGlobalSettings()
 end
+-- Novas APIs Globais
 function ModelESP:SetGlobalBoxThickness(thick)
     self.GlobalSettings.BoxThickness = math.max(1,thick)
+    self:UpdateGlobalSettings()
+end
+function ModelESP:SetGlobalSkeletonThickness(thick)
+    self.GlobalSettings.SkeletonThickness = math.max(1,thick)
     self:UpdateGlobalSettings()
 end
 function ModelESP:SetGlobalBoxTransparency(value)
@@ -264,22 +264,6 @@ RunService.RenderStepped:Connect(function()
     if not ModelESP.Enabled then return end
     local vs = camera.ViewportSize
     local time = tick()
-    local tracerOriginPos = tracerOrigins[ModelESP.GlobalSettings.TracerOrigin](vs)
-
-    -- Para TracerStack, calcula origem agrupada
-    local stackedOrigins = {}
-    if ModelESP.GlobalSettings.TracerStack then
-        local stackCount = #ModelESP.Objects
-        local base = tracerOriginPos
-        local pad = ModelESP.GlobalSettings.TracerPadding
-        for i=1,stackCount do
-            if tracerOriginPos.Y == 0 or tracerOriginPos.Y == vs.Y then -- vertical stack
-                stackedOrigins[i] = base + Vector2.new((i-((stackCount+1)/2))*pad, 0)
-            else
-                stackedOrigins[i] = base + Vector2.new(0,(i-((stackCount+1)/2))*pad)
-            end
-        end
-    end
 
     for i=#ModelESP.Objects,1,-1 do
         local esp = ModelESP.Objects[i]
@@ -291,58 +275,40 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
-        local min,max = target:IsA("Model") and getModelScreenBounds(target) or nil,nil
-        local pos3D = nil
-        if target:IsA("Model") then
-            local center = target:GetPivot().Position
-            pos3D = center
-        elseif target:IsA("BasePart") then
-            pos3D = target.Position
-        end
-
+        local pos3D = target:IsA("Model") and getModelCenter(target) or (target:IsA("BasePart") and target.Position)
         if not pos3D then continue end
+
         local success, pos2D = pcall(function() return camera:WorldToViewportPoint(pos3D) end)
         if not success or pos2D.Z <= 0 then
-            for _, draw in ipairs(esp.tracerLines or {}) do draw.Visible=false end
-            for _, draw in ipairs({esp.nameText,esp.distanceText,esp.box}) do if draw then draw.Visible=false end end
+            for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText,esp.box}) do if draw then draw.Visible=false end end
             if esp.highlight then esp.highlight.Enabled=false end
+            if esp.skeletonLines then for _, l in ipairs(esp.skeletonLines) do l.Visible=false end end
             continue
         end
 
         local distance = (camera.CFrame.Position - pos3D).Magnitude
         local visible = distance >= ModelESP.GlobalSettings.MinDistance and distance <= ModelESP.GlobalSettings.MaxDistance
+        local screenPos = Vector2.new(pos2D.X,pos2D.Y)
         local color = ModelESP.GlobalSettings.RainbowMode and getRainbowColor(time) or esp.Color
 
         -- Tracer
-        if esp.tracerLines then
-            local refs = {}
-            if ModelESP.GlobalSettings.TracerScreenRefs and min and max then
-                table.insert(refs, min)
-                table.insert(refs, Vector2.new(max.X,min.Y))
-                table.insert(refs, Vector2.new(min.X,max.Y))
-                table.insert(refs, max)
-            else
-                table.insert(refs, Vector2.new(pos2D.X,pos2D.Y))
-            end
-            for idx, line in ipairs(esp.tracerLines) do
-                line.Visible = ModelESP.GlobalSettings.ShowTracer and visible
-                line.Color = esp.TracerColor or color
-                line.From = ModelESP.GlobalSettings.TracerStack and stackedOrigins[i] or tracerOriginPos
-                line.To = refs[idx] or refs[1]
-            end
+        if esp.tracerLine then
+            esp.tracerLine.Visible = ModelESP.GlobalSettings.ShowTracer and visible
+            esp.tracerLine.From = tracerOrigins[ModelESP.GlobalSettings.TracerOrigin](vs)
+            esp.tracerLine.To = screenPos
+            esp.tracerLine.Color = esp.TracerColor or color
         end
-
         -- Name
         if esp.nameText then
             esp.nameText.Visible = ModelESP.GlobalSettings.ShowName and visible
-            esp.nameText.Position = Vector2.new(pos2D.X,pos2D.Y) - Vector2.new(0,20)
+            esp.nameText.Position = screenPos - Vector2.new(0,20)
             esp.nameText.Text = esp.Name
             esp.nameText.Color = color
         end
         -- Distance
         if esp.distanceText then
             esp.distanceText.Visible = ModelESP.GlobalSettings.ShowDistance and visible
-            esp.distanceText.Position = Vector2.new(pos2D.X,pos2D.Y) + Vector2.new(0,5)
+            esp.distanceText.Position = screenPos + Vector2.new(0,5)
             esp.distanceText.Text = string.format("%.1fm",distance)
             esp.distanceText.Color = color
         end
@@ -355,12 +321,19 @@ RunService.RenderStepped:Connect(function()
             esp.highlight.OutlineTransparency = ModelESP.GlobalSettings.ShowHighlightOutline and esp.HighlightOutlineTransparency or 1
         end
         -- Box ESP
-        if esp.box and min and max then
+        if esp.box then
             esp.box.Visible = ModelESP.GlobalSettings.ShowBox and visible
-            local size = max-min + Vector2.new(ModelESP.GlobalSettings.BoxPadding*2,ModelESP.GlobalSettings.BoxPadding*2)
-            esp.box.Size = ModelESP.GlobalSettings.BoxType=="Fixed" and Vector2.new(50,50) or size
-            esp.box.Position = min - Vector2.new(ModelESP.GlobalSettings.BoxPadding,ModelESP.GlobalSettings.BoxPadding)
+            esp.box.Size = Vector2.new(50,50)
+            esp.box.Position = screenPos - esp.box.Size/2
             esp.box.Color = esp.BoxColor or color
+        end
+        -- Skeleton ESP
+        if esp.skeletonLines then
+            for _, l in ipairs(esp.skeletonLines) do
+                l.Visible = ModelESP.GlobalSettings.ShowSkeleton and visible
+                l.Color = color
+                -- Aqui você pode atualizar posições reais se tiver joints
+            end
         end
     end
 end)
