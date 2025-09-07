@@ -1,313 +1,296 @@
-# 📦 Kolt ESP Library V1.2
+# KoltESP Library
 
-Uma biblioteca ESP simples, eficiente e responsiva para Roblox, focada em configurações fáceis e intuitivas sem complicações no código.
+![KoltESP Banner](https://via.placeholder.com/800x200?text=KoltESP+V1.3) <!-- You can replace this with an actual banner image if available -->
 
-**👤 Autor:** DH_SOARES  
-**🎨 Estilo:** Minimalista, eficiente e orientado a objetos
+**Version: 1.3 Enhanced**  
+**Author: DH_SOARES**  
+**Description:** KoltESP is a lightweight, efficient, and responsive ESP (Extra Sensory Perception) library for Roblox. It provides visual enhancements like tracers, highlights, boxes, skeletons, health bars, and more for models or parts in the game world. Designed with performance in mind, it includes caching, validation, and customizable settings. Ideal for game development, cheats, or visual debugging in Roblox experiences.
 
----
+This library is minimalist yet powerful, supporting features like rainbow mode, team checks, occlusion detection (optional), and auto-removal of invalid targets. It runs at a configurable update rate to balance performance and smoothness.
 
-## 🚀 Links Rápidos para Tipos de ESP
+## Table of Contents
 
-- [🎯 **Tracer ESP**](#-tracer-esp) - Linhas conectando da tela ao alvo
-- [🔍 **Highlight ESP**](#-highlight-esp) - Destaque colorido nos objetos
-- [📦 **Box ESP**](#-box-esp) - Caixas delimitadoras 2D
-- [📝 **Text ESP**](#-text-esp) - Nome e distância dos alvos
-- [🌈 **Rainbow Mode**](#-rainbow-mode) - Cores arco-íris animadas
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Usage Examples](#usage-examples)
+- [API Reference](#api-reference)
+  - [Global Settings](#global-settings)
+  - [Methods](#methods)
+  - [Configuration per ESP Object](#configuration-per-esp-object)
+  - [Statistics](#statistics)
+- [Shortcuts and Tips](#shortcuts-and-tips)
+- [Performance Considerations](#performance-considerations)
+- [Changelog](#changelog)
+- [License](#license)
 
----
+## Features
 
-## 📥 Instalação
+- **ESP Types Supported:**
+  - Tracers (from various origins: Top, Center, Bottom, Left, Right, Mouse)
+  - 3D Highlights (fill and outline, with transparency control)
+  - 2D Boxes (around screen position)
+  - Skeletons (for humanoid models, connecting body parts)
+  - Health Bars (for humanoids, with color gradient based on health)
+  - Name and Distance Text Overlays
+
+- **Customization:**
+  - Global settings for all ESPs (e.g., opacity, thickness, rainbow mode)
+  - Per-object overrides (e.g., custom colors, custom update functions)
+  - Rainbow color mode for dynamic visuals
+  - Distance-based visibility (min/max distance)
+  - Team check for players (ignores same-team targets)
+  - Auto-remove invalid targets (e.g., destroyed models)
+  - Occlusion detection (optional, checks if target is behind obstacles)
+
+- **Performance Optimizations:**
+  - Caching for model centers to reduce computations
+  - Throttled updates based on configurable FPS rate (default: 60)
+  - Stats tracking (total/visible objects, frame time)
+  - Stateful unload function to clean up all resources
+
+- **Error Handling:**
+  - Validation for targets (models or base parts)
+  - Protected calls (pcall) for drawing creation and removal
+  - Warnings for invalid operations
+
+- **Themes:**
+  - Default theme with primary, secondary, outline, and error colors
+  - Easily modifiable via `ModelESP.Theme`
+
+Everything is toggleable globally or per-object, making it flexible for various use cases.
+
+## Installation
+
+The library is loaded via Roblox's `loadstring` function. Fetch the raw Lua code from the GitHub repository and execute it.
 
 ```lua
-local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/Kolt-DOORS/refs/heads/main/Kolt%20ESP-LIBRARY.lua"))()
+local libraryCode = game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua")
+local ModelESP = loadstring(libraryCode)()
 ```
 
-## ⚡ Uso Básico
+- **Global Access:** After loading, the library is available as `ModelESP`. It's also set to `getgenv().KoltESP` and `_G.KoltESP` for easy access.
+- **Initialization:** The library auto-initializes on load, connecting to `RunService.RenderStepped` for updates.
 
-### Adicionando ESP a um Objeto
+**Note:** Ensure you're running this in a Roblox environment with access to services like `RunService`, `Players`, and `Workspace`.
+
+## Quick Start
+
+Add ESP to a player's character:
 
 ```lua
--- ESP básico
-ModelESP:Add(workspace.Part)
+local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
--- ESP com configurações personalizadas
-ModelESP:Add(workspace.Model, {
-    Name = "Alvo Importante",
+-- Add ESP to local player's character
+ModelESP:Add(game.Players.LocalPlayer.Character, {
+    Name = "My Character",
+    Color = Color3.fromRGB(0, 255, 0)
+})
+
+-- Enable rainbow mode globally
+ModelESP:SetGlobalRainbow(true)
+```
+
+This will add a tracer, name, distance, and highlight to your character.
+
+## Usage Examples
+
+### Basic ESP Addition
+
+Add ESP to a model or part:
+
+```lua
+local targetModel = workspace:FindFirstChild("SomeModel") -- Replace with your target
+ModelESP:Add(targetModel, {
+    Name = "Enemy",
     Color = Color3.fromRGB(255, 0, 0),
-    BoxColor = Color3.fromRGB(0, 255, 0),
-    TracerColor = Color3.fromRGB(0, 0, 255)
+    ShowHealthBar = true  -- If it's a humanoid
 })
 ```
 
-### Removendo ESP
+### Custom Per-Object Configuration
+
+Override global settings for a specific ESP:
 
 ```lua
--- Remove ESP de um objeto específico
-ModelESP:Remove(workspace.Part)
+ModelESP:Add(workspace.Part, {
+    Name = "Important Part",
+    TracerColor = Color3.fromRGB(255, 255, 0),
+    BoxColor = Color3.fromRGB(0, 0, 255),
+    CustomUpdate = function(esp, screenPos, distance, color, visible)
+        -- Custom logic, e.g., change text based on distance
+        if distance > 50 then
+            esp.nameText.Text = "Far Away"
+        end
+    end
+})
+```
 
--- Remove todos os ESPs
+### Global Settings Changes
+
+Toggle features globally:
+
+```lua
+ModelESP:SetGlobalTracerOrigin("Mouse")  -- Tracer from mouse position
+ModelESP:SetGlobalESPType("ShowSkeleton", true)  -- Enable skeletons for all
+ModelESP:SetGlobalOpacity(0.5)  -- Half opacity
+ModelESP:SetMaxDistance(1000)  -- Only show ESP within 1000 studs
+ModelESP:SetTeamCheck(true)  -- Ignore same-team players
+```
+
+### Adding ESP to All Players
+
+Loop through players and add ESP:
+
+```lua
+for _, player in ipairs(game.Players:GetPlayers()) do
+    if player ~= game.Players.LocalPlayer and player.Character then
+        ModelESP:Add(player.Character, {
+            Name = player.Name,
+            Color = Color3.fromRGB(255, 100, 100)
+        })
+    end
+end
+```
+
+### Removing ESP
+
+Remove from a specific target:
+
+```lua
+ModelESP:Remove(workspace.SomeModel)
+```
+
+Clear all ESPs:
+
+```lua
 ModelESP:Clear()
 ```
 
----
+### Unloading the Library
 
-## 🎯 Tracer ESP
-
-Linhas que conectam da tela até o alvo, com múltiplas opções de origem e empilhamento.
-
-### Configurações de Origem
+Fully unload and clean up:
 
 ```lua
--- Definir origem global dos tracers
-ModelESP:SetGlobalTracerOrigin("Bottom")    -- Parte inferior (padrão)
-ModelESP:SetGlobalTracerOrigin("Top")       -- Parte superior
-ModelESP:SetGlobalTracerOrigin("Center")    -- Centro da tela
-ModelESP:SetGlobalTracerOrigin("Left")      -- Lateral esquerda
-ModelESP:SetGlobalTracerOrigin("Right")     -- Lateral direita
+ModelESP:Unload()
 ```
 
-### Empilhamento e Referências
+### Monitoring Stats
+
+Get performance stats:
 
 ```lua
--- Agrupar origens dos tracers (evita sobreposição)
-ModelESP:SetGlobalTracerStack(true)
-
--- Usar múltiplas referências da tela (cantos da box)
-ModelESP:SetGlobalTracerScreenRefs(true)
-
--- Controlar visibilidade
-ModelESP:SetGlobalESPType("ShowTracer", true)
+local stats = ModelESP:GetStats()
+print("Total Objects:", stats.totalObjects)
+print("Visible Objects:", stats.visibleObjects)
+print("Frame Time (ms):", stats.frameTime)
 ```
 
----
+## API Reference
 
-## 🔍 Highlight ESP
+### Global Settings
 
-Sistema de destaque que cria contornos e preenchimentos coloridos nos objetos.
+Access and modify via `ModelESP.GlobalSettings` table. Use setter methods for updates that propagate to all ESPs.
 
-```lua
--- Controlar componentes do highlight
-ModelESP:SetGlobalESPType("ShowHighlightFill", true)      -- Preenchimento
-ModelESP:SetGlobalESPType("ShowHighlightOutline", true)   -- Contorno
+- `TracerOrigin` (string): "Bottom" (default), "Top", "Center", "Left", "Right", "Mouse"
+- `ShowTracer` (bool): true
+- `ShowHighlightFill` (bool): true
+- `ShowHighlightOutline` (bool): true
+- `ShowName` (bool): true
+- `ShowDistance` (bool): true
+- `ShowBox` (bool): true
+- `ShowSkeleton` (bool): false
+- `ShowHealthBar` (bool): false
+- `RainbowMode` (bool): false
+- `MaxDistance` (number): math.huge
+- `MinDistance` (number): 0
+- `Opacity` (number): 0.8 (0-1)
+- `LineThickness` (number): 1.5
+- `BoxThickness` (number): 1.5
+- `SkeletonThickness` (number): 1.2
+- `BoxTransparency` (number): 0.5 (0-1)
+- `HighlightOutlineTransparency` (number): 0.65 (0-1)
+- `HighlightFillTransparency` (number): 0.85 (0-1)
+- `FontSize` (number): 14
+- `AutoRemoveInvalid` (bool): true
+- `UpdateRate` (number): 60 (FPS)
+- `UseOcclusion` (bool): false (not fully implemented in code, but placeholder)
+- `TeamCheck` (bool): false
 
--- Ajustar transparências
-ModelESP:SetGlobalHighlightFillTransparency(0.85)        -- 0 = opaco, 1 = invisível
-ModelESP:SetGlobalHighlightOutlineTransparency(0.65)
+Setter Methods:
+- `SetGlobalTracerOrigin(origin: string)`
+- `SetGlobalESPType(typeName: string, enabled: bool)` (e.g., "ShowTracer")
+- `SetGlobalRainbow(enable: bool)`
+- `SetGlobalOpacity(value: number)`
+- `SetGlobalFontSize(size: number)`
+- `SetGlobalLineThickness(thick: number)`
+- `SetGlobalBoxThickness(thick: number)`
+- `SetGlobalSkeletonThickness(thick: number)`
+- `SetGlobalBoxTransparency(value: number)`
+- `SetGlobalHighlightOutlineTransparency(value: number)`
+- `SetGlobalHighlightFillTransparency(value: number)`
+- `SetMaxDistance(distance: number)`
+- `SetMinDistance(distance: number)`
+- `SetUpdateRate(fps: number)`
+- `SetTeamCheck(enabled: bool)`
 
--- ESP personalizado com highlight específico
-ModelESP:Add(workspace.Model, {
-    Name = "VIP",
-    Color = Color3.fromRGB(255, 215, 0),
-    HighlightOutlineColor = Color3.fromRGB(255, 0, 0),
-    HighlightOutlineTransparency = 0.3,
-    FilledTransparency = 0.7
-})
-```
+### Methods
 
----
+- `Add(target: Model|BasePart, config: table) -> bool`: Adds ESP to a target. Config options below.
+- `Remove(target: Model|BasePart)`: Removes ESP from a target.
+- `Clear()`: Removes all ESPs.
+- `Unload()`: Fully unloads the library, disconnects connections, clears everything.
+- `UpdateGlobalSettings()`: Propagates global changes to all ESPs (called internally by setters).
+- `Initialize()`: Sets up the render loop (auto-called on load).
+- `GetStats() -> table`: Returns stats like totalObjects, visibleObjects, frameTime, etc.
 
-## 📦 Box ESP
+### Configuration per ESP Object
 
-Caixas delimitadoras 2D que envolvem os objetos na tela.
+Passed as a table to `Add()`. Overrides globals where applicable.
 
-```lua
--- Ativar/desativar boxes
-ModelESP:SetGlobalESPType("ShowBox", true)
+- `Name` (string): Display name (default: target.Name)
+- `Color` (Color3): Main color (default: Theme.PrimaryColor)
+- `HighlightOutlineColor` (Color3): Outline color
+- `HighlightOutlineTransparency` (number): 0-1
+- `FilledTransparency` (number): Fill transparency (for highlight)
+- `BoxColor` (Color3): Box color override
+- `TracerColor` (Color3): Tracer color override
+- `ShowHealthBar` (bool): Per-object health bar toggle
+- `CustomUpdate` (function(esp, screenPos, distance, color, visible)): Custom update callback
 
--- Configurar espessura e transparência
-ModelESP:SetGlobalBoxThickness(2)
-ModelESP:SetGlobalBoxTransparency(0.5)
+### Statistics
 
--- Tipo de box
-ModelESP.GlobalSettings.BoxType = "Dynamic"  -- Usa bounds reais (padrão)
-ModelESP.GlobalSettings.BoxType = "Fixed"    -- Tamanho fixo 50x50
+Returned by `GetStats()`:
 
--- Padding da box
-ModelESP.GlobalSettings.BoxPadding = 5
-```
+- `totalObjects` (int)
+- `visibleObjects` (int)
+- `frameTime` (number): Milliseconds per frame
+- `lastUpdate` (number): Timestamp of last update
+- `cacheSize` (int): Size of internal cache
+- `enabled` (bool): If ESP is enabled
 
----
+## Shortcuts and Tips
 
-## 📝 Text ESP
+- **Quick Toggle:** `ModelESP.Enabled = false` to disable all rendering without unloading.
+- **Global Access:** Use `getgenv().KoltESP` or `_G.KoltESP` after loading.
+- **Rainbow Speed:** Modify `getRainbowColor` function's `speed` param for faster/slower rainbows.
+- **Humanoid-Only:** Check for `Humanoid` before adding skeleton or health bar.
+- **Performance Tip:** Set `UpdateRate` to 30 for low-end devices.
+- **Debug:** Print stats every second with a loop: `while wait(1) do print(ModelESP:GetStats()) end`
+- **Atalhos (Shortcuts in Portuguese):** 
+  - Adicionar ESP: `ModelESP:Add(target, {})`
+  - Remover: `ModelESP:Remove(target)`
+  - Arco-íris: `ModelESP:SetGlobalRainbow(true)`
+  - Descarregar: `ModelESP:Unload()`
 
-Exibe nome e distância dos alvos acima dos objetos.
+## Performance Considerations
 
-```lua
--- Controlar textos
-ModelESP:SetGlobalESPType("ShowName", true)
-ModelESP:SetGlobalESPType("ShowDistance", true)
+- Uses `RenderStepped` with throttling to target FPS.
+- Caches model centers every 0.1 seconds.
+- Avoid adding thousands of objects; test with `GetStats()` for bottlenecks.
+- Skeletons and health bars are resource-intensive; toggle off if not needed.
 
--- Configurar fonte
-ModelESP:SetGlobalFontSize(16)
+## Changelog
 
--- ESP com nome personalizado
-ModelESP:Add(workspace.Player, {
-    Name = "👑 Boss Final",
-    Color = Color3.fromRGB(255, 0, 255)
-})
-```
-
----
-
-## 🌈 Rainbow Mode
-
-Modo que anima as cores em padrão arco-íris.
-
-```lua
--- Ativar modo rainbow
-ModelESP:SetGlobalRainbow(true)
-
--- Desativar modo rainbow
-ModelESP:SetGlobalRainbow(false)
-```
-
----
-
-## ⚙️ Configurações Globais
-
-### Controle de Distância
-
-```lua
--- Definir distâncias mínima e máxima
-ModelESP.GlobalSettings.MaxDistance = 500
-ModelESP.GlobalSettings.MinDistance = 10
-```
-
-### Opacidade e Espessuras
-
-```lua
--- Opacidade geral
-ModelESP:SetGlobalOpacity(0.8)
-
--- Espessuras
-ModelESP:SetGlobalLineThickness(2)    -- Tracers
-ModelESP:SetGlobalBoxThickness(1.5)   -- Boxes
-```
-
-### Configurações Avançadas
-
-```lua
--- Empilhamento de tracers
-ModelESP.GlobalSettings.TracerStack = true
-ModelESP.GlobalSettings.TracerPadding = 2  -- Distância entre tracers empilhados
-
--- Remoção automática de objetos inválidos
-ModelESP.GlobalSettings.AutoRemoveInvalid = true
-
--- Usar referências múltiplas da tela
-ModelESP.GlobalSettings.TracerScreenRefs = true
-```
-
-### Temas de Cores
-
-```lua
--- Personalizar tema padrão
-ModelESP.Theme = {
-    PrimaryColor = Color3.fromRGB(130, 200, 255),      -- Cor principal
-    SecondaryColor = Color3.fromRGB(255, 255, 255),    -- Cor secundária
-    OutlineColor = Color3.fromRGB(0, 0, 0),            -- Cor do contorno
-}
-```
-
----
-
-## 🔧 Controle Principal
-
-```lua
--- Ativar/desativar toda a library
-ModelESP.Enabled = true   -- Liga
-ModelESP.Enabled = false  -- Desliga
-
--- Forçar atualização de todas as configurações
-ModelESP:UpdateGlobalSettings()
-```
-
----
-
-## 💡 Exemplos Práticos
-
-### ESP Básico para NPCs
-
-```lua
-local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/Kolt-DOORS/refs/heads/main/Kolt%20ESP-LIBRARY.lua"))()
-
--- Encontrar e adicionar ESP a todos os NPCs
-for _, npc in pairs(workspace:GetChildren()) do
-    if npc:FindFirstChildOfClass("Humanoid") then
-        ModelESP:Add(npc, {
-            Name = "🤖 " .. npc.Name,
-            Color = Color3.fromRGB(0, 255, 0)
-        })
-    end
-end
-```
-
-### ESP Avançado com Múltiplas Configurações
-
-```lua
-local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/Kolt-DOORS/refs/heads/main/Kolt%20ESP-LIBRARY.lua"))()
-
--- Configurar settings globais
-ModelESP:SetGlobalTracerOrigin("Bottom")
-ModelESP:SetGlobalTracerStack(true)
-ModelESP:SetGlobalFontSize(14)
-ModelESP:SetGlobalOpacity(0.9)
-
--- ESP para diferentes tipos de objetos
-local importantParts = {"Door", "Key", "Chest"}
-for _, partName in pairs(importantParts) do
-    local part = workspace:FindFirstChild(partName)
-    if part then
-        ModelESP:Add(part, {
-            Name = "⭐ " .. partName,
-            Color = Color3.fromRGB(255, 215, 0),
-            TracerColor = Color3.fromRGB(255, 0, 0),
-            BoxColor = Color3.fromRGB(0, 255, 255)
-        })
-    end
-end
-```
-
-### ESP com Rainbow e Filtros
-
-```lua
-local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/Kolt-DOORS/refs/heads/main/Kolt%20ESP-LIBRARY.lua"))()
-
--- Ativar modo rainbow
-ModelESP:SetGlobalRainbow(true)
-
--- Configurar distância máxima
-ModelESP.GlobalSettings.MaxDistance = 200
-
--- Adicionar ESP apenas para objetos próximos
-for _, obj in pairs(workspace:GetChildren()) do
-    if obj:IsA("Model") or obj:IsA("BasePart") then
-        ModelESP:Add(obj)
-    end
-end
-```
-
----
-
-## 🎮 Compatibilidade
-
-- ✅ Funciona com Models e BaseParts
-- ✅ Remove automaticamente objetos inválidos
-- ✅ Sistema de renderização otimizado por frame
-- ✅ Suporte completo para Drawing API
-- ✅ Configurações persistem durante a execução
-
----
-
-## 📝 Changelog V1.3
-
-- **🆕 Tracer melhorado** com origem agrupada e múltiplas referências
-- **🆕 Sistema de empilhamento** para evitar sobreposição de tracers
-- **🆕 Referências de tela** usando cantos da box para tracers mais precisos
-- **🔧 Otimizações** no sistema de renderização
-- **🎨 Interface simplificada** para configurações globais
-
----
-
-*Biblioteca desenvolvida com foco na simplicidade e eficiência. Para dúvidas ou sugestões, entre em contato com DH_SOARES.*
+- **V1.3 Enhanced:** Added unload, performance throttling, caching, validation, stats, team check, more setters.
+- **Previous:** Basic ESP features.
