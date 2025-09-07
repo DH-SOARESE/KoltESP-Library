@@ -1,4 +1,4 @@
-# 📦 Kolt ESP Library V1.3
+# 📦 Kolt ESP Library V1.2
 
 Uma biblioteca ESP simples, eficiente e responsiva para Roblox, focada em configurações fáceis e intuitivas sem complicações no código.
 
