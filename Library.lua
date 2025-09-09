@@ -1,7 +1,7 @@
---// 📦 Library Kolt V1.3 Enhanced
+--// 📦 Library Kolt V1.4 Enhanced
 --// 👤 Autor: DH_SOARES
---// 🎨 Estilo: Minimalista, eficiente e responsivo
---// ✨ Melhorias: Unload, Performance, Validação, Cache
+--// 🎨 Estilo: Minimalista, eficiente, responsivo com design moderno
+--// ✨ Melhorias: Design aprimorado, SetTarget individual, cache otimizado
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -19,6 +19,8 @@ local ModelESP = {
         SecondaryColor = Color3.fromRGB(255, 255, 255),
         OutlineColor = Color3.fromRGB(0, 0, 0),
         ErrorColor = Color3.fromRGB(255, 100, 100),
+        ShadowColor = Color3.fromRGB(0, 0, 0),
+        GradientColor = Color3.fromRGB(100, 150, 255),
     },
     GlobalSettings = {
         TracerOrigin = "Bottom",
@@ -41,10 +43,16 @@ local ModelESP = {
         HighlightOutlineTransparency = 0.65,
         HighlightFillTransparency = 0.85,
         FontSize = 14,
+        Font = Drawing.Fonts.Monospace,
         AutoRemoveInvalid = true,
-        UpdateRate = 60, -- FPS alvo para updates
-        UseOcclusion = false, -- Detecta se objeto está atrás de obstáculos
-        TeamCheck = false, -- Verifica se é do mesmo time (para players)
+        UpdateRate = 60,
+        UseOcclusion = false,
+        TeamCheck = false,
+        ShadowEnabled = true, -- Nova configuração para sombras
+        ShadowOpacity = 0.3,
+        RoundedBox = true, -- Bordas arredondadas
+        TracerAnimation = false, -- Animação de pulsação para tracers
+        GradientEnabled = false, -- Gradiente para highlights
     },
     _stats = {
         totalObjects = 0,
@@ -64,7 +72,19 @@ local function getRainbowColor(t, speed)
     )
 end
 
---// 📍 Tracer Origins melhoradas
+--// 🌈 Cor gradiente
+local function getGradientColor(t, baseColor)
+    local r = baseColor.R * 255
+    local g = baseColor.G * 255
+    local b = baseColor.B * 255
+    return Color3.fromRGB(
+        r + math.sin(t) * 30,
+        g + math.sin(t + 2.094) * 30,
+        b + math.sin(t + 4.188) * 30
+    )
+end
+
+--// 📍 Tracer Origins
 local tracerOrigins = {
     Top = function(vs) return Vector2.new(vs.X * 0.5, 0) end,
     Center = function(vs) return Vector2.new(vs.X * 0.5, vs.Y * 0.5) end,
@@ -79,6 +99,7 @@ local tracerOrigins = {
 
 --// 📍 Centro do modelo com cache
 local function getModelCenter(model)
+    if not model then return nil end
     if ModelESP._cache[model] and tick() - ModelESP._cache[model].time < 0.1 then
         return ModelESP._cache[model].center
     end
@@ -109,15 +130,33 @@ local function createDrawing(class, props)
     return success and obj or nil
 end
 
---// 🔍 Validação de target melhorada
+--// 🔍 Validação de target
 local function isValidTarget(target)
     return target and target.Parent and (target:IsA("Model") or target:IsA("BasePart"))
+end
+
+--// 🔍 Resolve target a partir de string
+local function resolveTarget(targetPath)
+    if type(targetPath) == "string" then
+        local success, obj = pcall(function()
+            local parts = targetPath:split(".")
+            local current = game
+            for _, part in ipairs(parts) do
+                current = current:FindFirstChild(part) or current[part]
+                if not current then return nil end
+            end
+            return current
+        end)
+        return success and isValidTarget(obj) and obj or nil
+    elseif type(targetPath) == "userdata" then
+        return isValidTarget(targetPath) and targetPath or nil
+    end
+    return nil
 end
 
 --// 👥 Verifica se é do mesmo time
 local function isSameTeam(target)
     if not ModelESP.GlobalSettings.TeamCheck then return false end
-    
     local targetPlayer = Players:GetPlayerFromCharacter(target)
     if targetPlayer and localPlayer.Team and targetPlayer.Team then
         return localPlayer.Team == targetPlayer.Team
@@ -128,11 +167,10 @@ end
 --// 🏥 Cria barra de vida
 local function createHealthBar(config)
     if not ModelESP.GlobalSettings.ShowHealthBar then return {} end
-    
     return {
         background = createDrawing("Square", {
             Thickness = 1,
-            Color = Color3.fromRGB(0, 0, 0),
+            Color = ModelESP.Theme.OutlineColor,
             Transparency = 0.8,
             Filled = true,
             Visible = false
@@ -147,19 +185,29 @@ local function createHealthBar(config)
     }
 end
 
---// ➕ Adiciona ESP melhorado
+--// 🛠️ Cria sombra para texto ou caixa
+local function createShadowDrawing(class, props)
+    local shadow = createDrawing(class, props)
+    if shadow then
+        shadow.Color = ModelESP.Theme.ShadowColor
+        shadow.Transparency = ModelESP.GlobalSettings.ShadowOpacity
+    end
+    return shadow
+end
+
+--// ➕ Adiciona ESP
 function ModelESP:Add(target, config)
-    if not isValidTarget(target) then 
+    local resolvedTarget = resolveTarget(target)
+    if not resolvedTarget then 
         warn("[Kolt ESP] Target inválido fornecido")
         return false
     end
 
-    -- Remove ESP existente se houver
-    self:Remove(target)
+    self:Remove(resolvedTarget)
 
     local cfg = setmetatable({
-        Target = target,
-        Name = (config and config.Name) or target.Name or "Unknown",
+        Target = resolvedTarget,
+        Name = (config and config.Name) or resolvedTarget.Name or "Unknown",
         Color = (config and config.Color) or self.Theme.PrimaryColor,
         HighlightOutlineColor = (config and config.HighlightOutlineColor) or self.Theme.OutlineColor,
         HighlightOutlineTransparency = (config and config.HighlightOutlineTransparency) or self.GlobalSettings.HighlightOutlineTransparency,
@@ -167,26 +215,29 @@ function ModelESP:Add(target, config)
         BoxColor = config and config.BoxColor,
         TracerColor = config and config.TracerColor,
         ShowHealthBar = config and config.ShowHealthBar,
-        CustomUpdate = config and config.CustomUpdate, -- Função customizada de update
+        CustomUpdate = config and config.CustomUpdate,
+        ShadowEnabled = (config and config.ShadowEnabled) or self.GlobalSettings.ShadowEnabled,
+        RoundedBox = (config and config.RoundedBox) or self.GlobalSettings.RoundedBox,
+        GradientEnabled = (config and config.GradientEnabled) or self.GlobalSettings.GradientEnabled,
+        TracerAnimation = (config and config.TracerAnimation) or self.GlobalSettings.TracerAnimation,
+        Font = (config and config.Font) or self.GlobalSettings.Font,
         _lastUpdate = 0,
         _visible = false,
     }, {__index = config or {}})
 
-    -- Limpa highlights antigos
-    for _, obj in ipairs(target:GetChildren()) do
+    for _, obj in ipairs(resolvedTarget:GetChildren()) do
         if obj:IsA("Highlight") and obj.Name == "ESPHighlight" then 
             obj:Destroy() 
         end
     end
 
-    -- Cria drawings básicos
     cfg.tracerLine = createDrawing("Line", {
         Thickness = self.GlobalSettings.LineThickness,
         Color = cfg.TracerColor or cfg.Color,
         Transparency = self.GlobalSettings.Opacity,
         Visible = false
     })
-    
+
     cfg.nameText = createDrawing("Text", {
         Text = cfg.Name,
         Color = cfg.Color,
@@ -194,11 +245,19 @@ function ModelESP:Add(target, config)
         Center = true,
         Outline = true,
         OutlineColor = self.Theme.OutlineColor,
-        Font = Drawing.Fonts.Monospace,
+        Font = cfg.Font,
         Transparency = self.GlobalSettings.Opacity,
         Visible = false
     })
-    
+
+    cfg.nameShadow = cfg.ShadowEnabled and createShadowDrawing("Text", {
+        Text = cfg.Name,
+        Size = self.GlobalSettings.FontSize,
+        Center = true,
+        Font = cfg.Font,
+        Visible = false
+    })
+
     cfg.distanceText = createDrawing("Text", {
         Text = "",
         Color = cfg.Color,
@@ -206,12 +265,19 @@ function ModelESP:Add(target, config)
         Center = true,
         Outline = true,
         OutlineColor = self.Theme.OutlineColor,
-        Font = Drawing.Fonts.Monospace,
+        Font = cfg.Font,
         Transparency = self.GlobalSettings.Opacity,
         Visible = false
     })
 
-    -- Highlight 3D
+    cfg.distanceShadow = cfg.ShadowEnabled and createShadowDrawing("Text", {
+        Text = "",
+        Size = self.GlobalSettings.FontSize - 2,
+        Center = true,
+        Font = cfg.Font,
+        Visible = false
+    })
+
     if self.GlobalSettings.ShowHighlightFill or self.GlobalSettings.ShowHighlightOutline then
         local success, highlight = pcall(function()
             local h = Instance.new("Highlight")
@@ -221,13 +287,12 @@ function ModelESP:Add(target, config)
             h.OutlineColor = cfg.HighlightOutlineColor
             h.FillTransparency = self.GlobalSettings.ShowHighlightFill and cfg.FilledTransparency or 1
             h.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and cfg.HighlightOutlineTransparency or 1
-            h.Parent = target
+            h.Parent = resolvedTarget
             return h
         end)
         if success then cfg.highlight = highlight end
     end
 
-    -- Box ESP
     if self.GlobalSettings.ShowBox then
         cfg.box = createDrawing("Square", {
             Thickness = self.GlobalSettings.BoxThickness,
@@ -236,15 +301,18 @@ function ModelESP:Add(target, config)
             Visible = false,
             Filled = false
         })
+        cfg.boxShadow = cfg.ShadowEnabled and createShadowDrawing("Square", {
+            Thickness = self.GlobalSettings.BoxThickness,
+            Visible = false,
+            Filled = false
+        })
     end
 
-    -- Health Bar
     cfg.healthBar = createHealthBar(cfg)
 
-    -- Skeleton ESP (melhorado para humanoides)
-    if self.GlobalSettings.ShowSkeleton and target:IsA("Model") then
+    if self.GlobalSettings.ShowSkeleton and resolvedTarget:IsA("Model") then
         cfg.skeletonLines = {}
-        local humanoid = target:FindFirstChild("Humanoid")
+        local humanoid = resolvedTarget:FindFirstChild("Humanoid")
         if humanoid then
             local connections = {
                 {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
@@ -253,7 +321,6 @@ function ModelESP:Add(target, config)
                 {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
                 {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}
             }
-            
             for _, connection in ipairs(connections) do
                 local line = createDrawing("Line", {
                     Thickness = self.GlobalSettings.SkeletonThickness,
@@ -274,33 +341,101 @@ function ModelESP:Add(target, config)
     return true
 end
 
+--// 🔄 Redefine o alvo de uma ESP individual
+function ModelESP:SetTarget(oldTarget, newTarget)
+    local resolvedTarget = resolveTarget(newTarget)
+    if not resolvedTarget then
+        warn("[Kolt ESP] Novo target inválido")
+        return false
+    end
+
+    for _, esp in ipairs(self.Objects) do
+        if esp.Target == oldTarget then
+            -- Remove highlight antigo
+            if esp.highlight then
+                pcall(esp.highlight.Destroy, esp.highlight)
+                esp.highlight = nil
+            end
+
+            -- Atualiza o alvo
+            esp.Target = resolvedTarget
+            esp.Name = resolvedTarget.Name or esp.Name
+
+            -- Cria novo highlight
+            if self.GlobalSettings.ShowHighlightFill or self.GlobalSettings.ShowHighlightOutline then
+                local success, highlight = pcall(function()
+                    local h = Instance.new("Highlight")
+                    h.Name = "ESPHighlight"
+                    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    h.FillColor = esp.Color
+                    h.OutlineColor = esp.HighlightOutlineColor
+                    h.FillTransparency = self.GlobalSettings.ShowHighlightFill and esp.FilledTransparency or 1
+                    h.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and esp.HighlightOutlineTransparency or 1
+                    h.Parent = resolvedTarget
+                    return h
+                end)
+                if success then esp.highlight = highlight end
+            end
+
+            -- Atualiza skeleton se necessário
+            if esp.skeletonLines then
+                for _, line in ipairs(esp.skeletonLines) do
+                    pcall(line.Remove, line)
+                end
+                esp.skeletonLines = {}
+                if self.GlobalSettings.ShowSkeleton and resolvedTarget:IsA("Model") then
+                    local humanoid = resolvedTarget:FindFirstChild("Humanoid")
+                    if humanoid then
+                        local connections = {
+                            {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
+                            {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"},
+                            {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"},
+                            {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
+                            {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}
+                        }
+                        for _, connection in ipairs(connections) do
+                            local line = createDrawing("Line", {
+                                Thickness = self.GlobalSettings.SkeletonThickness,
+                                Color = esp.Color,
+                                Transparency = self.GlobalSettings.Opacity,
+                                Visible = false
+                            })
+                            if line then
+                                line._connection = connection
+                                table.insert(esp.skeletonLines, line)
+                            end
+                        end
+                    end
+                end
+            end
+
+            return true
+        end
+    end
+    warn("[Kolt ESP] ESP não encontrada para o alvo especificado")
+    return false
+end
+
 --// ➖ Remove ESP individual
 function ModelESP:Remove(target)
     for i = #self.Objects, 1, -1 do
         local obj = self.Objects[i]
         if obj.Target == target then
-            -- Remove drawings
-            for _, draw in ipairs({obj.tracerLine, obj.nameText, obj.distanceText, obj.box}) do
+            for _, draw in ipairs({obj.tracerLine, obj.nameText, obj.nameShadow, obj.distanceText, obj.distanceShadow, obj.box, obj.boxShadow}) do
                 if draw then pcall(draw.Remove, draw) end
             end
-            
-            -- Remove highlight
             if obj.highlight then pcall(obj.highlight.Destroy, obj.highlight) end
-            
-            -- Remove health bar
             if obj.healthBar then
                 for _, bar in pairs(obj.healthBar) do
                     if bar then pcall(bar.Remove, bar) end
                 end
             end
-            
-            -- Remove skeleton
             if obj.skeletonLines then
                 for _, line in ipairs(obj.skeletonLines) do
                     if line then pcall(line.Remove, line) end
                 end
             end
-            
+            self._cache[obj.Target] = nil -- Limpa cache
             table.remove(self.Objects, i)
             break
         end
@@ -311,7 +446,7 @@ end
 --// 🧹 Limpa todos ESP
 function ModelESP:Clear()
     for _, obj in ipairs(self.Objects) do
-        for _, draw in ipairs({obj.tracerLine, obj.nameText, obj.distanceText, obj.box}) do
+        for _, draw in ipairs({obj.tracerLine, obj.nameText, obj.nameShadow, obj.distanceText, obj.distanceShadow, obj.box, obj.boxShadow}) do
             if draw then pcall(draw.Remove, draw) end
         end
         if obj.highlight then pcall(obj.highlight.Destroy, obj.highlight) end
@@ -325,6 +460,7 @@ function ModelESP:Clear()
                 if line then pcall(line.Remove, line) end
             end
         end
+        self._cache[obj.Target] = nil
     end
     self.Objects = {}
     self._cache = {}
@@ -332,21 +468,13 @@ function ModelESP:Clear()
     self._stats.visibleObjects = 0
 end
 
---// 🔄 Descarrega completamente a biblioteca
+--// 🔄 Descarrega completamente
 function ModelESP:Unload()
     print("[Kolt ESP] Descarregando biblioteca...")
-    
-    -- Para todas as conexões
     for _, connection in pairs(self._connections) do
-        if connection then
-            pcall(connection.Disconnect, connection)
-        end
+        if connection then pcall(connection.Disconnect, connection) end
     end
-    
-    -- Limpa todos os ESPs
     self:Clear()
-    
-    -- Reseta variáveis
     self.Enabled = false
     self._connections = {}
     self._cache = {}
@@ -357,15 +485,8 @@ function ModelESP:Unload()
         lastUpdateTime = 0,
         frameTime = 0,
     }
-    
-    -- Limpa referências globais se existirem
-    if getgenv then
-        getgenv().KoltESP = nil
-    end
-    if _G then
-        _G.KoltESP = nil
-    end
-    
+    if getgenv then getgenv().KoltESP = nil end
+    if _G then _G.KoltESP = nil end
     print("[Kolt ESP] Biblioteca descarregada com sucesso!")
 end
 
@@ -376,11 +497,29 @@ function ModelESP:UpdateGlobalSettings()
             esp.tracerLine.Thickness = self.GlobalSettings.LineThickness 
             esp.tracerLine.Transparency = self.GlobalSettings.Opacity
         end
-        if esp.nameText then esp.nameText.Size = self.GlobalSettings.FontSize end
-        if esp.distanceText then esp.distanceText.Size = self.GlobalSettings.FontSize - 2 end
+        if esp.nameText then 
+            esp.nameText.Size = self.GlobalSettings.FontSize 
+            esp.nameText.Font = self.GlobalSettings.Font
+        end
+        if esp.nameShadow then 
+            esp.nameShadow.Size = self.GlobalSettings.FontSize 
+            esp.nameShadow.Font = self.GlobalSettings.Font
+        end
+        if esp.distanceText then 
+            esp.distanceText.Size = self.GlobalSettings.FontSize - 2 
+            esp.distanceText.Font = self.GlobalSettings.Font
+        end
+        if esp.distanceShadow then 
+            esp.distanceShadow.Size = self.GlobalSettings.FontSize - 2 
+            esp.distanceShadow.Font = self.GlobalSettings.Font
+        end
         if esp.box then 
             esp.box.Thickness = self.GlobalSettings.BoxThickness 
             esp.box.Transparency = self.GlobalSettings.BoxTransparency
+        end
+        if esp.boxShadow then 
+            esp.boxShadow.Thickness = self.GlobalSettings.BoxThickness 
+            esp.boxShadow.Transparency = self.GlobalSettings.ShadowOpacity
         end
         if esp.highlight then
             esp.highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and esp.FilledTransparency or 1
@@ -396,28 +535,23 @@ function ModelESP:UpdateGlobalSettings()
 end
 
 --// ✅ APIs de Configuração Global
-function ModelESP:SetGlobalTracerOrigin(origin)
-    if tracerOrigins[origin] then
-        self.GlobalSettings.TracerOrigin = origin
-    end
-end
-
-function ModelESP:SetGlobalESPType(typeName, enabled)
-    if self.GlobalSettings[typeName] ~= nil then
-        self.GlobalSettings[typeName] = enabled
-        self:UpdateGlobalSettings()
-    end
-end
-
+function ModelESP:SetGlobalTracerOrigin(origin) if tracerOrigins[origin] then self.GlobalSettings.TracerOrigin = origin end end
+function ModelESP:SetGlobalESPType(typeName, enabled) if self.GlobalSettings[typeName] ~= nil then self.GlobalSettings[typeName] = enabled; self:UpdateGlobalSettings() end end
 function ModelESP:SetGlobalRainbow(enable) self.GlobalSettings.RainbowMode = enable end
 function ModelESP:SetGlobalOpacity(value) self.GlobalSettings.Opacity = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
 function ModelESP:SetGlobalFontSize(size) self.GlobalSettings.FontSize = math.max(8, size); self:UpdateGlobalSettings() end
+function ModelESP:SetGlobalFont(font) self.GlobalSettings.Font = font; self:UpdateGlobalSettings() end
 function ModelESP:SetGlobalLineThickness(thick) self.GlobalSettings.LineThickness = math.max(1, thick); self:UpdateGlobalSettings() end
 function ModelESP:SetGlobalBoxThickness(thick) self.GlobalSettings.BoxThickness = math.max(1, thick); self:UpdateGlobalSettings() end
 function ModelESP:SetGlobalSkeletonThickness(thick) self.GlobalSettings.SkeletonThickness = math.max(1, thick); self:UpdateGlobalSettings() end
 function ModelESP:SetGlobalBoxTransparency(value) self.GlobalSettings.BoxTransparency = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
 function ModelESP:SetGlobalHighlightOutlineTransparency(value) self.GlobalSettings.HighlightOutlineTransparency = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
 function ModelESP:SetGlobalHighlightFillTransparency(value) self.GlobalSettings.HighlightFillTransparency = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
+function ModelESP:SetGlobalShadowEnabled(enable) self.GlobalSettings.ShadowEnabled = enable; self:UpdateGlobalSettings() end
+function ModelESP:SetGlobalShadowOpacity(value) self.GlobalSettings.ShadowOpacity = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
+function ModelESP:SetGlobalRoundedBox(enable) self.GlobalSettings.RoundedBox = enable; self:UpdateGlobalSettings() end
+function ModelESP:SetGlobalTracerAnimation(enable) self.GlobalSettings.TracerAnimation = enable; self:UpdateGlobalSettings() end
+function ModelESP:SetGlobalGradientEnabled(enable) self.GlobalSettings.GradientEnabled = enable; self:UpdateGlobalSettings() end
 function ModelESP:SetMaxDistance(distance) self.GlobalSettings.MaxDistance = math.max(0, distance) end
 function ModelESP:SetMinDistance(distance) self.GlobalSettings.MinDistance = math.max(0, distance) end
 function ModelESP:SetUpdateRate(fps) self.GlobalSettings.UpdateRate = math.clamp(fps, 1, 144) end
@@ -439,10 +573,8 @@ end
 function ModelESP:Initialize()
     if self._initialized then return end
     
-    -- Conexão principal de renderização
     local renderConnection = RunService.RenderStepped:Connect(function()
         local frameStart = tick()
-        
         if not self.Enabled then return end
         
         local vs = camera.ViewportSize
@@ -450,7 +582,6 @@ function ModelESP:Initialize()
         local deltaTime = time - self._stats.lastUpdateTime
         local targetFrameTime = 1 / self.GlobalSettings.UpdateRate
         
-        -- Throttle de FPS se necessário
         if deltaTime < targetFrameTime then return end
         
         self._stats.lastUpdateTime = time
@@ -460,7 +591,6 @@ function ModelESP:Initialize()
             local esp = self.Objects[i]
             local target = esp.Target
             
-            -- Auto-remove objetos inválidos
             if not isValidTarget(target) then
                 if self.GlobalSettings.AutoRemoveInvalid then
                     self:Remove(target)
@@ -468,19 +598,15 @@ function ModelESP:Initialize()
                 continue
             end
             
-            -- Verifica team
             if isSameTeam(target) then continue end
             
-            -- Obtém posição 3D
             local pos3D = getModelCenter(target)
             if not pos3D then continue end
             
-            -- Converte para 2D
             local success, pos2D = pcall(camera.WorldToViewportPoint, camera, pos3D)
             if not success or pos2D.Z <= 0 then
-                -- Esconde elementos quando fora da tela
                 esp._visible = false
-                for _, draw in ipairs({esp.tracerLine, esp.nameText, esp.distanceText, esp.box}) do
+                for _, draw in ipairs({esp.tracerLine, esp.nameText, esp.nameShadow, esp.distanceText, esp.distanceShadow, esp.box, esp.boxShadow}) do
                     if draw then draw.Visible = false end
                 end
                 if esp.highlight then esp.highlight.Enabled = false end
@@ -493,29 +619,29 @@ function ModelESP:Initialize()
             local distance = (camera.CFrame.Position - pos3D).Magnitude
             local visible = distance >= self.GlobalSettings.MinDistance and distance <= self.GlobalSettings.MaxDistance
             local screenPos = Vector2.new(pos2D.X, pos2D.Y)
-            local color = self.GlobalSettings.RainbowMode and getRainbowColor(time) or esp.Color
+            local color = self.GlobalSettings.RainbowMode and getRainbowColor(time) or (esp.GradientEnabled and getGradientColor(time, esp.Color) or esp.Color)
             
             if visible then
                 self._stats.visibleObjects = self._stats.visibleObjects + 1
                 esp._visible = true
             end
             
-            -- Update personalizado se fornecido
             if esp.CustomUpdate then
                 pcall(esp.CustomUpdate, esp, screenPos, distance, color, visible)
             end
             
-            -- Tracer
             if esp.tracerLine then
                 esp.tracerLine.Visible = self.GlobalSettings.ShowTracer and visible
                 if visible then
                     esp.tracerLine.From = tracerOrigins[self.GlobalSettings.TracerOrigin](vs)
                     esp.tracerLine.To = screenPos
                     esp.tracerLine.Color = esp.TracerColor or color
+                    if esp.TracerAnimation then
+                        esp.tracerLine.Transparency = self.GlobalSettings.Opacity * (0.8 + 0.2 * math.sin(time * 2))
+                    end
                 end
             end
             
-            -- Nome
             if esp.nameText then
                 esp.nameText.Visible = self.GlobalSettings.ShowName and visible
                 if visible then
@@ -524,8 +650,14 @@ function ModelESP:Initialize()
                     esp.nameText.Color = color
                 end
             end
+            if esp.nameShadow and esp.ShadowEnabled then
+                esp.nameShadow.Visible = self.GlobalSettings.ShowName and visible
+                if visible then
+                    esp.nameShadow.Position = screenPos - Vector2.new(0, 29)
+                    esp.nameShadow.Text = esp.Name
+                end
+            end
             
-            -- Distância
             if esp.distanceText then
                 esp.distanceText.Visible = self.GlobalSettings.ShowDistance and visible
                 if visible then
@@ -534,8 +666,14 @@ function ModelESP:Initialize()
                     esp.distanceText.Color = color
                 end
             end
+            if esp.distanceShadow and esp.ShadowEnabled then
+                esp.distanceShadow.Visible = self.GlobalSettings.ShowDistance and visible
+                if visible then
+                    esp.distanceShadow.Position = screenPos + Vector2.new(0, 6)
+                    esp.distanceShadow.Text = string.format("%.1fm", distance)
+                end
+            end
             
-            -- Highlight
             if esp.highlight then
                 esp.highlight.Enabled = (self.GlobalSettings.ShowHighlightFill or self.GlobalSettings.ShowHighlightOutline) and visible
                 if visible then
@@ -544,7 +682,6 @@ function ModelESP:Initialize()
                 end
             end
             
-            -- Box ESP
             if esp.box then
                 esp.box.Visible = self.GlobalSettings.ShowBox and visible
                 if visible then
@@ -552,10 +689,26 @@ function ModelESP:Initialize()
                     esp.box.Size = Vector2.new(math.max(20, boxSize.X), math.max(30, boxSize.Y))
                     esp.box.Position = screenPos - esp.box.Size/2
                     esp.box.Color = esp.BoxColor or color
+                    if esp.RoundedBox then
+                        esp.box.Radius = 4 -- Bordas arredondadas
+                    else
+                        esp.box.Radius = 0
+                    end
+                end
+            end
+            if esp.boxShadow and esp.ShadowEnabled then
+                esp.boxShadow.Visible = self.GlobalSettings.ShowBox and visible
+                if visible then
+                    esp.boxShadow.Size = Vector2.new(math.max(20, 60 - distance/10), math.max(30, 80 - distance/8))
+                    esp.boxShadow.Position = screenPos - esp.boxShadow.Size/2 + Vector2.new(2, 2)
+                    if esp.RoundedBox then
+                        esp.boxShadow.Radius = 4
+                    else
+                        esp.boxShadow.Radius = 0
+                    end
                 end
             end
             
-            -- Health Bar
             if esp.healthBar and esp.healthBar.background and visible then
                 local humanoid = target:FindFirstChild("Humanoid")
                 if humanoid and self.GlobalSettings.ShowHealthBar then
@@ -578,7 +731,6 @@ function ModelESP:Initialize()
                 end
             end
             
-            -- Skeleton ESP
             if esp.skeletonLines and visible then
                 for _, line in ipairs(esp.skeletonLines) do
                     line.Visible = self.GlobalSettings.ShowSkeleton
@@ -601,19 +753,17 @@ function ModelESP:Initialize()
             end
         end
         
-        self._stats.frameTime = (tick() - frameStart) * 1000 -- ms
+        self._stats.frameTime = (tick() - frameStart) * 1000
     end)
     
     self._connections.renderStepped = renderConnection
     self._initialized = true
-    
-    print(string.format("[Kolt ESP] Inicializado com sucesso! Versão: 1.3"))
+    print("[Kolt ESP] Inicializado com sucesso! Versão: 1.4")
 end
 
 -- Auto-inicializar
 ModelESP:Initialize()
 
--- Tornar disponível globalmente (opcional)
 if getgenv then getgenv().KoltESP = ModelESP end
 if _G then _G.KoltESP = ModelESP end
 
