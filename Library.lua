@@ -1,4 +1,4 @@
---// 📦 Library Kolt V1.4 Enhanced
+--// 📦 Library Kolt V1.5 Enhanced
 --// 👤 Autor: DH_SOARES
 --// 🎨 Estilo: Minimalista, eficiente, responsivo com design moderno
 --// ✨ Melhorias: Design aprimorado, SetTarget individual, cache otimizado
@@ -9,7 +9,7 @@ local Players = game:GetService("Players")
 local camera = workspace.CurrentCamera
 local localPlayer = Players.LocalPlayer
 
-local ModelESP = {
+local KoltESP = {
     Objects = {},
     Enabled = true,
     _connections = {},
@@ -36,7 +36,12 @@ local ModelESP = {
         HighlightOutlineTransparency = 0.65,
         HighlightFillTransparency = 0.85,
         FontSize = 14,
-        Font = Drawing.Fonts.Monospace,
+        NameFont = Drawing.Fonts.Monospace,
+        DistanceFont = Drawing.Fonts.Monospace,
+        NameContainer = "[]",
+        DistanceContainer = "()",
+        DistanceSuffix = "m",
+        HighlightOutlineThickness = 1,
         AutoRemoveInvalid = true,
         UpdateRate = 60,
         UseOcclusion = false,
@@ -87,8 +92,8 @@ local tracerOrigins = {
 --// 📍 Centro do modelo com cache
 local function getModelCenter(model)
     if not model then return nil end
-    if ModelESP._cache[model] and tick() - ModelESP._cache[model].time < 0.1 then
-        return ModelESP._cache[model].center
+    if KoltESP._cache[model] and tick() - KoltESP._cache[model].time < 0.1 then
+        return KoltESP._cache[model].center
     end
     
     local center
@@ -101,7 +106,7 @@ local function getModelCenter(model)
         center = cf.Position
     end
     
-    ModelESP._cache[model] = {center = center, time = tick()}
+    KoltESP._cache[model] = {center = center, time = tick()}
     return center
 end
 
@@ -142,7 +147,7 @@ local function resolveTarget(targetPath)
 end
 
 --// ➕ Adiciona ESP
-function ModelESP:Add(target, config)
+function KoltESP:Add(target, config)
     local resolvedTarget = resolveTarget(target)
     if not resolvedTarget then 
         warn("[Kolt ESP] Target inválido fornecido")
@@ -160,7 +165,12 @@ function ModelESP:Add(target, config)
         FilledTransparency = (config and config.FilledTransparency) or self.GlobalSettings.HighlightFillTransparency,
         TracerColor = config and config.TracerColor,
         CustomUpdate = config and config.CustomUpdate,
-        Font = (config and config.Font) or self.GlobalSettings.Font,
+        NameFont = (config and config.NameFont) or self.GlobalSettings.NameFont,
+        DistanceFont = (config and config.DistanceFont) or self.GlobalSettings.DistanceFont,
+        NameContainer = (config and config.NameContainer) or self.GlobalSettings.NameContainer,
+        DistanceContainer = (config and config.DistanceContainer) or self.GlobalSettings.DistanceContainer,
+        DistanceSuffix = (config and config.DistanceSuffix) or self.GlobalSettings.DistanceSuffix,
+        HighlightOutlineThickness = (config and config.HighlightOutlineThickness) or self.GlobalSettings.HighlightOutlineThickness,
         _lastUpdate = 0,
         _visible = false,
     }, {__index = config or {}})
@@ -184,7 +194,7 @@ function ModelESP:Add(target, config)
         Size = self.GlobalSettings.FontSize,
         Center = true,
         Outline = false,
-        Font = cfg.Font,
+        Font = cfg.NameFont,
         Transparency = self.GlobalSettings.Opacity,
         Visible = false
     })
@@ -195,7 +205,7 @@ function ModelESP:Add(target, config)
         Size = self.GlobalSettings.FontSize - 2,
         Center = true,
         Outline = false,
-        Font = cfg.Font,
+        Font = cfg.DistanceFont,
         Transparency = self.GlobalSettings.Opacity,
         Visible = false
     })
@@ -221,7 +231,7 @@ function ModelESP:Add(target, config)
 end
 
 --// 🔄 Redefine o alvo de uma ESP individual
-function ModelESP:SetTarget(oldTarget, newTarget)
+function KoltESP:SetTarget(oldTarget, newTarget)
     local resolvedTarget = resolveTarget(newTarget)
     if not resolvedTarget then
         warn("[Kolt ESP] Novo target inválido")
@@ -264,7 +274,7 @@ function ModelESP:SetTarget(oldTarget, newTarget)
 end
 
 --// ➖ Remove ESP individual
-function ModelESP:Remove(target)
+function KoltESP:Remove(target)
     for i = #self.Objects, 1, -1 do
         local obj = self.Objects[i]
         if obj.Target == target then
@@ -281,7 +291,7 @@ function ModelESP:Remove(target)
 end
 
 --// 🧹 Limpa todos ESP
-function ModelESP:Clear()
+function KoltESP:Clear()
     for _, obj in ipairs(self.Objects) do
         for _, draw in ipairs({obj.tracerLine, obj.nameText, obj.distanceText}) do
             if draw then pcall(draw.Remove, draw) end
@@ -296,7 +306,7 @@ function ModelESP:Clear()
 end
 
 --// 🔄 Descarrega completamente
-function ModelESP:Unload()
+function KoltESP:Unload()
     print("[Kolt ESP] Descarregando biblioteca...")
     for _, connection in pairs(self._connections) do
         if connection then pcall(connection.Disconnect, connection) end
@@ -318,7 +328,7 @@ function ModelESP:Unload()
 end
 
 --// 🌐 Update GlobalSettings
-function ModelESP:UpdateGlobalSettings()
+function KoltESP:UpdateGlobalSettings()
     for _, esp in ipairs(self.Objects) do
         if esp.tracerLine then 
             esp.tracerLine.Thickness = self.GlobalSettings.LineThickness 
@@ -326,11 +336,11 @@ function ModelESP:UpdateGlobalSettings()
         end
         if esp.nameText then 
             esp.nameText.Size = self.GlobalSettings.FontSize 
-            esp.nameText.Font = self.GlobalSettings.Font
+            esp.nameText.Font = self.GlobalSettings.NameFont
         end
         if esp.distanceText then 
             esp.distanceText.Size = self.GlobalSettings.FontSize - 2 
-            esp.distanceText.Font = self.GlobalSettings.Font
+            esp.distanceText.Font = self.GlobalSettings.DistanceFont
         end
         if esp.highlight then
             esp.highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and esp.FilledTransparency or 1
@@ -340,21 +350,21 @@ function ModelESP:UpdateGlobalSettings()
 end
 
 --// ✅ APIs de Configuração Global
-function ModelESP:SetGlobalTracerOrigin(origin) if tracerOrigins[origin] then self.GlobalSettings.TracerOrigin = origin end end
-function ModelESP:SetGlobalESPType(typeName, enabled) if self.GlobalSettings[typeName] ~= nil then self.GlobalSettings[typeName] = enabled; self:UpdateGlobalSettings() end end
-function ModelESP:SetGlobalRainbow(enable) self.GlobalSettings.RainbowMode = enable end
-function ModelESP:SetGlobalOpacity(value) self.GlobalSettings.Opacity = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
-function ModelESP:SetGlobalFontSize(size) self.GlobalSettings.FontSize = math.max(8, size); self:UpdateGlobalSettings() end
-function ModelESP:SetGlobalFont(font) self.GlobalSettings.Font = font; self:UpdateGlobalSettings() end
-function ModelESP:SetGlobalLineThickness(thick) self.GlobalSettings.LineThickness = math.max(1, thick); self:UpdateGlobalSettings() end
-function ModelESP:SetGlobalHighlightOutlineTransparency(value) self.GlobalSettings.HighlightOutlineTransparency = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
-function ModelESP:SetGlobalHighlightFillTransparency(value) self.GlobalSettings.HighlightFillTransparency = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
-function ModelESP:SetMaxDistance(distance) self.GlobalSettings.MaxDistance = math.max(0, distance) end
-function ModelESP:SetMinDistance(distance) self.GlobalSettings.MinDistance = math.max(0, distance) end
-function ModelESP:SetUpdateRate(fps) self.GlobalSettings.UpdateRate = math.clamp(fps, 1, 144) end
+function KoltESP:SetGlobalTracerOrigin(origin) if tracerOrigins[origin] then self.GlobalSettings.TracerOrigin = origin end end
+function KoltESP:SetGlobalESPType(typeName, enabled) if self.GlobalSettings[typeName] ~= nil then self.GlobalSettings[typeName] = enabled; self:UpdateGlobalSettings() end end
+function KoltESP:SetGlobalRainbow(enable) self.GlobalSettings.RainbowMode = enable end
+function KoltESP:SetGlobalOpacity(value) self.GlobalSettings.Opacity = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
+function KoltESP:SetGlobalFontSize(size) self.GlobalSettings.FontSize = math.max(8, size); self:UpdateGlobalSettings() end
+function KoltESP:SetGlobalFont(font) self.GlobalSettings.NameFont = font; self.GlobalSettings.DistanceFont = font; self:UpdateGlobalSettings() end
+function KoltESP:SetGlobalLineThickness(thick) self.GlobalSettings.LineThickness = math.max(1, thick); self:UpdateGlobalSettings() end
+function KoltESP:SetGlobalHighlightOutlineTransparency(value) self.GlobalSettings.HighlightOutlineTransparency = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
+function KoltESP:SetGlobalHighlightFillTransparency(value) self.GlobalSettings.HighlightFillTransparency = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
+function KoltESP:SetMaxDistance(distance) self.GlobalSettings.MaxDistance = math.max(0, distance) end
+function KoltESP:SetMinDistance(distance) self.GlobalSettings.MinDistance = math.max(0, distance) end
+function KoltESP:SetUpdateRate(fps) self.GlobalSettings.UpdateRate = math.clamp(fps, 1, 144) end
 
 --// 📊 Obter estatísticas
-function ModelESP:GetStats()
+function KoltESP:GetStats()
     return {
         totalObjects = self._stats.totalObjects,
         visibleObjects = self._stats.visibleObjects,
@@ -366,7 +376,7 @@ function ModelESP:GetStats()
 end
 
 --// 🚀 Inicialização
-function ModelESP:Initialize()
+function KoltESP:Initialize()
     if self._initialized then return end
     
     local renderConnection = RunService.RenderStepped:Connect(function()
@@ -433,8 +443,12 @@ function ModelESP:Initialize()
             if esp.nameText then
                 esp.nameText.Visible = self.GlobalSettings.ShowName and visible
                 if visible then
+                    local name_str = esp.Name
+                    if esp.NameContainer and #esp.NameContainer >= 2 then
+                        name_str = esp.NameContainer:sub(1,1) .. name_str .. esp.NameContainer:sub(2,2)
+                    end
+                    esp.nameText.Text = name_str
                     esp.nameText.Position = screenPos - Vector2.new(0, 30)
-                    esp.nameText.Text = esp.Name
                     esp.nameText.Color = color
                 end
             end
@@ -442,8 +456,12 @@ function ModelESP:Initialize()
             if esp.distanceText then
                 esp.distanceText.Visible = self.GlobalSettings.ShowDistance and visible
                 if visible then
+                    local dist_str = string.format("%.1f%s", distance, esp.DistanceSuffix)
+                    if esp.DistanceContainer and #esp.DistanceContainer >= 2 then
+                        dist_str = esp.DistanceContainer:sub(1,1) .. dist_str .. esp.DistanceContainer:sub(2,2)
+                    end
+                    esp.distanceText.Text = dist_str
                     esp.distanceText.Position = screenPos + Vector2.new(0, 5)
-                    esp.distanceText.Text = string.format("%.1fm", distance)
                     esp.distanceText.Color = color
                 end
             end
@@ -467,9 +485,9 @@ function ModelESP:Initialize()
 end
 
 -- Auto-inicializar
-ModelESP:Initialize()
+KoltESP:Initialize()
 
-if getgenv then getgenv().KoltESP = ModelESP end
-if _G then _G.KoltESP = ModelESP end
+if getgenv then getgenv().KoltESP = KoltESP end
+if _G then _G.KoltESP = KoltESP end
 
-return ModelESP
+return KoltESP
