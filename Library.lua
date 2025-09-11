@@ -1,8 +1,7 @@
 --// 📦 Library Kolt V1.5 Enhanced
 --// 👤 Autor: DH_SOARES
 --// 🎨 Estilo: Minimalista, eficiente, responsivo com design moderno
---// ✨ Melhorias: Design aprimorado, SetTarget individual, cache otimizado
-
+--// ✨ Melhorias: Design aprimorado, SetTarget individual, cache otimizado, atualização sem delay (cada frame)
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -38,12 +37,11 @@ local KoltESP = {
         FontSize = 14,
         NameFont = Drawing.Fonts.Monospace,
         DistanceFont = Drawing.Fonts.Monospace,
-        NameContainer = "[]",
-        DistanceContainer = "()",
-        DistanceSuffix = "m",
+        NameContainer = "",
+        DistanceContainer = "",
+        DistanceSuffix = "",
         HighlightOutlineThickness = 1,
         AutoRemoveInvalid = true,
-        UpdateRate = 60,
         UseOcclusion = false,
     },
     _stats = {
@@ -361,7 +359,6 @@ function KoltESP:SetGlobalHighlightOutlineTransparency(value) self.GlobalSetting
 function KoltESP:SetGlobalHighlightFillTransparency(value) self.GlobalSettings.HighlightFillTransparency = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
 function KoltESP:SetMaxDistance(distance) self.GlobalSettings.MaxDistance = math.max(0, distance) end
 function KoltESP:SetMinDistance(distance) self.GlobalSettings.MinDistance = math.max(0, distance) end
-function KoltESP:SetUpdateRate(fps) self.GlobalSettings.UpdateRate = math.clamp(fps, 1, 144) end
 
 --// 📊 Obter estatísticas
 function KoltESP:GetStats()
@@ -385,10 +382,6 @@ function KoltESP:Initialize()
         
         local vs = camera.ViewportSize
         local time = tick()
-        local deltaTime = time - self._stats.lastUpdateTime
-        local targetFrameTime = 1 / self.GlobalSettings.UpdateRate
-        
-        if deltaTime < targetFrameTime then return end
         
         self._stats.lastUpdateTime = time
         self._stats.visibleObjects = 0
@@ -481,7 +474,7 @@ function KoltESP:Initialize()
     
     self._connections.renderStepped = renderConnection
     self._initialized = true
-    print("[Kolt ESP] Inicializado com sucesso! Versão: 1.4")
+    print("[Kolt ESP] Inicializado com sucesso! Versão: 1.5")
 end
 
 -- Auto-inicializar
