@@ -20,7 +20,7 @@ local ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARES
 
 ## 📋 Índice
 
-- [Instalação](#-instalação-rápida)
+## 📋 Índice
 - [Uso Básico](#-uso-básico)
 - [Configurações Globais](#-configurações-globais)
 - [Funcionalidades Avançadas](#-funcionalidades-avançadas)
