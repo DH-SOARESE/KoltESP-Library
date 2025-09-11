@@ -3,6 +3,7 @@
 --// 🎨 Estilo: Minimalista, eficiente, responsivo com design moderno
 --// ✨ Melhorias: Design aprimorado, SetTarget individual, cache otimizado
 
+
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local camera = workspace.CurrentCamera
@@ -17,9 +18,7 @@ local ModelESP = {
     Theme = {
         PrimaryColor = Color3.fromRGB(130, 200, 255),
         SecondaryColor = Color3.fromRGB(255, 255, 255),
-        OutlineColor = Color3.fromRGB(0, 0, 0),
         ErrorColor = Color3.fromRGB(255, 100, 100),
-        ShadowColor = Color3.fromRGB(0, 0, 0),
         GradientColor = Color3.fromRGB(100, 150, 255),
     },
     GlobalSettings = {
@@ -29,17 +28,11 @@ local ModelESP = {
         ShowHighlightOutline = true,
         ShowName = true,
         ShowDistance = true,
-        ShowBox = true,
-        ShowSkeleton = false,
-        ShowHealthBar = false,
         RainbowMode = false,
         MaxDistance = math.huge,
         MinDistance = 0,
         Opacity = 0.8,
         LineThickness = 1.5,
-        BoxThickness = 1.5,
-        SkeletonThickness = 1.2,
-        BoxTransparency = 0.5,
         HighlightOutlineTransparency = 0.65,
         HighlightFillTransparency = 0.85,
         FontSize = 14,
@@ -47,12 +40,6 @@ local ModelESP = {
         AutoRemoveInvalid = true,
         UpdateRate = 60,
         UseOcclusion = false,
-        TeamCheck = false,
-        ShadowEnabled = true, -- Nova configuração para sombras
-        ShadowOpacity = 0.3,
-        RoundedBox = true, -- Bordas arredondadas
-        TracerAnimation = false, -- Animação de pulsação para tracers
-        GradientEnabled = false, -- Gradiente para highlights
     },
     _stats = {
         totalObjects = 0,
@@ -154,47 +141,6 @@ local function resolveTarget(targetPath)
     return nil
 end
 
---// 👥 Verifica se é do mesmo time
-local function isSameTeam(target)
-    if not ModelESP.GlobalSettings.TeamCheck then return false end
-    local targetPlayer = Players:GetPlayerFromCharacter(target)
-    if targetPlayer and localPlayer.Team and targetPlayer.Team then
-        return localPlayer.Team == targetPlayer.Team
-    end
-    return false
-end
-
---// 🏥 Cria barra de vida
-local function createHealthBar(config)
-    if not ModelESP.GlobalSettings.ShowHealthBar then return {} end
-    return {
-        background = createDrawing("Square", {
-            Thickness = 1,
-            Color = ModelESP.Theme.OutlineColor,
-            Transparency = 0.8,
-            Filled = true,
-            Visible = false
-        }),
-        foreground = createDrawing("Square", {
-            Thickness = 1,
-            Color = Color3.fromRGB(0, 255, 0),
-            Transparency = 0.9,
-            Filled = true,
-            Visible = false
-        })
-    }
-end
-
---// 🛠️ Cria sombra para texto ou caixa
-local function createShadowDrawing(class, props)
-    local shadow = createDrawing(class, props)
-    if shadow then
-        shadow.Color = ModelESP.Theme.ShadowColor
-        shadow.Transparency = ModelESP.GlobalSettings.ShadowOpacity
-    end
-    return shadow
-end
-
 --// ➕ Adiciona ESP
 function ModelESP:Add(target, config)
     local resolvedTarget = resolveTarget(target)
@@ -212,14 +158,8 @@ function ModelESP:Add(target, config)
         HighlightOutlineColor = (config and config.HighlightOutlineColor) or self.Theme.OutlineColor,
         HighlightOutlineTransparency = (config and config.HighlightOutlineTransparency) or self.GlobalSettings.HighlightOutlineTransparency,
         FilledTransparency = (config and config.FilledTransparency) or self.GlobalSettings.HighlightFillTransparency,
-        BoxColor = config and config.BoxColor,
         TracerColor = config and config.TracerColor,
-        ShowHealthBar = config and config.ShowHealthBar,
         CustomUpdate = config and config.CustomUpdate,
-        ShadowEnabled = (config and config.ShadowEnabled) or self.GlobalSettings.ShadowEnabled,
-        RoundedBox = (config and config.RoundedBox) or self.GlobalSettings.RoundedBox,
-        GradientEnabled = (config and config.GradientEnabled) or self.GlobalSettings.GradientEnabled,
-        TracerAnimation = (config and config.TracerAnimation) or self.GlobalSettings.TracerAnimation,
         Font = (config and config.Font) or self.GlobalSettings.Font,
         _lastUpdate = 0,
         _visible = false,
@@ -243,18 +183,9 @@ function ModelESP:Add(target, config)
         Color = cfg.Color,
         Size = self.GlobalSettings.FontSize,
         Center = true,
-        Outline = true,
-        OutlineColor = self.Theme.OutlineColor,
+        Outline = false,
         Font = cfg.Font,
         Transparency = self.GlobalSettings.Opacity,
-        Visible = false
-    })
-
-    cfg.nameShadow = cfg.ShadowEnabled and createShadowDrawing("Text", {
-        Text = cfg.Name,
-        Size = self.GlobalSettings.FontSize,
-        Center = true,
-        Font = cfg.Font,
         Visible = false
     })
 
@@ -263,18 +194,9 @@ function ModelESP:Add(target, config)
         Color = cfg.Color,
         Size = self.GlobalSettings.FontSize - 2,
         Center = true,
-        Outline = true,
-        OutlineColor = self.Theme.OutlineColor,
+        Outline = false,
         Font = cfg.Font,
         Transparency = self.GlobalSettings.Opacity,
-        Visible = false
-    })
-
-    cfg.distanceShadow = cfg.ShadowEnabled and createShadowDrawing("Text", {
-        Text = "",
-        Size = self.GlobalSettings.FontSize - 2,
-        Center = true,
-        Font = cfg.Font,
         Visible = false
     })
 
@@ -291,49 +213,6 @@ function ModelESP:Add(target, config)
             return h
         end)
         if success then cfg.highlight = highlight end
-    end
-
-    if self.GlobalSettings.ShowBox then
-        cfg.box = createDrawing("Square", {
-            Thickness = self.GlobalSettings.BoxThickness,
-            Color = cfg.BoxColor or cfg.Color,
-            Transparency = self.GlobalSettings.BoxTransparency,
-            Visible = false,
-            Filled = false
-        })
-        cfg.boxShadow = cfg.ShadowEnabled and createShadowDrawing("Square", {
-            Thickness = self.GlobalSettings.BoxThickness,
-            Visible = false,
-            Filled = false
-        })
-    end
-
-    cfg.healthBar = createHealthBar(cfg)
-
-    if self.GlobalSettings.ShowSkeleton and resolvedTarget:IsA("Model") then
-        cfg.skeletonLines = {}
-        local humanoid = resolvedTarget:FindFirstChild("Humanoid")
-        if humanoid then
-            local connections = {
-                {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
-                {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"},
-                {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"},
-                {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
-                {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}
-            }
-            for _, connection in ipairs(connections) do
-                local line = createDrawing("Line", {
-                    Thickness = self.GlobalSettings.SkeletonThickness,
-                    Color = cfg.Color,
-                    Transparency = self.GlobalSettings.Opacity,
-                    Visible = false
-                })
-                if line then
-                    line._connection = connection
-                    table.insert(cfg.skeletonLines, line)
-                end
-            end
-        end
     end
 
     table.insert(self.Objects, cfg)
@@ -377,38 +256,6 @@ function ModelESP:SetTarget(oldTarget, newTarget)
                 if success then esp.highlight = highlight end
             end
 
-            -- Atualiza skeleton se necessário
-            if esp.skeletonLines then
-                for _, line in ipairs(esp.skeletonLines) do
-                    pcall(line.Remove, line)
-                end
-                esp.skeletonLines = {}
-                if self.GlobalSettings.ShowSkeleton and resolvedTarget:IsA("Model") then
-                    local humanoid = resolvedTarget:FindFirstChild("Humanoid")
-                    if humanoid then
-                        local connections = {
-                            {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
-                            {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"},
-                            {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"},
-                            {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
-                            {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}
-                        }
-                        for _, connection in ipairs(connections) do
-                            local line = createDrawing("Line", {
-                                Thickness = self.GlobalSettings.SkeletonThickness,
-                                Color = esp.Color,
-                                Transparency = self.GlobalSettings.Opacity,
-                                Visible = false
-                            })
-                            if line then
-                                line._connection = connection
-                                table.insert(esp.skeletonLines, line)
-                            end
-                        end
-                    end
-                end
-            end
-
             return true
         end
     end
@@ -421,20 +268,10 @@ function ModelESP:Remove(target)
     for i = #self.Objects, 1, -1 do
         local obj = self.Objects[i]
         if obj.Target == target then
-            for _, draw in ipairs({obj.tracerLine, obj.nameText, obj.nameShadow, obj.distanceText, obj.distanceShadow, obj.box, obj.boxShadow}) do
+            for _, draw in ipairs({obj.tracerLine, obj.nameText, obj.distanceText}) do
                 if draw then pcall(draw.Remove, draw) end
             end
             if obj.highlight then pcall(obj.highlight.Destroy, obj.highlight) end
-            if obj.healthBar then
-                for _, bar in pairs(obj.healthBar) do
-                    if bar then pcall(bar.Remove, bar) end
-                end
-            end
-            if obj.skeletonLines then
-                for _, line in ipairs(obj.skeletonLines) do
-                    if line then pcall(line.Remove, line) end
-                end
-            end
             self._cache[obj.Target] = nil -- Limpa cache
             table.remove(self.Objects, i)
             break
@@ -446,20 +283,10 @@ end
 --// 🧹 Limpa todos ESP
 function ModelESP:Clear()
     for _, obj in ipairs(self.Objects) do
-        for _, draw in ipairs({obj.tracerLine, obj.nameText, obj.nameShadow, obj.distanceText, obj.distanceShadow, obj.box, obj.boxShadow}) do
+        for _, draw in ipairs({obj.tracerLine, obj.nameText, obj.distanceText}) do
             if draw then pcall(draw.Remove, draw) end
         end
         if obj.highlight then pcall(obj.highlight.Destroy, obj.highlight) end
-        if obj.healthBar then
-            for _, bar in pairs(obj.healthBar) do
-                if bar then pcall(bar.Remove, bar) end
-            end
-        end
-        if obj.skeletonLines then
-            for _, line in ipairs(obj.skeletonLines) do
-                if line then pcall(line.Remove, line) end
-            end
-        end
         self._cache[obj.Target] = nil
     end
     self.Objects = {}
@@ -501,35 +328,13 @@ function ModelESP:UpdateGlobalSettings()
             esp.nameText.Size = self.GlobalSettings.FontSize 
             esp.nameText.Font = self.GlobalSettings.Font
         end
-        if esp.nameShadow then 
-            esp.nameShadow.Size = self.GlobalSettings.FontSize 
-            esp.nameShadow.Font = self.GlobalSettings.Font
-        end
         if esp.distanceText then 
             esp.distanceText.Size = self.GlobalSettings.FontSize - 2 
             esp.distanceText.Font = self.GlobalSettings.Font
         end
-        if esp.distanceShadow then 
-            esp.distanceShadow.Size = self.GlobalSettings.FontSize - 2 
-            esp.distanceShadow.Font = self.GlobalSettings.Font
-        end
-        if esp.box then 
-            esp.box.Thickness = self.GlobalSettings.BoxThickness 
-            esp.box.Transparency = self.GlobalSettings.BoxTransparency
-        end
-        if esp.boxShadow then 
-            esp.boxShadow.Thickness = self.GlobalSettings.BoxThickness 
-            esp.boxShadow.Transparency = self.GlobalSettings.ShadowOpacity
-        end
         if esp.highlight then
             esp.highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and esp.FilledTransparency or 1
             esp.highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and esp.HighlightOutlineTransparency or 1
-        end
-        if esp.skeletonLines then
-            for _, l in ipairs(esp.skeletonLines) do
-                l.Thickness = self.GlobalSettings.SkeletonThickness
-                l.Transparency = self.GlobalSettings.Opacity
-            end
         end
     end
 end
@@ -542,20 +347,11 @@ function ModelESP:SetGlobalOpacity(value) self.GlobalSettings.Opacity = math.cla
 function ModelESP:SetGlobalFontSize(size) self.GlobalSettings.FontSize = math.max(8, size); self:UpdateGlobalSettings() end
 function ModelESP:SetGlobalFont(font) self.GlobalSettings.Font = font; self:UpdateGlobalSettings() end
 function ModelESP:SetGlobalLineThickness(thick) self.GlobalSettings.LineThickness = math.max(1, thick); self:UpdateGlobalSettings() end
-function ModelESP:SetGlobalBoxThickness(thick) self.GlobalSettings.BoxThickness = math.max(1, thick); self:UpdateGlobalSettings() end
-function ModelESP:SetGlobalSkeletonThickness(thick) self.GlobalSettings.SkeletonThickness = math.max(1, thick); self:UpdateGlobalSettings() end
-function ModelESP:SetGlobalBoxTransparency(value) self.GlobalSettings.BoxTransparency = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
 function ModelESP:SetGlobalHighlightOutlineTransparency(value) self.GlobalSettings.HighlightOutlineTransparency = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
 function ModelESP:SetGlobalHighlightFillTransparency(value) self.GlobalSettings.HighlightFillTransparency = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
-function ModelESP:SetGlobalShadowEnabled(enable) self.GlobalSettings.ShadowEnabled = enable; self:UpdateGlobalSettings() end
-function ModelESP:SetGlobalShadowOpacity(value) self.GlobalSettings.ShadowOpacity = math.clamp(value, 0, 1); self:UpdateGlobalSettings() end
-function ModelESP:SetGlobalRoundedBox(enable) self.GlobalSettings.RoundedBox = enable; self:UpdateGlobalSettings() end
-function ModelESP:SetGlobalTracerAnimation(enable) self.GlobalSettings.TracerAnimation = enable; self:UpdateGlobalSettings() end
-function ModelESP:SetGlobalGradientEnabled(enable) self.GlobalSettings.GradientEnabled = enable; self:UpdateGlobalSettings() end
 function ModelESP:SetMaxDistance(distance) self.GlobalSettings.MaxDistance = math.max(0, distance) end
 function ModelESP:SetMinDistance(distance) self.GlobalSettings.MinDistance = math.max(0, distance) end
 function ModelESP:SetUpdateRate(fps) self.GlobalSettings.UpdateRate = math.clamp(fps, 1, 144) end
-function ModelESP:SetTeamCheck(enabled) self.GlobalSettings.TeamCheck = enabled end
 
 --// 📊 Obter estatísticas
 function ModelESP:GetStats()
@@ -598,28 +394,23 @@ function ModelESP:Initialize()
                 continue
             end
             
-            if isSameTeam(target) then continue end
-            
             local pos3D = getModelCenter(target)
             if not pos3D then continue end
             
             local success, pos2D = pcall(camera.WorldToViewportPoint, camera, pos3D)
             if not success or pos2D.Z <= 0 then
                 esp._visible = false
-                for _, draw in ipairs({esp.tracerLine, esp.nameText, esp.nameShadow, esp.distanceText, esp.distanceShadow, esp.box, esp.boxShadow}) do
+                for _, draw in ipairs({esp.tracerLine, esp.nameText, esp.distanceText}) do
                     if draw then draw.Visible = false end
                 end
                 if esp.highlight then esp.highlight.Enabled = false end
-                if esp.skeletonLines then
-                    for _, line in ipairs(esp.skeletonLines) do line.Visible = false end
-                end
                 continue
             end
             
             local distance = (camera.CFrame.Position - pos3D).Magnitude
             local visible = distance >= self.GlobalSettings.MinDistance and distance <= self.GlobalSettings.MaxDistance
             local screenPos = Vector2.new(pos2D.X, pos2D.Y)
-            local color = self.GlobalSettings.RainbowMode and getRainbowColor(time) or (esp.GradientEnabled and getGradientColor(time, esp.Color) or esp.Color)
+            local color = self.GlobalSettings.RainbowMode and getRainbowColor(time) or esp.Color
             
             if visible then
                 self._stats.visibleObjects = self._stats.visibleObjects + 1
@@ -636,9 +427,6 @@ function ModelESP:Initialize()
                     esp.tracerLine.From = tracerOrigins[self.GlobalSettings.TracerOrigin](vs)
                     esp.tracerLine.To = screenPos
                     esp.tracerLine.Color = esp.TracerColor or color
-                    if esp.TracerAnimation then
-                        esp.tracerLine.Transparency = self.GlobalSettings.Opacity * (0.8 + 0.2 * math.sin(time * 2))
-                    end
                 end
             end
             
@@ -650,13 +438,6 @@ function ModelESP:Initialize()
                     esp.nameText.Color = color
                 end
             end
-            if esp.nameShadow and esp.ShadowEnabled then
-                esp.nameShadow.Visible = self.GlobalSettings.ShowName and visible
-                if visible then
-                    esp.nameShadow.Position = screenPos - Vector2.new(0, 29)
-                    esp.nameShadow.Text = esp.Name
-                end
-            end
             
             if esp.distanceText then
                 esp.distanceText.Visible = self.GlobalSettings.ShowDistance and visible
@@ -664,13 +445,6 @@ function ModelESP:Initialize()
                     esp.distanceText.Position = screenPos + Vector2.new(0, 5)
                     esp.distanceText.Text = string.format("%.1fm", distance)
                     esp.distanceText.Color = color
-                end
-            end
-            if esp.distanceShadow and esp.ShadowEnabled then
-                esp.distanceShadow.Visible = self.GlobalSettings.ShowDistance and visible
-                if visible then
-                    esp.distanceShadow.Position = screenPos + Vector2.new(0, 6)
-                    esp.distanceShadow.Text = string.format("%.1fm", distance)
                 end
             end
             
@@ -682,75 +456,6 @@ function ModelESP:Initialize()
                 end
             end
             
-            if esp.box then
-                esp.box.Visible = self.GlobalSettings.ShowBox and visible
-                if visible then
-                    local boxSize = Vector2.new(60 - distance/10, 80 - distance/8)
-                    esp.box.Size = Vector2.new(math.max(20, boxSize.X), math.max(30, boxSize.Y))
-                    esp.box.Position = screenPos - esp.box.Size/2
-                    esp.box.Color = esp.BoxColor or color
-                    if esp.RoundedBox then
-                        esp.box.Radius = 4 -- Bordas arredondadas
-                    else
-                        esp.box.Radius = 0
-                    end
-                end
-            end
-            if esp.boxShadow and esp.ShadowEnabled then
-                esp.boxShadow.Visible = self.GlobalSettings.ShowBox and visible
-                if visible then
-                    esp.boxShadow.Size = Vector2.new(math.max(20, 60 - distance/10), math.max(30, 80 - distance/8))
-                    esp.boxShadow.Position = screenPos - esp.boxShadow.Size/2 + Vector2.new(2, 2)
-                    if esp.RoundedBox then
-                        esp.boxShadow.Radius = 4
-                    else
-                        esp.boxShadow.Radius = 0
-                    end
-                end
-            end
-            
-            if esp.healthBar and esp.healthBar.background and visible then
-                local humanoid = target:FindFirstChild("Humanoid")
-                if humanoid and self.GlobalSettings.ShowHealthBar then
-                    local healthPercent = humanoid.Health / humanoid.MaxHealth
-                    local barHeight = 60
-                    local barWidth = 4
-                    local barPos = screenPos + Vector2.new(-35, -30)
-                    
-                    esp.healthBar.background.Visible = true
-                    esp.healthBar.background.Size = Vector2.new(barWidth, barHeight)
-                    esp.healthBar.background.Position = barPos
-                    
-                    esp.healthBar.foreground.Visible = true
-                    esp.healthBar.foreground.Size = Vector2.new(barWidth, barHeight * healthPercent)
-                    esp.healthBar.foreground.Position = barPos + Vector2.new(0, barHeight * (1 - healthPercent))
-                    esp.healthBar.foreground.Color = Color3.fromRGB(255 * (1 - healthPercent), 255 * healthPercent, 0)
-                else
-                    esp.healthBar.background.Visible = false
-                    esp.healthBar.foreground.Visible = false
-                end
-            end
-            
-            if esp.skeletonLines and visible then
-                for _, line in ipairs(esp.skeletonLines) do
-                    line.Visible = self.GlobalSettings.ShowSkeleton
-                    if self.GlobalSettings.ShowSkeleton and line._connection then
-                        local part1 = target:FindFirstChild(line._connection[1])
-                        local part2 = target:FindFirstChild(line._connection[2])
-                        if part1 and part2 then
-                            local pos1 = camera:WorldToViewportPoint(part1.Position)
-                            local pos2 = camera:WorldToViewportPoint(part2.Position)
-                            if pos1.Z > 0 and pos2.Z > 0 then
-                                line.From = Vector2.new(pos1.X, pos1.Y)
-                                line.To = Vector2.new(pos2.X, pos2.Y)
-                                line.Color = color
-                            else
-                                line.Visible = false
-                            end
-                        end
-                    end
-                end
-            end
         end
         
         self._stats.frameTime = (tick() - frameStart) * 1000
