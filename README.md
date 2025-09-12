@@ -1,3 +1,4 @@
+
 # 📦 Kolt ESP Library V1.2
 
 Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e responsiva para Roblox, desenvolvida por **DH_SOARES**.
@@ -6,7 +7,7 @@ Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e responsiv
 
 - 🎯 **ESP Completo**: Tracer, Nome, Distância e Highlight
 - 🌈 **Modo Arco-íris**: Cores dinâmicas que mudam automaticamente
-- 🎨 **Altamente Customizável**: Configurações globais e individuais
+- 🎨 **Customização Avançada de Cores**: Suporte a cores individuais por elemento (Name, Distance, Tracer, Highlight) via tabela ou Color3
 - ⚡ **Performance Otimizada**: Sistema de auto-remoção de objetos inválidos
 - 📱 **Responsivo**: Adapta-se a diferentes resoluções de tela
 - 🔧 **Fácil de Usar**: API simples e intuitiva
@@ -23,7 +24,7 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 - **Tracer**: Linha do ponto de origem até o alvo
 - **Nome**: Exibe o nome do objeto
 - **Distância**: Mostra a distância em metros
-- **Highlight**: Contorno colorido ao redor do objeto
+- **Highlight**: Contorno e preenchimento colorido ao redor do objeto
 
 ### 🎮 Origens do Tracer
 - `Top` - Topo da tela
@@ -43,10 +44,24 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 -- Adicionar ESP básico
 ModelESP:Add(workspace.SomeModel)
 
--- Adicionar ESP com configurações personalizadas
+-- Adicionar ESP com nome personalizado e cor única
 ModelESP:Add(workspace.SomeModel, {
     Name = "Alvo Especial",
     Color = Color3.fromRGB(255, 0, 0)
+})
+
+-- Adicionar ESP com cores personalizadas por elemento
+ModelESP:Add(workspace.SomeModel, {
+    Name = "Alvo Especial",
+    Color = {
+        Name = {255, 255, 255},            -- Cor do texto do nome (RGB)
+        Distance = {255, 255, 255},        -- Cor do texto da distância (RGB)
+        Tracer = {0, 255, 0},              -- Cor da linha tracer (RGB)
+        Highlight = {
+            Filled = {100, 144, 0},        -- Cor do preenchimento do highlight (RGB)
+            Outline = {0, 255, 0}          -- Cor do contorno do highlight (RGB)
+        }
+    }
 })
 ```
 
@@ -87,7 +102,7 @@ ModelESP:SetGlobalESPType("ShowHighlightOutline", true)
 -- Definir origem do tracer
 ModelESP:SetGlobalTracerOrigin("Bottom") -- Top, Center, Bottom, Left, Right
 
--- Ativar modo arco-íris
+-- Ativar modo arco-íris (sobrescreve cores individuais)
 ModelESP:SetGlobalRainbow(true)
 
 -- Ajustar opacidade (0-1)
@@ -112,7 +127,7 @@ ModelESP.GlobalSettings.MinDistance = 0
 
 ## 📖 Exemplos Práticos
 
-### 🧑‍🤝‍🧑 ESP para Jogadores
+### 🧑‍🤝‍🧑 ESP para Jogadores com Cores Personalizadas
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -123,7 +138,15 @@ local function addPlayerESP()
         if player ~= game.Players.LocalPlayer and player.Character then
             ModelESP:Add(player.Character, {
                 Name = player.Name,
-                Color = Color3.fromRGB(0, 255, 0)
+                Color = {
+                    Name = {255, 255, 255},        -- Nome em branco
+                    Distance = {255, 255, 255},    -- Distância em branco
+                    Tracer = {0, 255, 0},          -- Tracer verde
+                    Highlight = {
+                        Filled = {100, 144, 0},    -- Preenchimento verde escuro
+                        Outline = {0, 255, 0}      -- Contorno verde
+                    }
+                }
             })
         end
     end
@@ -138,7 +161,15 @@ game.Players.PlayerAdded:Connect(function(player)
         wait(1) -- Aguardar o character carregar completamente
         ModelESP:Add(character, {
             Name = player.Name,
-            Color = Color3.fromRGB(0, 255, 0)
+            Color = {
+                Name = {255, 255, 255},
+                Distance = {255, 255, 255},
+                Tracer = {0, 255, 0},
+                Highlight = {
+                    Filled = {100, 144, 0},
+                    Outline = {0, 255, 0}
+                }
+            }
         })
     end)
 end)
@@ -157,21 +188,53 @@ end)
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
 -- ESP para partes específicas por nome
-local function addPartESP(partName, espName, color)
+local function addPartESP(partName, espName, colorTable)
     for _, part in pairs(workspace:GetDescendants()) do
         if part.Name == partName and part:IsA("BasePart") then
             ModelESP:Add(part, {
                 Name = espName or part.Name,
-                Color = color or Color3.fromRGB(255, 255, 0)
+                Color = colorTable or {
+                    Name = {255, 255, 0},
+                    Distance = {255, 255, 0},
+                    Tracer = {255, 255, 0},
+                    Highlight = {
+                        Filled = {255, 215, 0},
+                        Outline = {255, 255, 0}
+                    }
+                }
             })
         end
     end
 end
 
 -- Exemplos de uso
-addPartESP("Chest", "💰 Baú", Color3.fromRGB(255, 215, 0))
-addPartESP("Enemy", "👹 Inimigo", Color3.fromRGB(255, 0, 0))
-addPartESP("PowerUp", "⚡ Power-Up", Color3.fromRGB(0, 255, 255))
+addPartESP("Chest", "💰 Baú", {
+    Name = {255, 255, 255},
+    Distance = {255, 255, 255},
+    Tracer = {255, 215, 0},
+    Highlight = {
+        Filled = {255, 215, 0},
+        Outline = {255, 255, 255}
+    }
+})
+addPartESP("Enemy", "👹 Inimigo", {
+    Name = {255, 255, 255},
+    Distance = {255, 255, 255},
+    Tracer = {255, 0, 0},
+    Highlight = {
+        Filled = {200, 0, 0},
+        Outline = {255, 0, 0}
+    }
+})
+addPartESP("PowerUp", "⚡ Power-Up", {
+    Name = {255, 255, 255},
+    Distance = {255, 255, 255},
+    Tracer = {0, 255, 255},
+    Highlight = {
+        Filled = {0, 200, 200},
+        Outline = {0, 255, 255}
+    }
+})
 ```
 
 ### 🔍 ESP por Path Específico
@@ -181,28 +244,60 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 
 -- ESP para objetos em caminhos específicos
 local targets = {
-    {path = "workspace.Map.Treasures", name = "💎 Tesouro", color = Color3.fromRGB(255, 0, 255)},
-    {path = "workspace.Enemies", name = "⚔️ Inimigo", color = Color3.fromRGB(255, 100, 100)},
-    {path = "workspace.Items", name = "📦 Item", color = Color3.fromRGB(100, 255, 100)}
+    {
+        path = "workspace.Map.Treasures",
+        name = "💎 Tesouro",
+        color = {
+            Name = {255, 255, 255},
+            Distance = {255, 255, 255},
+            Tracer = {255, 0, 255},
+            Highlight = {
+                Filled = {200, 0, 200},
+                Outline = {255, 0, 255}
+            }
+        }
+    },
+    {
+        path = "workspace.Enemies",
+        name = "⚔️ Inimigo",
+        color = {
+            Name = {255, 255, 255},
+            Distance = {255, 255, 255},
+            Tracer = {255, 100, 100},
+            Highlight = {
+                Filled = {200, 50, 50},
+                Outline = {255, 100, 100}
+            }
+        }
+    },
+    {
+        path = "workspace.Items",
+        name = "📦 Item",
+        color = {
+            Name = {255, 255, 255},
+            Distance = {255, 255, 255},
+            Tracer = {100, 255, 100},
+            Highlight = {
+                Filled = {50, 200, 50},
+                Outline = {100, 255, 100}
+            }
+        }
+    }
 }
 
 for _, target in pairs(targets) do
-    local success, obj = pcall(function()
-        return game:GetService("PathfindingService"):FindPartOnRayWithWhitelist() -- Usar o path correto
-    end)
-    
-    -- Exemplo mais direto:
-    local obj = workspace:FindFirstChild("Map")
+    local obj = game
+    for _, part in ipairs(target.path:split(".")) do
+        obj = obj:FindFirstChild(part)
+        if not obj then break end
+    end
     if obj then
-        obj = obj:FindFirstChild("Treasures")
-        if obj then
-            for _, child in pairs(obj:GetChildren()) do
-                if child:IsA("Model") or child:IsA("BasePart") then
-                    ModelESP:Add(child, {
-                        Name = target.name,
-                        Color = target.color
-                    })
-                end
+        for _, child in pairs(obj:GetChildren()) do
+            if child:IsA("Model") or child:IsA("BasePart") then
+                ModelESP:Add(child, {
+                    Name = target.name,
+                    Color = target.color
+                })
             end
         end
     end
@@ -252,6 +347,19 @@ ModelESP.GlobalSettings.AutoRemoveInvalid = true
     LineThickness = 1.5,            -- Espessura da linha
     FontSize = 14,                  -- Tamanho da fonte
     AutoRemoveInvalid = true        -- Auto-remover objetos inválidos
+}
+```
+
+### Estrutura de Cores Personalizadas
+```lua
+Color = {
+    Name = {255, 255, 255},            -- Cor do texto do nome (RGB)
+    Distance = {255, 255, 255},        -- Cor do texto da distância (RGB)
+    Tracer = {0, 255, 0},              -- Cor da linha tracer (RGB)
+    Highlight = {
+        Filled = {100, 144, 0},        -- Cor do preenchimento do highlight (RGB)
+        Outline = {0, 255, 0}          -- Cor do contorno do highlight (RGB)
+    }
 }
 ```
 
