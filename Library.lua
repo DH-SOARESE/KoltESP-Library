@@ -1,211 +1,307 @@
 -- ==============================
--- KoltESP Library
--- Author: Adapted for your request
--- Load via: loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+-- KoltESP Library for Roblox ESP
+-- Optimized, auto-remove invalid targets
+-- Loadable via loadstring in executors like Delta
+-- Supports Models, Parts, BaseParts, MeshParts
 -- ==============================
 
 local KoltESP = {}
-KoltESP.__index = KoltESP
 
--- ==============================
--- Internal Tables
--- ==============================
-KoltESP.Targets = {}
-KoltESP.Configs = {
-    Name = {Visible = true},
-    Distance = {Visible = true},
-    Tracer = {Visible = true},
-    Highlight = {Filled = true, Outline = true},
+-- Services
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+
+-- Internal tables
+local targets = {}
+local globalConfig = {
+    Components = {
+        Name = {Visible = true},
+        Distance = {Visible = true},
+        Tracer = {Visible = true},
+        Highlight = {Filled = true, Outline = true},
+    },
+    Transparency = {
+        Highlight = {Filled = 0.5, Outline = 0.3},
+    },
+    RainbowMode = false,
 }
-KoltESP.Rainbow = false
-KoltESP.ConfigTransparency = {
-    Highlight = {Filled = 0.5, Outline = 0.3}
-}
+local paused = false
+local rainbowHue = 0
+local updateConnection
+
+-- Properties
 KoltESP.ConfigDistanceMax = 400
 KoltESP.ConfigDistanceMin = 5
 
--- ==============================
--- Utility Functions
--- ==============================
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-
-local function CreateDrawing(type)
-    local success, drawing = pcall(function()
-        return Drawing.new(type)
+-- Helper: get instance from path string
+local function getInstanceFromPath(path)
+    if typeof(path) == "Instance" then return path end
+    local success, obj = pcall(function()
+        return loadstring("return " .. path)()
     end)
-    return success and drawing or nil
+    return success and obj or nil
 end
 
-local function DistanceBetween(pos1, pos2)
-    return (pos1 - pos2).Magnitude
-end
-
-local function RGBToHex(r,g,b)
-    return Color3.fromRGB(r,g,b)
-end
-
-local function GetObjectPosition(obj)
+-- Helper: get position from object
+local function getPosition(obj)
     if obj:IsA("BasePart") then
         return obj.Position
-    elseif obj:IsA("Model") and obj.PrimaryPart then
-        return obj.PrimaryPart.Position
-    else
-        return obj:FindFirstChildWhichIsA("BasePart") and obj:FindFirstChildWhichIsA("BasePart").Position or nil
+    elseif obj:IsA("Model") then
+        if obj.PrimaryPart then
+            return obj.PrimaryPart.Position
+        else
+            local part = obj:FindFirstChildWhichIsA("BasePart")
+            if part then return part.Position end
+        end
+    end
+    return nil
+end
+
+-- Update function for all ESPs
+local function updateESP()
+    if paused then return end
+
+    rainbowHue = (rainbowHue + 0.005) % 1
+    local screenCenter = Camera.ViewportSize / 2
+
+    for ref, target in pairs(targets) do
+        if target.paused then continue end
+
+        local obj = getInstanceFromPath(target.path)
+        if not obj or not obj.Parent then
+            -- Remove invalid targets automatically
+            KoltESP:Clear(ref)
+            continue
+        end
+
+        local pos = getPosition(obj)
+        if not pos then continue end
+
+        local dist = (Camera.CFrame.Position - pos).Magnitude
+        if dist > KoltESP.ConfigDistanceMax or dist < KoltESP.ConfigDistanceMin then
+            target.esp.Tracer.Visible = false
+            target.esp.Name.Visible = false
+            target.esp.Distance.Visible = false
+            target.esp.Highlight.Enabled = false
+            continue
+        end
+
+        local screenPos, onScreen = Camera:WorldToViewportPoint(pos)
+        if not onScreen then
+            target.esp.Tracer.Visible = false
+            target.esp.Name.Visible = false
+            target.esp.Distance.Visible = false
+            target.esp.Highlight.Enabled = globalConfig.Components.Highlight.Filled or globalConfig.Components.Highlight.Outline
+            continue
+        end
+
+        -- Colors
+        local colTracer = target.colors.Tracer
+        local colName = target.colors.Name
+        local colDistance = target.colors.Distance
+        local colHlOutline = target.colors.HighlightOutline
+        local colHlFill = target.colors.HighlightFill
+        if globalConfig.RainbowMode then
+            local rainbowCol = Color3.fromHSV(rainbowHue, 1, 1)
+            colTracer = rainbowCol
+            colName = rainbowCol
+            colDistance = rainbowCol
+            colHlOutline = rainbowCol
+            colHlFill = rainbowCol
+        end
+
+        -- Update elements
+        target.esp.Tracer.Color = colTracer
+        target.esp.Tracer.From = Vector2.new(screenCenter.X, Camera.ViewportSize.Y)
+        target.esp.Tracer.To = Vector2.new(screenPos.X, screenPos.Y)
+        target.esp.Tracer.Visible = globalConfig.Components.Tracer.Visible
+
+        target.esp.Name.Color = colName
+        target.esp.Name.Position = Vector2.new(screenPos.X, screenPos.Y - 20)
+        target.esp.Name.Visible = globalConfig.Components.Name.Visible
+
+        target.esp.Distance.Color = colDistance
+        target.esp.Distance.Position = Vector2.new(screenPos.X, screenPos.Y + 5)
+        target.esp.Distance.Text = target.distLeft .. math.floor(dist) .. target.distSuffix .. target.distRight
+        target.esp.Distance.Visible = globalConfig.Components.Distance.Visible
+
+        local hl = target.esp.Highlight
+        hl.FillColor = colHlFill
+        hl.OutlineColor = colHlOutline
+        hl.FillTransparency = globalConfig.Components.Highlight.Filled and globalConfig.Transparency.Highlight.Filled or 1
+        hl.OutlineTransparency = globalConfig.Components.Highlight.Outline and globalConfig.Transparency.Highlight.Outline or 1
+        hl.Enabled = (hl.FillTransparency < 1 or hl.OutlineTransparency < 1)
     end
 end
 
-local function WorldToViewport(position)
-    local screenPos, onScreen = Camera:WorldToViewportPoint(position)
-    return Vector2.new(screenPos.X, screenPos.Y), onScreen, screenPos.Z
+-- Connect update
+local function connectUpdate()
+    if not updateConnection then
+        updateConnection = RunService.RenderStepped:Connect(updateESP)
+    end
 end
 
--- ==============================
--- Core Target Function
--- ==============================
-function KoltESP:Target(path, espName, options)
-    if not path or not espName then return end
-    options = options or {}
+-- Target creation
+function KoltESP:Target(path, ref, options)
+    if targets[ref] then
+        self:Clear(ref)
+    end
 
-    local Target = {
-        Path = path,
-        Name = espName,
-        Paused = false,
-        Options = options,
-        Components = {
-            Name = CreateDrawing("Text"),
-            Distance = CreateDrawing("Text"),
-            Tracer = CreateDrawing("Line"),
-            Highlight = Instance.new("Highlight")
-        }
+    local obj = getInstanceFromPath(path)
+    if not obj then return end
+
+    local nameOpts = options.Name or {}
+    local distOpts = options.Distance or {}
+    local displayName = nameOpts.Name or obj.Name
+    local nameContainer = nameOpts.Container or ""
+    local distContainer = distOpts.Container or ""
+    local distSuffix = distOpts.Suffix or ""
+
+    local nameLeft, nameRight = "", ""
+    if type(nameContainer) == "string" and #nameContainer == 2 then
+        nameLeft = nameContainer:sub(1, 1)
+        nameRight = nameContainer:sub(2, 2)
+    else
+        nameLeft = nameContainer
+        nameRight = ""
+    end
+
+    local distLeft, distRight = "", ""
+    if type(distContainer) == "string" and #distContainer == 2 then
+        distLeft = distContainer:sub(1, 1)
+        distRight = distContainer:sub(2, 2)
+    else
+        distLeft = distContainer
+        distRight = ""
+    end
+
+    local defaultCol = options.Default or {255, 255, 255}
+    local colors = options.Color or {}
+    local function getCol(comp, subcomp)
+        if subcomp then
+            return (colors[comp] and colors[comp][subcomp]) or defaultCol
+        end
+        return colors[comp] or defaultCol
+    end
+
+    local esp = {
+        Highlight = Instance.new("Highlight"),
+        Tracer = Drawing.new("Line"),
+        Name = Drawing.new("Text"),
+        Distance = Drawing.new("Text"),
     }
 
-    -- Setup Highlight
-    if Target.Components.Highlight then
-        Target.Components.Highlight.Parent = workspace
-        Target.Components.Highlight.FillTransparency = options.Color and options.Color.Highlight and options.Color.Highlight.Filled or KoltESP.ConfigTransparency.Highlight.Filled
-        Target.Components.Highlight.OutlineTransparency = options.Color and options.Color.Highlight and options.Color.Highlight.Outline or KoltESP.ConfigTransparency.Highlight.Outline
-        Target.Components.Highlight.Enabled = true
-        Target.Components.Highlight.FillColor = options.Color and options.Color.Highlight and RGBToHex(unpack(options.Color.Highlight.Filled or {0,40,144})) or Color3.fromRGB(0,40,144)
-        Target.Components.Highlight.OutlineColor = options.Color and options.Color.Highlight and RGBToHex(unpack(options.Color.Highlight.Outline or {255,255,255})) or Color3.fromRGB(255,255,255)
-        if path:IsA("Instance") then
-            Target.Components.Highlight.Adornee = path
-        end
-    end
+    esp.Highlight.Adornee = obj
+    esp.Highlight.Parent = game.CoreGui
+    esp.Tracer.Thickness = 1
+    esp.Name.Size = 16
+    esp.Name.Center = true
+    esp.Name.Outline = true
+    esp.Distance.Size = 16
+    esp.Distance.Center = true
+    esp.Distance.Outline = true
+    esp.Name.Text = nameLeft .. displayName .. nameRight
 
-    KoltESP.Targets[espName] = Target
+    targets[ref] = {
+        path = path,
+        obj = obj,
+        displayName = displayName,
+        nameLeft = nameLeft,
+        nameRight = nameRight,
+        distLeft = distLeft,
+        distRight = distRight,
+        distSuffix = distSuffix,
+        colors = {
+            Tracer = Color3.fromRGB(unpack(getCol("Tracer"))),
+            Name = Color3.fromRGB(unpack(getCol("Name"))),
+            Distance = Color3.fromRGB(unpack(getCol("Distancia") or getCol("Distance"))),
+            HighlightOutline = Color3.fromRGB(unpack(getCol("Highlight", "Outline"))),
+            HighlightFill = Color3.fromRGB(unpack(getCol("Highlight", "Filled"))),
+        },
+        paused = false,
+        esp = esp,
+    }
+
+    connectUpdate()
 end
 
--- ==============================
--- Update ESP Each Frame
--- ==============================
-RunService.RenderStepped:Connect(function()
-    for _, target in pairs(KoltESP.Targets) do
-        if target.Paused then
-            -- Hide components
-            for _, comp in pairs(target.Components) do
-                if comp:IsA("Drawing") then comp.Visible = false end
-            end
-        else
-            local objPos = GetObjectPosition(target.Path)
-            if objPos then
-                local screenPos, onScreen = WorldToViewport(objPos)
-                local dist = math.clamp(DistanceBetween(Camera.CFrame.Position, objPos), KoltESP.ConfigDistanceMin, KoltESP.ConfigDistanceMax)
-                local nameText = target.Options.Name and target.Options.Name.Name or target.Path.Name
-                local distText = string.format("%.1f%s", dist, target.Options.Distance and target.Options.Distance.Suffix or "m")
+-- NewTarget
+function KoltESP:NewTarget(path, oldRef, newRef)
+    local target = targets[oldRef]
+    if not target then return end
 
-                -- Update Text
-                if KoltESP.Configs.Name.Visible then
-                    target.Components.Name.Text = (target.Options.Name and target.Options.Name.Container and (target.Options.Name.Container.Start or "") or "") .. nameText .. (target.Options.Name and target.Options.Name.Container and (target.Options.Name.Container.End or "") or "")
-                    target.Components.Name.Position = screenPos
-                    target.Components.Name.Color = RGBToHex(unpack(target.Options.Color and target.Options.Color.Name or {255,255,255}))
-                    target.Components.Name.Visible = onScreen
-                    target.Components.Name.Center = true
-                end
-
-                if KoltESP.Configs.Distance.Visible then
-                    target.Components.Distance.Text = (target.Options.Distance and target.Options.Distance.Container and (target.Options.Distance.Container.Start or "") or "") .. distText .. (target.Options.Distance and target.Options.Distance.Container and (target.Options.Distance.Container.End or "") or "")
-                    target.Components.Distance.Position = screenPos + Vector2.new(0, 15)
-                    target.Components.Distance.Color = RGBToHex(unpack(target.Options.Color and target.Options.Color.Distancia or {0,255,0}))
-                    target.Components.Distance.Visible = onScreen
-                    target.Components.Distance.Center = true
-                end
-
-                if KoltESP.Configs.Tracer.Visible then
-                    local tracer = target.Components.Tracer
-                    tracer.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
-                    tracer.To = screenPos
-                    tracer.Color = RGBToHex(unpack(target.Options.Color and target.Options.Color.Tracer or {255,255,0}))
-                    tracer.Visible = onScreen
-                end
-
-                if target.Components.Highlight and target.Path:IsA("Instance") then
-                    target.Components.Highlight.Adornee = target.Path
-                end
-            end
-        end
+    local newObj = getInstanceFromPath(path)
+    if newObj then
+        target.path = path
+        target.obj = newObj
+        target.esp.Highlight.Adornee = newObj
     end
-end)
 
--- ==============================
--- API Functions
--- ==============================
-function KoltESP:NewTarget(path, oldName, newName)
-    if KoltESP.Targets[oldName] then
-        KoltESP.Targets[newName] = KoltESP.Targets[oldName]
-        KoltESP.Targets[oldName] = nil
-    end
+    targets[newRef] = target
+    targets[oldRef] = nil
 end
 
-function KoltESP:Clear(name)
-    if name then
-        local target = KoltESP.Targets[name]
+-- Clear
+function KoltESP:Clear(ref)
+    if ref then
+        local target = targets[ref]
         if target then
-            for _, comp in pairs(target.Components) do
-                if comp:IsA("Drawing") then
-                    comp:Remove()
-                elseif comp:IsA("Highlight") then
-                    comp:Destroy()
-                end
-            end
-            KoltESP.Targets[name] = nil
+            if target.esp.Highlight then target.esp.Highlight:Destroy() end
+            if target.esp.Tracer then pcall(function() target.esp.Tracer:Remove() end) end
+            if target.esp.Name then pcall(function() target.esp.Name:Remove() end) end
+            if target.esp.Distance then pcall(function() target.esp.Distance:Remove() end) end
+            targets[ref] = nil
         end
     else
-        for name, _ in pairs(KoltESP.Targets) do
-            KoltESP:Clear(name)
+        for ref2, _ in pairs(targets) do
+            KoltESP:Clear(ref2)
         end
     end
 end
 
-function KoltESP:Pause(name, state)
-    if name then
-        if KoltESP.Targets[name] then
-            KoltESP.Targets[name].Paused = state
-        end
+-- Pause
+function KoltESP:Pause(arg1, arg2)
+    if arg2 ~= nil then
+        local target = targets[arg1]
+        if target then target.paused = arg2 end
     else
-        for _, target in pairs(KoltESP.Targets) do
-            target.Paused = state
+        paused = arg1
+    end
+end
+
+-- Config components
+function KoltESP:Config(component, opts)
+    local comp = globalConfig.Components[component]
+    if comp then
+        for key, value in pairs(opts) do
+            comp[key] = value
         end
     end
 end
 
+-- Rainbow mode
+function KoltESP:RainbowMode(enable)
+    globalConfig.RainbowMode = enable
+end
+
+-- Config transparency
+function KoltESP:ConfigTransparency(component, opts)
+    local trans = globalConfig.Transparency[component]
+    if trans then
+        for key, value in pairs(opts) do
+            trans[key] = value
+        end
+    end
+end
+
+-- Unload library
 function KoltESP:Unload()
-    KoltESP:Clear()
-    KoltESP.Targets = {}
+    self:Clear()
+    if updateConnection then
+        updateConnection:Disconnect()
+        updateConnection = nil
+    end
 end
 
-function KoltESP:Config(component, settings)
-    KoltESP.Configs[component] = settings
-end
-
-function KoltESP:ConfigTransparency(component, settings)
-    KoltESP.ConfigTransparency[component] = settings
-end
-
-function KoltESP:RainbowMode(state)
-    KoltESP.Rainbow = state
-end
-
+_G.KoltESP = KoltESP
 return KoltESP
