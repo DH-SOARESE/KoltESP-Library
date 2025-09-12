@@ -2,6 +2,7 @@
 --// 👤 Autor: DH_SOARES
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
 --// Atualizações: TracerOrigin mantido estritamente global; Melhorias em posicionamento de textos baseados em bounds; Removidas funcionalidades de Box e Skeleton ESP; Customização de nome e distância centralizados no alvo com quebra de linha próxima.
+--// Melhoria: Suporte a tabela de cores personalizadas por ESP individual, com fallback para cores globais. Compatibilidade com Color3 único mantida.
 
 local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
@@ -76,22 +77,61 @@ function ModelESP:Add(target, config)
         if obj:IsA("Highlight") and obj.Name == "ESPHighlight" then obj:Destroy() end
     end
 
+    local defaultColors = {
+        Name = self.Theme.PrimaryColor,
+        Distance = self.Theme.PrimaryColor,
+        Tracer = self.Theme.PrimaryColor,
+        Highlight = {
+            Filled = self.Theme.PrimaryColor,
+            Outline = self.Theme.SecondaryColor
+        }
+    }
+
     local cfg = {
         Target = target,
         Name = config and config.Name or target.Name,
-        Color = config and config.Color or self.Theme.PrimaryColor,
+        Colors = defaultColors
     }
+
+    -- Aplicar cores customizadas se fornecidas
+    if config and config.Color then
+        if typeof(config.Color) == "Color3" then
+            -- Compatibilidade com cor única (aplica a todos)
+            cfg.Colors.Name = config.Color
+            cfg.Colors.Distance = config.Color
+            cfg.Colors.Tracer = config.Color
+            cfg.Colors.Highlight.Filled = config.Color
+            cfg.Colors.Highlight.Outline = config.Color
+        elseif typeof(config.Color) == "table" then
+            -- Tabela de cores personalizadas
+            if config.Color.Name and typeof(config.Color.Name) == "table" and #config.Color.Name == 3 then
+                cfg.Colors.Name = Color3.fromRGB(unpack(config.Color.Name))
+            end
+            if config.Color.Distance and typeof(config.Color.Distance) == "table" and #config.Color.Distance == 3 then
+                cfg.Colors.Distance = Color3.fromRGB(unpack(config.Color.Distance))
+            end
+            if config.Color.Tracer and typeof(config.Color.Tracer) == "table" and #config.Color.Tracer == 3 then
+                cfg.Colors.Tracer = Color3.fromRGB(unpack(config.Color.Tracer))
+            end
+            if config.Color.Highlight and typeof(config.Color.Highlight) == "table" then
+                if config.Color.Highlight.Filled and typeof(config.Color.Highlight.Filled) == "table" and #config.Color.Highlight.Filled == 3 then
+                    cfg.Colors.Highlight.Filled = Color3.fromRGB(unpack(config.Color.Highlight.Filled))
+                end
+                if config.Color.Highlight.Outline and typeof(config.Color.Highlight.Outline) == "table" and #config.Color.Highlight.Outline == 3 then
+                    cfg.Colors.Highlight.Outline = Color3.fromRGB(unpack(config.Color.Highlight.Outline))
+                end
+            end
+        end
+    end
 
     -- Drawings básicos
     cfg.tracerLine = createDrawing("Line", {
         Thickness = self.GlobalSettings.LineThickness,
-        Color = cfg.Color,
         Transparency = self.GlobalSettings.Opacity,
         Visible = false
     })
     cfg.nameText = createDrawing("Text", {
         Text = cfg.Name,
-        Color = cfg.Color,
         Size = self.GlobalSettings.FontSize,
         Center = true,
         Outline = false,
@@ -102,7 +142,6 @@ function ModelESP:Add(target, config)
     })
     cfg.distanceText = createDrawing("Text", {
         Text = "",
-        Color = cfg.Color,
         Size = self.GlobalSettings.FontSize-2,
         Center = true,
         Outline = false,
@@ -117,8 +156,6 @@ function ModelESP:Add(target, config)
         local highlight = Instance.new("Highlight")
         highlight.Name = "ESPHighlight"
         highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        highlight.FillColor = cfg.Color
-        highlight.OutlineColor = self.Theme.SecondaryColor
         highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and 0.85 or 1
         highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and 0.65 or 1
         highlight.Parent = target
@@ -220,7 +257,8 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
-        local color = ModelESP.GlobalSettings.RainbowMode and getRainbowColor(time) or esp.Color
+        local rainbowColor = getRainbowColor(time)
+        local useRainbow = ModelESP.GlobalSettings.RainbowMode
 
         -- Calcular bounds na tela
         local screenPoints = {}
@@ -263,27 +301,27 @@ RunService.RenderStepped:Connect(function()
             esp.tracerLine.Visible = ModelESP.GlobalSettings.ShowTracer
             esp.tracerLine.From = tracerOrigins[ModelESP.GlobalSettings.TracerOrigin](vs)
             esp.tracerLine.To = Vector2.new(pos2D.X, pos2D.Y)
-            esp.tracerLine.Color = color
+            esp.tracerLine.Color = useRainbow and rainbowColor or esp.Colors.Tracer
         end
         -- Name
         if esp.nameText then
             esp.nameText.Visible = ModelESP.GlobalSettings.ShowName
             esp.nameText.Position = Vector2.new(centerX, startY)
             esp.nameText.Text = esp.Name
-            esp.nameText.Color = color
+            esp.nameText.Color = useRainbow and rainbowColor or esp.Colors.Name
         end
         -- Distance
         if esp.distanceText then
             esp.distanceText.Visible = ModelESP.GlobalSettings.ShowDistance
             esp.distanceText.Position = Vector2.new(centerX, startY + nameSize)
             esp.distanceText.Text = string.format("%.1fm", distance)
-            esp.distanceText.Color = color
+            esp.distanceText.Color = useRainbow and rainbowColor or esp.Colors.Distance
         end
         -- Highlight
         if esp.highlight then
             esp.highlight.Enabled = ModelESP.GlobalSettings.ShowHighlightFill or ModelESP.GlobalSettings.ShowHighlightOutline
-            esp.highlight.FillColor = color
-            esp.highlight.OutlineColor = ModelESP.Theme.SecondaryColor
+            esp.highlight.FillColor = useRainbow and rainbowColor or esp.Colors.Highlight.Filled
+            esp.highlight.OutlineColor = useRainbow and rainbowColor or esp.Colors.Highlight.Outline
             esp.highlight.FillTransparency = ModelESP.GlobalSettings.ShowHighlightFill and 0.85 or 1
             esp.highlight.OutlineTransparency = ModelESP.GlobalSettings.ShowHighlightOutline and 0.65 or 1
         end
