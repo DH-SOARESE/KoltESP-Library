@@ -1,7 +1,7 @@
 -- KoltESP Library for Roblox ESP --
 -- Oriented to object references
 -- Supports Tracer, Name, Distance, HighlightOutline, HighlightFill
--- Loaded via loadstring
+-- Safe + optimized rendering
 
 local KoltESP = {}
 KoltESP.__index = KoltESP
@@ -23,34 +23,50 @@ KoltESP.Config = {
     TextFont = Enum.Font.Code
 }
 
--- Helper to get object from path or direct instance
+-- Safe CoreGui (avoid crash)
+local function getGuiParent()
+    local suc, gui = pcall(gethui)
+    if suc and gui then return gui end
+    return game:GetService("CoreGui")
+end
+
+-- Helper: validate instance
 local function getObject(pathOrObj)
     if typeof(pathOrObj) == "Instance" then
         return pathOrObj
     elseif type(pathOrObj) == "string" then
-        local success, obj = pcall(function()
-            return loadstring("return game." .. pathOrObj)()
-        end)
-        if success and typeof(obj) == "Instance" then
-            return obj
+        local obj = game
+        for part in string.gmatch(pathOrObj, "[^%.]+") do
+            obj = obj:FindFirstChild(part)
+            if not obj then return nil end
         end
+        return obj
     end
     return nil
 end
 
--- Helper to get color from table
-local function toColor3(colorTable)
-    return Color3.new(colorTable[1]/255, colorTable[2]/255, colorTable[3]/255)
+-- Helper: color table -> Color3
+local function toColor3(tbl)
+    return Color3.fromRGB(tbl[1], tbl[2], tbl[3])
+end
+
+-- Apply configs to drawing texts
+local function setupText(textObj, cfg, size, font)
+    textObj.Visible = false
+    textObj.Center = true
+    textObj.Outline = true
+    textObj.Size = size
+    textObj.Font = font
 end
 
 -- Add a target
 function KoltESP:Add(pathOrObj, config)
     local obj = getObject(pathOrObj)
     if not obj then
-        warn("KoltESP: Invalid object or path")
+        warn("KoltESP: Invalid object or path ->", tostring(pathOrObj))
         return nil
     end
-    
+
     local target = {
         Object = obj,
         EspColor = config.EspColor or {255, 255, 255},
@@ -58,38 +74,29 @@ function KoltESP:Add(pathOrObj, config)
         EspDistance = config.EspDistance or { Container = "%d", Suffix = "", Unit = "m" },
         Colors = config.Colors or {}
     }
-    
-    -- Create drawing objects
+
+    -- Drawing objects
     target.Tracer = Drawing.new("Line")
     target.Tracer.Visible = false
     target.Tracer.Thickness = self.Config.Tracer.Thickness
-    
+
     target.NameText = Drawing.new("Text")
-    target.NameText.Visible = false
-    target.NameText.Center = true
-    target.NameText.Outline = true
-    target.NameText.Size = self.Config.TextSize
-    target.NameText.Font = self.Config.TextFont
-    
+    setupText(target.NameText, config, self.Config.TextSize, self.Config.TextFont)
+
     target.DistanceText = Drawing.new("Text")
-    target.DistanceText.Visible = false
-    target.DistanceText.Center = true
-    target.DistanceText.Outline = true
-    target.DistanceText.Size = self.Config.TextSize
-    target.DistanceText.Font = self.Config.TextFont
-    
+    setupText(target.DistanceText, config, self.Config.TextSize, self.Config.TextFont)
+
+    -- Highlight
     target.Highlight = Instance.new("Highlight")
     target.Highlight.Adornee = obj
-    target.Highlight.Parent = game.CoreGui  -- To avoid parenting to object
+    target.Highlight.Parent = getGuiParent()
     target.Highlight.Enabled = false
-    
+
     table.insert(targets, target)
-    
-    -- Start rendering if not already
+
     if not connection then
         self:StartRendering()
     end
-    
     return target
 end
 
@@ -98,34 +105,36 @@ function KoltESP:StartRendering()
     if connection then return end
     local RunService = game:GetService("RunService")
     local Players = game:GetService("Players")
-    local LocalPlayer = Players.LocalPlayer
     local Camera = workspace.CurrentCamera
-    
+    local LocalPlayer = Players.LocalPlayer
+
     connection = RunService.RenderStepped:Connect(function()
-        if paused then return end
-        
+        if paused or not Camera then return end
+
         local char = LocalPlayer.Character
-        if not char or not char:FindFirstChild("Head") then return end
-        local playerPos = char.Head.Position
-        
-        for _, target in ipairs(targets) do
+        local head = char and char:FindFirstChild("Head")
+        if not head then return end
+        local playerPos = head.Position
+
+        for i = #targets, 1, -1 do
+            local target = targets[i]
             local obj = target.Object
+
             if not obj or not obj.Parent then
-                target.Tracer.Visible = false
-                target.NameText.Visible = false
-                target.DistanceText.Visible = false
-                target.Highlight.Enabled = false
+                self.Remove(target) -- cleanup automatically
                 continue
             end
-            
-            local pos = nil
+
+            -- Object position
+            local pos
             if obj:IsA("BasePart") then
                 pos = obj.Position
             elseif obj:IsA("Model") and obj.PrimaryPart then
                 pos = obj.PrimaryPart.Position
             end
             if not pos then continue end
-            
+
+            -- Distance
             local distance = (playerPos - pos).Magnitude
             if distance > self.Config.DistanceMax or distance < self.Config.DistanceMin then
                 target.Tracer.Visible = false
@@ -134,36 +143,35 @@ function KoltESP:StartRendering()
                 target.Highlight.Enabled = false
                 continue
             end
-            
-            local viewportPoint, inFront = Camera:WorldToViewportPoint(pos)
-            local screenPos = Vector2.new(viewportPoint.X, viewportPoint.Y)
-            local onScreen = inFront and (viewportPoint.X >= 0 and viewportPoint.X <= Camera.ViewportSize.X and viewportPoint.Y >= 0 and viewportPoint.Y <= Camera.ViewportSize.Y)
-            
-            if not onScreen then
+
+            -- Viewport check
+            local vp, onScreen = Camera:WorldToViewportPoint(pos)
+            local screenPos = Vector2.new(vp.X, vp.Y)
+            local visible = onScreen and vp.Z > 0
+
+            if not visible then
                 target.Tracer.Visible = false
                 target.NameText.Visible = false
                 target.DistanceText.Visible = false
             else
                 -- Tracer
                 if self.Config.Tracer.Visible then
-                    local originPos
-                    local viewportSize = Camera.ViewportSize
+                    local origin
+                    local size = Camera.ViewportSize
                     if self.Config.Tracer.Origin == "Top" then
-                        originPos = Vector2.new(viewportSize.X / 2, 0)
+                        origin = Vector2.new(size.X/2, 0)
                     elseif self.Config.Tracer.Origin == "Center" then
-                        originPos = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
-                    else  -- Bottom
-                        originPos = Vector2.new(viewportSize.X / 2, viewportSize.Y)
+                        origin = Vector2.new(size.X/2, size.Y/2)
+                    else
+                        origin = Vector2.new(size.X/2, size.Y)
                     end
-                    target.Tracer.From = originPos
+                    target.Tracer.From = origin
                     target.Tracer.To = screenPos
                     target.Tracer.Color = toColor3(target.Colors.EspTracer or target.EspColor)
-                    target.Tracer.Visible = true
                     target.Tracer.Thickness = self.Config.Tracer.Thickness
-                else
-                    target.Tracer.Visible = false
+                    target.Tracer.Visible = true
                 end
-                
+
                 -- Name
                 if self.Config.Name.Visible then
                     local nameText = string.format(target.EspName.Container, target.EspName.DisplayName)
@@ -171,52 +179,34 @@ function KoltESP:StartRendering()
                     target.NameText.Position = screenPos + (target.Colors.EspNameOffset or self.Config.Name.PositionOffset)
                     target.NameText.Color = toColor3(target.Colors.EspNameColor or target.EspColor)
                     target.NameText.Visible = true
-                else
-                    target.NameText.Visible = false
                 end
-                
+
                 -- Distance
                 if self.Config.Distance.Visible then
-                    local roundedDist = math.floor(distance * 10^self.Config.Distance.Precision) / 10^self.Config.Distance.Precision
-                    local distStr = string.format(target.EspDistance.Container, roundedDist) .. target.EspDistance.Unit .. target.EspDistance.Suffix
+                    local precision = self.Config.Distance.Precision
+                    local rounded = math.floor(distance * 10^precision) / 10^precision
+                    local distStr = string.format(target.EspDistance.Container, rounded) ..
+                                    target.EspDistance.Unit .. target.EspDistance.Suffix
                     target.DistanceText.Text = distStr
                     target.DistanceText.Position = screenPos + (target.Colors.EspDistanceOffset or self.Config.Distance.PositionOffset)
                     target.DistanceText.Color = toColor3(target.Colors.EspDistanceColor or target.EspColor)
                     target.DistanceText.Visible = true
-                else
-                    target.DistanceText.Visible = false
                 end
             end
-            
-            -- Highlight (3D, always if in distance)
+
+            -- Highlight
             if self.Config.Highlight.Outline or self.Config.Highlight.Filled then
+                target.Highlight.Adornee = obj
                 target.Highlight.Enabled = true
-                if self.Config.Highlight.Outline then
-                    target.Highlight.OutlineColor = toColor3(target.Colors.EspHighlight and target.Colors.EspHighlight.Outline or target.EspColor)
-                    target.Highlight.OutlineTransparency = self.Config.Highlight.Transparency.Outline
-                else
-                    target.Highlight.OutlineTransparency = 1
-                end
-                if self.Config.Highlight.Filled then
-                    target.Highlight.FillColor = toColor3(target.Colors.EspHighlight and target.Colors.EspHighlight.Filled or target.EspColor)
-                    target.Highlight.FillTransparency = self.Config.Highlight.Transparency.Filled
-                else
-                    target.Highlight.FillTransparency = 1
-                end
+                target.Highlight.OutlineColor = toColor3(target.Colors.EspHighlight and target.Colors.EspHighlight.Outline or target.EspColor)
+                target.Highlight.FillColor = toColor3(target.Colors.EspHighlight and target.Colors.EspHighlight.Filled or target.EspColor)
+                target.Highlight.OutlineTransparency = self.Config.Highlight.Outline and self.Config.Highlight.Transparency.Outline or 1
+                target.Highlight.FillTransparency = self.Config.Highlight.Filled and self.Config.Highlight.Transparency.Filled or 1
             else
                 target.Highlight.Enabled = false
             end
         end
     end)
-end
-
--- Unload everything
-function KoltESP.Unload()
-    if connection then
-        connection:Disconnect()
-        connection = nil
-    end
-    KoltESP.Clear()
 end
 
 -- Remove specific target
@@ -233,7 +223,7 @@ function KoltESP.Remove(target)
     end
 end
 
--- Clear all targets
+-- Clear all
 function KoltESP.Clear()
     for _, t in ipairs(targets) do
         if t.Tracer then t.Tracer:Remove() end
@@ -244,13 +234,21 @@ function KoltESP.Clear()
     targets = {}
 end
 
+-- Unload
+function KoltESP.Unload()
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+    KoltESP.Clear()
+end
+
 -- Pause rendering
 function KoltESP.Pause(bool)
     paused = bool
 end
 
--- For compatibility, set metatable if needed
+-- For syntactic sugar
 setmetatable(KoltESP, { __call = function(self, ...) return self:Add(...) end })
 
--- Return the library
 return KoltESP
