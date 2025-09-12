@@ -14,11 +14,13 @@ local connection = nil
 -- Default global config
 KoltESP.Config = {
     Tracer = { Visible = true, Origin = "Bottom", Thickness = 1 },
-    Name = { Visible = true },
-    Distance = { Visible = true },
+    Name = { Visible = true, PositionOffset = Vector2.new(0, -20) },
+    Distance = { Visible = true, PositionOffset = Vector2.new(0, 5), Precision = 0 },
     Highlight = { Outline = true, Filled = true, Transparency = { Outline = 0.3, Filled = 0.5 } },
     DistanceMax = 300,
-    DistanceMin = 5
+    DistanceMin = 5,
+    TextSize = 14,
+    TextFont = Enum.Font.Code
 }
 
 -- Helper to get object from path or direct instance
@@ -52,8 +54,8 @@ function KoltESP:Add(pathOrObj, config)
     local target = {
         Object = obj,
         EspColor = config.EspColor or {255, 255, 255},
-        EspName = config.EspName or { DisplayName = obj.Name, Container = "" },
-        EspDistance = config.EspDistance or { Container = "%d", Suffix = "" },  -- Use %d for format
+        EspName = config.EspName or { DisplayName = obj.Name, Container = "%s" },
+        EspDistance = config.EspDistance or { Container = "%d", Suffix = "", Unit = "m" },
         Colors = config.Colors or {}
     }
     
@@ -66,13 +68,15 @@ function KoltESP:Add(pathOrObj, config)
     target.NameText.Visible = false
     target.NameText.Center = true
     target.NameText.Outline = true
-    target.NameText.Size = 14
+    target.NameText.Size = self.Config.TextSize
+    target.NameText.Font = self.Config.TextFont
     
     target.DistanceText = Drawing.new("Text")
     target.DistanceText.Visible = false
     target.DistanceText.Center = true
     target.DistanceText.Outline = true
-    target.DistanceText.Size = 14
+    target.DistanceText.Size = self.Config.TextSize
+    target.DistanceText.Font = self.Config.TextFont
     
     target.Highlight = Instance.new("Highlight")
     target.Highlight.Adornee = obj
@@ -162,9 +166,9 @@ function KoltESP:StartRendering()
                 
                 -- Name
                 if self.Config.Name.Visible then
-                    local nameText = target.EspName.DisplayName .. target.EspName.Container
+                    local nameText = string.format(target.EspName.Container, target.EspName.DisplayName)
                     target.NameText.Text = nameText
-                    target.NameText.Position = Vector2.new(screenPos.X, screenPos.Y - 20)  -- Above
+                    target.NameText.Position = screenPos + (target.Colors.EspNameOffset or self.Config.Name.PositionOffset)
                     target.NameText.Color = toColor3(target.Colors.EspNameColor or target.EspColor)
                     target.NameText.Visible = true
                 else
@@ -173,10 +177,10 @@ function KoltESP:StartRendering()
                 
                 -- Distance
                 if self.Config.Distance.Visible then
-                    local distStr = string.format(target.EspDistance.Container, math.floor(distance))
-                    distStr = distStr .. target.EspDistance.Suffix
+                    local roundedDist = math.floor(distance * 10^self.Config.Distance.Precision) / 10^self.Config.Distance.Precision
+                    local distStr = string.format(target.EspDistance.Container, roundedDist) .. target.EspDistance.Unit .. target.EspDistance.Suffix
                     target.DistanceText.Text = distStr
-                    target.DistanceText.Position = Vector2.new(screenPos.X, screenPos.Y + 5)  -- Below
+                    target.DistanceText.Position = screenPos + (target.Colors.EspDistanceOffset or self.Config.Distance.PositionOffset)
                     target.DistanceText.Color = toColor3(target.Colors.EspDistanceColor or target.EspColor)
                     target.DistanceText.Visible = true
                 else
