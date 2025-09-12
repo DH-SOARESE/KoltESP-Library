@@ -1,7 +1,7 @@
 --// 📦 Library Kolt V1.2
 --// 👤 Autor: DH_SOARES
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
---// Atualizações: TracerOrigin mantido estritamente global; Adicionado cálculo dinâmico para Box ESP; Implementação proper de Skeleton para modelos rigged; Melhorias em posicionamento de textos baseados em bounds.
+--// Atualizações: TracerOrigin mantido estritamente global; Melhorias em posicionamento de textos baseados em bounds; Removidas funcionalidades de Box e Skeleton ESP; Customização de nome e distância centralizados no alvo com quebra de linha próxima.
 
 local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
@@ -21,16 +21,11 @@ local ModelESP = {
         ShowHighlightOutline = true,
         ShowName = true,
         ShowDistance = true,
-        ShowBox = true,
-        ShowSkeleton = false,
         RainbowMode = false,
         MaxDistance = math.huge,
         MinDistance = 0,
         Opacity = 0.8,
         LineThickness = 1.5,
-        BoxThickness = 1.5,
-        SkeletonThickness = 1.2,
-        BoxTransparency = 0.5,
         FontSize = 14,
         AutoRemoveInvalid = true,
     }
@@ -130,37 +125,6 @@ function ModelESP:Add(target, config)
         cfg.highlight = highlight
     end
 
-    -- Box ESP
-    if self.GlobalSettings.ShowBox then
-        cfg.box = createDrawing("Square", {
-            Thickness = self.GlobalSettings.BoxThickness,
-            Color = cfg.Color,
-            Transparency = self.GlobalSettings.BoxTransparency,
-            Filled = false,
-            Visible = false
-        })
-    end
-
-    -- Skeleton ESP
-    if self.GlobalSettings.ShowSkeleton and target:IsA("Model") then
-        cfg.skeletonConnections = {}
-        for _, joint in ipairs(target:GetDescendants()) do
-            if joint:IsA("Motor6D") then
-                local part0 = joint.Part0
-                local part1 = joint.Part1
-                if part0 and part1 then
-                    local line = createDrawing("Line", {
-                        Thickness = self.GlobalSettings.SkeletonThickness,
-                        Color = cfg.Color,
-                        Transparency = self.GlobalSettings.Opacity,
-                        Visible = false
-                    })
-                    table.insert(cfg.skeletonConnections, {line = line, part0 = part0, part1 = part1})
-                end
-            end
-        end
-    end
-
     table.insert(self.Objects, cfg)
 end
 
@@ -171,8 +135,6 @@ function ModelESP:Remove(target)
         if obj.Target == target then
             for _, draw in ipairs({obj.tracerLine,obj.nameText,obj.distanceText}) do if draw then pcall(draw.Remove,draw) end end
             if obj.highlight then pcall(obj.highlight.Destroy,obj.highlight) end
-            if obj.box then pcall(obj.box.Remove,obj.box) end
-            if obj.skeletonConnections then for _, conn in ipairs(obj.skeletonConnections) do if conn.line then pcall(conn.line.Remove,conn.line) end end end
             table.remove(self.Objects,i)
             break
         end
@@ -184,8 +146,6 @@ function ModelESP:Clear()
     for _, obj in ipairs(self.Objects) do
         for _, draw in ipairs({obj.tracerLine,obj.nameText,obj.distanceText}) do if draw then pcall(draw.Remove,draw) end end
         if obj.highlight then pcall(obj.highlight.Destroy,obj.highlight) end
-        if obj.box then pcall(obj.box.Remove,obj.box) end
-        if obj.skeletonConnections then for _, conn in ipairs(obj.skeletonConnections) do if conn.line then pcall(conn.line.Remove,conn.line) end end end
     end
     self.Objects = {}
 end
@@ -196,12 +156,6 @@ function ModelESP:UpdateGlobalSettings()
         if esp.tracerLine then esp.tracerLine.Thickness = self.GlobalSettings.LineThickness end
         if esp.nameText then esp.nameText.Size = self.GlobalSettings.FontSize end
         if esp.distanceText then esp.distanceText.Size = self.GlobalSettings.FontSize-2 end
-        if esp.box then esp.box.Thickness = self.GlobalSettings.BoxThickness esp.box.Transparency = self.GlobalSettings.BoxTransparency end
-        if esp.skeletonConnections then
-            for _, conn in ipairs(esp.skeletonConnections) do
-                conn.line.Thickness = self.GlobalSettings.SkeletonThickness
-            end
-        end
     end
 end
 
@@ -253,18 +207,16 @@ RunService.RenderStepped:Connect(function()
 
         local success, pos2D = pcall(function() return camera:WorldToViewportPoint(pos3D) end)
         if not success or pos2D.Z <= 0 then
-            for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText,esp.box}) do if draw then draw.Visible=false end end
+            for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
             if esp.highlight then esp.highlight.Enabled=false end
-            if esp.skeletonConnections then for _, conn in ipairs(esp.skeletonConnections) do conn.line.Visible=false end end
             continue
         end
 
         local distance = (camera.CFrame.Position - pos3D).Magnitude
         local visible = distance >= ModelESP.GlobalSettings.MinDistance and distance <= ModelESP.GlobalSettings.MaxDistance
         if not visible then
-            for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText,esp.box}) do if draw then draw.Visible=false end end
+            for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
             if esp.highlight then esp.highlight.Enabled=false end
-            if esp.skeletonConnections then for _, conn in ipairs(esp.skeletonConnections) do conn.line.Visible=false end end
             continue
         end
 
@@ -299,6 +251,13 @@ RunService.RenderStepped:Connect(function()
             minX, maxX, minY, maxY = pos2D.X-25, pos2D.X+25, pos2D.Y-25, pos2D.Y+25
         end
 
+        local centerX = (minX + maxX) / 2
+        local centerY = (minY + maxY) / 2
+        local nameSize = esp.nameText.Size
+        local distSize = esp.distanceText.Size
+        local totalHeight = nameSize + distSize
+        local startY = centerY - totalHeight / 2
+
         -- Tracer
         if esp.tracerLine then
             esp.tracerLine.Visible = ModelESP.GlobalSettings.ShowTracer
@@ -309,14 +268,14 @@ RunService.RenderStepped:Connect(function()
         -- Name
         if esp.nameText then
             esp.nameText.Visible = ModelESP.GlobalSettings.ShowName
-            esp.nameText.Position = Vector2.new((minX + maxX)/2, minY - esp.nameText.Size)
+            esp.nameText.Position = Vector2.new(centerX, startY)
             esp.nameText.Text = esp.Name
             esp.nameText.Color = color
         end
         -- Distance
         if esp.distanceText then
             esp.distanceText.Visible = ModelESP.GlobalSettings.ShowDistance
-            esp.distanceText.Position = Vector2.new((minX + maxX)/2, maxY + 2)
+            esp.distanceText.Position = Vector2.new(centerX, startY + nameSize)
             esp.distanceText.Text = string.format("%.1fm", distance)
             esp.distanceText.Color = color
         end
@@ -327,33 +286,6 @@ RunService.RenderStepped:Connect(function()
             esp.highlight.OutlineColor = ModelESP.Theme.SecondaryColor
             esp.highlight.FillTransparency = ModelESP.GlobalSettings.ShowHighlightFill and 0.85 or 1
             esp.highlight.OutlineTransparency = ModelESP.GlobalSettings.ShowHighlightOutline and 0.65 or 1
-        end
-        -- Box ESP
-        if esp.box then
-            esp.box.Visible = ModelESP.GlobalSettings.ShowBox and showBounds
-            if showBounds then
-                esp.box.Position = Vector2.new(minX, minY)
-                esp.box.Size = Vector2.new(maxX - minX, maxY - minY)
-                esp.box.Color = color
-            end
-        end
-        -- Skeleton ESP
-        if esp.skeletonConnections then
-            for _, conn in ipairs(esp.skeletonConnections) do
-                local line = conn.line
-                line.Visible = ModelESP.GlobalSettings.ShowSkeleton
-                line.Color = color
-                if ModelESP.GlobalSettings.ShowSkeleton then
-                    local vp0 = camera:WorldToViewportPoint(conn.part0.Position)
-                    local vp1 = camera:WorldToViewportPoint(conn.part1.Position)
-                    if vp0.Z > 0 and vp1.Z > 0 then
-                        line.From = Vector2.new(vp0.X, vp0.Y)
-                        line.To = Vector2.new(vp1.X, vp1.Y)
-                    else
-                        line.Visible = false
-                    end
-                end
-            end
         end
     end
 end)
