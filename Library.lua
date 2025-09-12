@@ -1,4 +1,4 @@
--- KoltESP Library for Roblox ESP
+-- KoltESP Library for Roblox ESP --
 -- Oriented to object references
 -- Supports Tracer, Name, Distance, HighlightOutline, HighlightFill
 -- Loaded via loadstring
@@ -131,9 +131,11 @@ function KoltESP:StartRendering()
                 continue
             end
             
-            local screenPos, onScreen = Camera:WorldToViewportPoint(pos)
+            local viewportPoint, inFront = Camera:WorldToViewportPoint(pos)
+            local screenPos = Vector2.new(viewportPoint.X, viewportPoint.Y)
+            local onScreen = inFront and (viewportPoint.X >= 0 and viewportPoint.X <= Camera.ViewportSize.X and viewportPoint.Y >= 0 and viewportPoint.Y <= Camera.ViewportSize.Y)
+            
             if not onScreen then
-                -- Optional: still draw if configured, but for now hide 2D if offscreen
                 target.Tracer.Visible = false
                 target.NameText.Visible = false
                 target.DistanceText.Visible = false
@@ -141,15 +143,16 @@ function KoltESP:StartRendering()
                 -- Tracer
                 if self.Config.Tracer.Visible then
                     local originPos
+                    local viewportSize = Camera.ViewportSize
                     if self.Config.Tracer.Origin == "Top" then
-                        originPos = Vector2.new(screenPos.X, 0)
+                        originPos = Vector2.new(viewportSize.X / 2, 0)
                     elseif self.Config.Tracer.Origin == "Center" then
-                        originPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                        originPos = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
                     else  -- Bottom
-                        originPos = Vector2.new(screenPos.X, Camera.ViewportSize.Y)
+                        originPos = Vector2.new(viewportSize.X / 2, viewportSize.Y)
                     end
                     target.Tracer.From = originPos
-                    target.Tracer.To = Vector2.new(screenPos.X, screenPos.Y)
+                    target.Tracer.To = screenPos
                     target.Tracer.Color = toColor3(target.Colors.EspTracer or target.EspColor)
                     target.Tracer.Visible = true
                     target.Tracer.Thickness = self.Config.Tracer.Thickness
