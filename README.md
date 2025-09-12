@@ -1,477 +1,275 @@
-# 🎯 KoltESP Library
+# 📦 Kolt ESP Library V1.2
 
-> **Uma biblioteca ESP avançada e personalizável para Roblox**
+Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e responsiva para Roblox, desenvolvida por **DH_SOARES**.
 
-## 📋 Índice
+## ✨ Características
 
-- [Instalação](#-instalação)
-- [Uso Rápido](#-uso-rápido)
-- [Documentação Completa](#-documentação-completa)
-- [Exemplos Práticos](#-exemplos-práticos)
-- [API Reference](#-api-reference)
-- [Configurações Avançadas](#-configurações-avançadas)
-- [Troubleshooting](#-troubleshooting)
-- [Changelog](#-changelog)
-
----
+- 🎯 **ESP Completo**: Tracer, Nome, Distância e Highlight
+- 🌈 **Modo Arco-íris**: Cores dinâmicas que mudam automaticamente
+- 🎨 **Altamente Customizável**: Configurações globais e individuais
+- ⚡ **Performance Otimizada**: Sistema de auto-remoção de objetos inválidos
+- 📱 **Responsivo**: Adapta-se a diferentes resoluções de tela
+- 🔧 **Fácil de Usar**: API simples e intuitiva
 
 ## 🚀 Instalação
 
-### Método 1: LoadString (Recomendado)
 ```lua
-local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 ```
 
-### Método 2: Cópia Local
-Copie o código da biblioteca e execute diretamente no seu executor.
+## 📋 Funcionalidades
 
----
+### 🎯 Componentes ESP
+- **Tracer**: Linha do ponto de origem até o alvo
+- **Nome**: Exibe o nome do objeto
+- **Distância**: Mostra a distância em metros
+- **Highlight**: Contorno colorido ao redor do objeto
 
-## ⚡ Uso Rápido
+### 🎮 Origens do Tracer
+- `Top` - Topo da tela
+- `Center` - Centro da tela
+- `Bottom` - Parte inferior da tela (padrão)
+- `Left` - Lateral esquerda
+- `Right` - Lateral direita
 
-```lua
--- Carregar a library
-local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+## 🛠️ Uso Básico
 
--- Exemplo básico - ESP em uma parte
-KoltESP:Target("workspace.Part", "MinhaESP", {
-    Default = {255, 0, 0}, -- Cor padrão: Vermelho
-    Name = {Name = "Target Principal", Container = "[]"},
-    Distance = {Container = "()", Suffix = "m"}
-})
-
--- Ativar modo rainbow
-KoltESP:RainbowMode(true)
-```
-
----
-
-## 📚 Documentação Completa
-
-### 🎯 Sistema de Paths
-
-A KoltESP utiliza um sistema inteligente de paths para localizar objetos:
+### Adicionando ESP a um Objeto
 
 ```lua
--- Exemplos de paths válidos
-"workspace.Part"                    -- Parte simples
-"workspace.Model.HumanoidRootPart"  -- Parte dentro de modelo
-"game.Players.PlayerName.Character" -- Character de jogador
-"workspace.Folder.SubFolder.Item"   -- Objetos aninhados
-```
+-- Carregar a biblioteca
+local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
-### 🎨 Sistema de Cores
+-- Adicionar ESP básico
+ModelESP:Add(workspace.SomeModel)
 
-As cores são definidas usando valores RGB (0-255):
-
-```lua
-Color = {
-    Tracer    = {255, 0, 0},     -- Vermelho
-    Name      = {0, 255, 0},     -- Verde  
-    Distancia = {0, 0, 255},     -- Azul
-    Highlight = {
-        Outline = {255, 255, 255}, -- Branco
-        Filled  = {128, 0, 128}    -- Roxo
-    }
-}
-```
-
-### 🏷️ Personalização de Containers
-
-```lua
-Name = {
-    Name = "Meu Target",
-    Container = "||"  -- Resultado: |Meu Target|
-}
-
-Distance = {
-    Container = "()",
-    Suffix = ".m"     -- Resultado: (150.m)
-}
-```
-
----
-
-## 💡 Exemplos Práticos
-
-### Exemplo 1: ESP Básico para Jogadores
-```lua
--- ESP para character de um jogador específico
-KoltESP:Target("game.Players.PlayerName.Character", "PlayerESP", {
-    Default = {0, 255, 0},
-    Name = {Name = "PLAYER", Container = ">>"},
-    Distance = {Container = "[", Suffix = "m]"},
-    Color = {
-        Tracer = {255, 255, 0},
-        Name = {0, 255, 255},
-        Distancia = {255, 255, 255}
-    }
+-- Adicionar ESP com configurações personalizadas
+ModelESP:Add(workspace.SomeModel, {
+    Name = "Alvo Especial",
+    Color = Color3.fromRGB(255, 0, 0)
 })
 ```
 
-### Exemplo 2: ESP para Itens com Highlight
-```lua
--- ESP para item com destaque visual
-KoltESP:Target("workspace.ImportantItem", "ItemESP", {
-    Default = {255, 165, 0},
-    Name = {Name = "ITEM RARO", Container = "★★"},
-    Distance = {Container = "(", Suffix = "m away)"},
-    Color = {
-        Highlight = {
-            Outline = {255, 215, 0}, -- Dourado
-            Filled = {255, 140, 0}   -- Laranja escuro
-        }
-    }
-})
+### Removendo ESP
 
--- Configurar transparência do highlight
-KoltESP:ConfigTransparency("Highlight", {
-    Filled = 0.3,   -- 30% opaco
-    Outline = 0.1   -- 10% opaco
-})
+```lua
+-- Remover ESP de um objeto específico
+ModelESP:Remove(workspace.SomeModel)
+
+-- Limpar todos os ESPs
+ModelESP:Clear()
 ```
 
-### Exemplo 3: ESP Rainbow Avançado
-```lua
--- ESP com modo rainbow e configurações avançadas
-KoltESP:Target("workspace.RainbowTarget", "RainbowESP", {
-    Name = {Name = "RAINBOW TARGET", Container = "◆◆"},
-    Distance = {Container = "~", Suffix = "units~"}
-})
+## 🎨 Configurações Globais
 
--- Ativar rainbow e configurar limites
-KoltESP:RainbowMode(true)
-KoltESP.ConfigDistanceMax = 1000
-KoltESP.ConfigDistanceMin = 10
+### Habilitando/Desabilitando Componentes
+
+```lua
+-- Mostrar/ocultar tracers
+ModelESP:SetGlobalESPType("ShowTracer", true)
+
+-- Mostrar/ocultar nomes
+ModelESP:SetGlobalESPType("ShowName", true)
+
+-- Mostrar/ocultar distâncias
+ModelESP:SetGlobalESPType("ShowDistance", true)
+
+-- Mostrar/ocultar highlight fill
+ModelESP:SetGlobalESPType("ShowHighlightFill", true)
+
+-- Mostrar/ocultar highlight outline
+ModelESP:SetGlobalESPType("ShowHighlightOutline", true)
 ```
 
-### Exemplo 4: Sistema de ESP Múltiplo
+### Personalizando Aparência
+
 ```lua
--- Múltiplas ESPs com controle individual
-local targets = {
-    {path = "workspace.RedTarget", id = "Red", color = {255, 0, 0}},
-    {path = "workspace.BlueTarget", id = "Blue", color = {0, 0, 255}},
-    {path = "workspace.GreenTarget", id = "Green", color = {0, 255, 0}}
-}
+-- Definir origem do tracer
+ModelESP:SetGlobalTracerOrigin("Bottom") -- Top, Center, Bottom, Left, Right
 
-for _, target in ipairs(targets) do
-    KoltESP:Target(target.path, target.id, {
-        Default = target.color,
-        Name = {Name = target.id:upper() .. " TARGET", Container = "||"},
-        Distance = {Container = "(", Suffix = "m)"}
-    })
-end
+-- Ativar modo arco-íris
+ModelESP:SetGlobalRainbow(true)
 
--- Pausar apenas o target azul
-KoltESP:Pause("Blue", true)
+-- Ajustar opacidade (0-1)
+ModelESP:SetGlobalOpacity(0.8)
+
+-- Definir tamanho da fonte
+ModelESP:SetGlobalFontSize(16)
+
+-- Ajustar espessura da linha
+ModelESP:SetGlobalLineThickness(2)
 ```
 
-### Exemplo 5: ESP Temporário com Auto-Cleanup
-```lua
--- ESP que se auto-remove após 30 segundos
-KoltESP:Target("workspace.TemporaryItem", "TempESP", {
-    Default = {255, 255, 0},
-    Name = {Name = "TEMP ITEM", Container = "⏰⏰"},
-    Distance = {Container = "[", Suffix = "m]"}
-})
+### Controle de Distância
 
--- Auto-cleanup após 30 segundos
-spawn(function()
-    wait(30)
-    KoltESP:Clear("TempESP")
-    print("ESP temporário removido!")
-end)
+```lua
+-- Configurar distância máxima (em studs)
+ModelESP.GlobalSettings.MaxDistance = 1000
+
+-- Configurar distância mínima
+ModelESP.GlobalSettings.MinDistance = 0
 ```
 
----
+## 📖 Exemplos Práticos
 
-## 🔧 API Reference
-
-### Função Principal
-
-#### `KoltESP:Target(path, espId, config)`
-Cria uma nova ESP para o objeto especificado.
-
-**Parâmetros:**
-- `path` (string): Caminho para o objeto (ex: "workspace.Part")
-- `espId` (string): ID único para esta ESP
-- `config` (table): Configurações da ESP
-
-**Exemplo:**
-```lua
-KoltESP:Target("workspace.MyPart", "ESP1", {
-    Default = {255, 0, 0},
-    Name = {Name = "Minha Parte", Container = "[]"},
-    Distance = {Container = "()", Suffix = "m"},
-    Color = {
-        Tracer = {255, 255, 0},
-        Name = {0, 255, 0},
-        Distancia = {255, 255, 255},
-        Highlight = {
-            Outline = {255, 255, 255},
-            Filled = {0, 100, 255}
-        }
-    }
-})
-```
-
-### Funções de Controle
-
-#### `KoltESP:NewTarget(path, oldEspId, newEspId)`
-Transfere uma ESP existente para um novo objeto.
+### 🧑‍🤝‍🧑 ESP para Jogadores
 
 ```lua
--- Mover ESP de um objeto para outro
-KoltESP:NewTarget("workspace.NewPart", "ESP1", "ESP2")
-```
+local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
-#### `KoltESP:Clear(espId?)`
-Remove ESP(s) específica(s) ou todas.
-
-```lua
-KoltESP:Clear("ESP1")     -- Remove ESP específica
-KoltESP:Clear()           -- Remove todas as ESPs
-```
-
-#### `KoltESP:Pause(espId?, state)`
-Pausa/despausa ESP(s).
-
-```lua
-KoltESP:Pause("ESP1", true)   -- Pausa ESP específica
-KoltESP:Pause(false)          -- Despausa todas as ESPs
-```
-
-### Funções de Configuração
-
-#### `KoltESP:Config(component, settings)`
-Configura visibilidade de componentes.
-
-```lua
--- Configurar componentes individuais
-KoltESP:Config("Name", {Visible = true})
-KoltESP:Config("Distance", {Visible = false})
-KoltESP:Config("Tracer", {Visible = true})
-KoltESP:Config("Highlight", {Filled = true, Outline = false})
-```
-
-#### `KoltESP:RainbowMode(enabled)`
-Ativa/desativa modo rainbow.
-
-```lua
-KoltESP:RainbowMode(true)   -- Ativar
-KoltESP:RainbowMode(false)  -- Desativar
-```
-
-#### `KoltESP:ConfigTransparency(component, settings)`
-Configura transparência do highlight.
-
-```lua
-KoltESP:ConfigTransparency("Highlight", {
-    Filled = 0.5,   -- 50% transparente
-    Outline = 0.2   -- 20% transparente
-})
-```
-
-### Propriedades Globais
-
-#### `KoltESP.ConfigDistanceMax`
-Distância máxima para mostrar ESP (padrão: 400).
-
-#### `KoltESP.ConfigDistanceMin`
-Distância mínima para mostrar ESP (padrão: 5).
-
-```lua
-KoltESP.ConfigDistanceMax = 1000  -- 1000 studs
-KoltESP.ConfigDistanceMin = 20    -- 20 studs
-```
-
-#### `KoltESP:Unload()`
-Descarrega completamente a library.
-
-```lua
-KoltESP:Unload()  -- Remove tudo e limpa memória
-```
-
----
-
-## ⚙️ Configurações Avançadas
-
-### Template de Configuração Completa
-```lua
-local configCompleta = {
-    Default = {255, 255, 255},  -- Cor RGB padrão
-    
-    Name = {
-        Name = "Nome Personalizado",  -- Nome a ser exibido
-        Container = "[]"              -- Container ao redor do nome
-    },
-    
-    Distance = {
-        Container = "()",  -- Container ao redor da distância
-        Suffix = "m"       -- Sufixo após a distância
-    },
-    
-    Color = {
-        Tracer = {255, 0, 0},        -- Cor da linha tracer
-        Name = {0, 255, 0},          -- Cor do texto do nome
-        Distancia = {0, 0, 255},     -- Cor do texto da distância
-        
-        Highlight = {
-            Outline = {255, 255, 255},  -- Cor do contorno
-            Filled = {128, 128, 128}    -- Cor do preenchimento
-        }
-    }
-}
-
-KoltESP:Target("workspace.MeuObjeto", "ESPAvancada", configCompleta)
-```
-
-### Configurações de Performance
-```lua
--- Para melhor performance em mapas grandes
-KoltESP.ConfigDistanceMax = 200  -- Reduzir distância máxima
-KoltESP:Config("Tracer", {Visible = false})  -- Desabilitar tracers pesados
-
--- Para máxima qualidade visual
-KoltESP.ConfigDistanceMax = 2000
-KoltESP:ConfigTransparency("Highlight", {Filled = 0.1, Outline = 0.0})
-```
-
----
-
-## 🛠️ Troubleshooting
-
-### Problemas Comuns
-
-**❌ ESP não aparece:**
-```lua
--- Verificar se o objeto existe
-local obj = workspace:FindFirstChild("NomeDoObjeto")
-if obj then
-    print("Objeto encontrado!")
-    KoltESP:Target("workspace.NomeDoObjeto", "teste", {Default = {255, 0, 0}})
-else
-    print("Objeto não encontrado!")
-end
-```
-
-**❌ Performance baixa:**
-```lua
--- Reduzir número de ESPs ativas
-KoltESP.ConfigDistanceMax = 100  -- Menor distância
-KoltESP:Config("Tracer", {Visible = false})  -- Desabilitar tracers
-```
-
-**❌ Cores não funcionam:**
-```lua
--- Verificar formato RGB (0-255)
-Color = {
-    Name = {255, 0, 0}  -- ✅ Correto
-    -- Name = {1, 0, 0}  -- ❌ Incorreto (0-1)
-}
-```
-
-### Debug Mode
-```lua
--- Função para debug
-local function debugESP()
-    print("=== DEBUG KOLTESP ===")
-    print("ESPs ativas:", #ESPTargets)
-    print("Rainbow ativo:", RainbowModeEnabled)
-    print("Distância Max:", KoltESP.ConfigDistanceMax)
-    print("Distância Min:", KoltESP.ConfigDistanceMin)
-    
-    for id, data in pairs(ESPTargets) do
-        print(string.format("ESP[%s]: %s | Pausada: %s", 
-            id, 
-            data.Object.Name, 
-            tostring(data.Paused)
-        ))
+-- Função para adicionar ESP a todos os jogadores
+local function addPlayerESP()
+    for _, player in pairs(game.Players:GetPlayers()) do
+        if player ~= game.Players.LocalPlayer and player.Character then
+            ModelESP:Add(player.Character, {
+                Name = player.Name,
+                Color = Color3.fromRGB(0, 255, 0)
+            })
+        end
     end
 end
 
-debugESP()
+-- Adicionar ESP aos jogadores atuais
+addPlayerESP()
+
+-- Adicionar ESP automaticamente para novos jogadores
+game.Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        wait(1) -- Aguardar o character carregar completamente
+        ModelESP:Add(character, {
+            Name = player.Name,
+            Color = Color3.fromRGB(0, 255, 0)
+        })
+    end)
+end)
+
+-- Remover ESP quando jogador sair
+game.Players.PlayerRemoving:Connect(function(player)
+    if player.Character then
+        ModelESP:Remove(player.Character)
+    end
+end)
 ```
 
----
+### 🎯 ESP para Objetos Específicos
 
-## 📝 Changelog
+```lua
+local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
-### v1.0 (Release Atual)
-- ✅ Sistema de paths inteligente
-- ✅ Suporte completo a Highlight
-- ✅ Modo Rainbow dinâmico
-- ✅ API de controle avançada
-- ✅ Sistema de containers personalizáveis
-- ✅ Configuração de transparência
-- ✅ Otimizações de performance
+-- ESP para partes específicas por nome
+local function addPartESP(partName, espName, color)
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part.Name == partName and part:IsA("BasePart") then
+            ModelESP:Add(part, {
+                Name = espName or part.Name,
+                Color = color or Color3.fromRGB(255, 255, 0)
+            })
+        end
+    end
+end
 
----
+-- Exemplos de uso
+addPartESP("Chest", "💰 Baú", Color3.fromRGB(255, 215, 0))
+addPartESP("Enemy", "👹 Inimigo", Color3.fromRGB(255, 0, 0))
+addPartESP("PowerUp", "⚡ Power-Up", Color3.fromRGB(0, 255, 255))
+```
 
-## 📞 Suporte
+### 🔍 ESP por Path Específico
 
-- **GitHub Issues**: [Reportar Bug](https://github.com/DH-SOARESE/KoltESP-Library/issues)
-- **Discussões**: [GitHub Discussions](https://github.com/DH-SOARESE/KoltESP-Library/discussions)
+```lua
+local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
----
+-- ESP para objetos em caminhos específicos
+local targets = {
+    {path = "workspace.Map.Treasures", name = "💎 Tesouro", color = Color3.fromRGB(255, 0, 255)},
+    {path = "workspace.Enemies", name = "⚔️ Inimigo", color = Color3.fromRGB(255, 100, 100)},
+    {path = "workspace.Items", name = "📦 Item", color = Color3.fromRGB(100, 255, 100)}
+}
+
+for _, target in pairs(targets) do
+    local success, obj = pcall(function()
+        return game:GetService("PathfindingService"):FindPartOnRayWithWhitelist() -- Usar o path correto
+    end)
+    
+    -- Exemplo mais direto:
+    local obj = workspace:FindFirstChild("Map")
+    if obj then
+        obj = obj:FindFirstChild("Treasures")
+        if obj then
+            for _, child in pairs(obj:GetChildren()) do
+                if child:IsA("Model") or child:IsA("BasePart") then
+                    ModelESP:Add(child, {
+                        Name = target.name,
+                        Color = target.color
+                    })
+                end
+            end
+        end
+    end
+end
+```
+
+### 🌈 Configuração Avançada
+
+```lua
+local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+
+-- Configurar tema personalizado
+ModelESP.Theme.PrimaryColor = Color3.fromRGB(130, 200, 255)
+ModelESP.Theme.SecondaryColor = Color3.fromRGB(255, 255, 255)
+ModelESP.Theme.OutlineColor = Color3.fromRGB(0, 0, 0)
+
+-- Configurações avançadas
+ModelESP:SetGlobalTracerOrigin("Center")
+ModelESP:SetGlobalRainbow(true)
+ModelESP:SetGlobalOpacity(0.9)
+ModelESP:SetGlobalFontSize(18)
+ModelESP:SetGlobalLineThickness(3)
+
+-- Definir distâncias
+ModelESP.GlobalSettings.MaxDistance = 500 -- 500 studs máximo
+ModelESP.GlobalSettings.MinDistance = 10  -- 10 studs mínimo
+
+-- Habilitar auto-remoção de objetos inválidos
+ModelESP.GlobalSettings.AutoRemoveInvalid = true
+```
+
+## ⚙️ Configurações Disponíveis
+
+### GlobalSettings
+```lua
+{
+    TracerOrigin = "Bottom",        -- Origem do tracer
+    ShowTracer = true,              -- Mostrar linha tracer
+    ShowHighlightFill = true,       -- Mostrar preenchimento do highlight
+    ShowHighlightOutline = true,    -- Mostrar contorno do highlight
+    ShowName = true,                -- Mostrar nome
+    ShowDistance = true,            -- Mostrar distância
+    RainbowMode = false,            -- Modo arco-íris
+    MaxDistance = math.huge,        -- Distância máxima
+    MinDistance = 0,                -- Distância mínima
+    Opacity = 0.8,                  -- Opacidade (0-1)
+    LineThickness = 1.5,            -- Espessura da linha
+    FontSize = 14,                  -- Tamanho da fonte
+    AutoRemoveInvalid = true        -- Auto-remover objetos inválidos
+}
+```
+
+## 🎮 Controles
+
+```lua
+-- Habilitar/desabilitar completamente
+ModelESP.Enabled = true/false
+
+-- Verificar status
+print("ESP ativo:", ModelESP.Enabled)
+print("Objetos rastreados:", #ModelESP.Objects)
+```
 
 ## 📄 Licença
 
-Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE](LICENSE) para detalhes.
+Esta biblioteca é fornecida como está, para uso educacional e de entretenimento em Roblox.
 
 ---
 
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Por favor, leia o [CONTRIBUTING.md](CONTRIBUTING.md) para detalhes sobre nosso código de conduta e o processo para enviar pull requests.
-
----
-
-## ⭐ Library Crua
-
-Para visualizar o código fonte completo da library:
-
-```lua
---[[
-==============================
-KoltESP Library v1.0
-Advanced ESP System for Roblox
-==============================
-
-Carregamento:
-local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
-
-Exemplo de Uso:
-KoltESP:Target("workspace.Part", "ESP1", {
-    Default = {255, 0, 0},
-    Name = {Name = "Target", Container = "[]"},
-    Distance = {Container = "()", Suffix = "m"}
-})
-
-Funcionalidades:
-- ✅ Sistema de paths inteligente  
-- ✅ Highlight com transparência
-- ✅ Modo Rainbow dinâmico
-- ✅ Controle de distância min/max
-- ✅ API completa de controle
-- ✅ Otimizado para performance
-- ✅ Suporte a todos executores
-
-GitHub: https://github.com/DH-SOARESE/KoltESP-Library
---]]
-
--- [CÓDIGO DA LIBRARY AQUI - 400+ linhas de código otimizado]
--- Acesse o link acima para ver o código completo!
-```
-
-**🔗 Link Direto:** https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua
-
----
-
-<div align="center">
-
-**🌟 Se este projeto te ajudou, deixe uma estrela no GitHub! 🌟**
-
-[⬆ Voltar ao Topo](#-koltesp-library)
-
-</div>
+**Desenvolvido por DH_SOARES** | Versão 1.2
