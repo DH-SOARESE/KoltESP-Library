@@ -1,365 +1,253 @@
--- KoltESP Library v1.0
--- Biblioteca ESP orientada a objetos para Roblox
--- Carregamento: loadstring(game:HttpGet("URL"))()
-
-local KoltESP = {}
-KoltESP.__index = KoltESP
-
--- Serviços
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
 
--- Variáveis globais da biblioteca
-local ESPObjects = {}
-local Connections = {}
-local IsLoaded = false
-
--- Configurações padrão
-local DefaultConfig = {
+local Kolt = {}
+Kolt.ESPs = {}
+Kolt.config = {
     ["Tracer"] = {
-        TracerOrigin = "Bottom", -- "Top", "Center", "Bottom"
+        Origin = "Top",
         Visible = true,
-        Color = Color3.fromRGB(255, 255, 255),
-        Thickness = 1,
-        Transparency = 0
     },
     ["Highlight"] = {
         Outline = true,
         Filled = true,
         Visible = true,
-        OutlineColor = Color3.fromRGB(255, 0, 0),
-        FillColor = Color3.fromRGB(255, 0, 0),
-        OutlineTransparency = 0.3,
-        FillTransparency = 0.5
     },
     ["Name"] = {
+        Text = "",
         Visible = true,
-        Color = Color3.fromRGB(255, 255, 255),
-        Size = 16,
-        Font = Enum.Font.SourceSans,
-        Container = "[]"
+        Container = "[%s]",
     },
     ["Distance"] = {
         Visible = true,
-        Color = Color3.fromRGB(255, 255, 255),
-        Size = 14,
-        Font = Enum.Font.SourceSans,
-        Container = "()"
+        Container = "(%s)",
     },
     EspMaxDistance = 300,
-    EspMinDistance = 5
+    EspMinDistance = 5,
+    EspHighlightTransparency = {
+        Outline = 0.3,
+        Filled = 0.5,
+    },
 }
 
-local CurrentConfig = DefaultConfig
+local updateConnection
 
--- Função para obter objeto do caminho
-local function getObjectFromPath(path)
-    local success, result = pcall(function()
-        return loadstring("return " .. path)()
-    end)
-    return success and result or nil
+local function resolvePath(path)
+    if not path then return nil end
+    local parts = string.split(path, ".")
+    local obj = game
+    for _, part in ipairs(parts) do
+        obj = obj:FindFirstChild(part)
+        if not obj then
+            return nil
+        end
+    end
+    return obj
 end
 
--- Função para calcular posição do tracer
-local function getTracerOrigin()
+local function createDrawings(esp)
+    esp.drawings = {}
+
+    -- Tracer
+    if Kolt.config.Tracer.Visible then
+        local line = Drawing.new("Line")
+        line.Thickness = 2
+        line.Transparency = 0
+        line.Visible = false
+        esp.drawings.tracer = line
+    end
+
+    -- Name
+    if Kolt.config.Name.Visible then
+        local text = Drawing.new("Text")
+        text.Size = 16
+        text.Center = true
+        text.Outline = true
+        text.Font = 2
+        text.Transparency = 1
+        text.Visible = false
+        esp.drawings.name = text
+    end
+
+    -- Distance
+    if Kolt.config.Distance.Visible then
+        local text = Drawing.new("Text")
+        text.Size = 16
+        text.Center = true
+        text.Outline = true
+        text.Font = 2
+        text.Transparency = 1
+        text.Visible = false
+        esp.drawings.distance = text
+    end
+
+    -- Highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Parent = nil
+    highlight.Adornee = esp.target
+    highlight.FillTransparency = 1
+    highlight.OutlineTransparency = 1
+    esp.highlight = highlight
+end
+
+local function updateESP()
     local viewportSize = Camera.ViewportSize
-    local origin = CurrentConfig.Tracer.TracerOrigin
-    
-    if origin == "Top" then
-        return Vector2.new(viewportSize.X / 2, 0)
-    elseif origin == "Center" then
-        return Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
-    else -- Bottom
-        return Vector2.new(viewportSize.X / 2, viewportSize.Y)
-    end
-end
 
--- Classe ESP Object
-local ESPObject = {}
-ESPObject.__index = ESPObject
-
-function ESPObject.new(target, reference, config)
-    local self = setmetatable({}, ESPObject)
-    
-    self.Target = target
-    self.Reference = reference or target.Name
-    self.Config = config or {}
-    
-    -- Elementos visuais
-    self.Tracer = nil
-    self.Highlight = nil
-    self.NameLabel = nil
-    self.DistanceLabel = nil
-    self.Connection = nil
-    
-    -- Configurações específicas do objeto
-    self.Color = self.Config.Color or Color3.fromRGB(255, 0, 0)
-    self.Name = self.Config.Name or {
-        Name = self.Reference,
-        Container = CurrentConfig.Name.Container
-    }
-    self.DistanceContainer = self.Config.DistanceContainer or CurrentConfig.Distance.Container
-    
-    self:CreateElements()
-    self:StartUpdating()
-    
-    return self
-end
-
-function ESPObject:CreateElements()
-    if not self.Target or not self.Target.Parent then return end
-    
-    -- Criar Highlight
-    if CurrentConfig.Highlight.Visible then
-        self.Highlight = Instance.new("Highlight")
-        self.Highlight.Adornee = self.Target
-        self.Highlight.OutlineColor = self.Color
-        self.Highlight.FillColor = self.Color
-        self.Highlight.OutlineTransparency = CurrentConfig.Highlight.OutlineTransparency
-        self.Highlight.FillTransparency = CurrentConfig.Highlight.FillTransparency
-        self.Highlight.Enabled = CurrentConfig.Highlight.Outline or CurrentConfig.Highlight.Filled
-        self.Highlight.Parent = self.Target
-    end
-    
-    -- Criar GUI para Name e Distance
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "KoltESP_" .. self.Reference
-    screenGui.Parent = game.CoreGui
-    
-    -- Label do Nome
-    if CurrentConfig.Name.Visible then
-        self.NameLabel = Instance.new("TextLabel")
-        self.NameLabel.Name = "NameLabel"
-        self.NameLabel.Size = UDim2.new(0, 200, 0, CurrentConfig.Name.Size)
-        self.NameLabel.BackgroundTransparency = 1
-        self.NameLabel.TextColor3 = CurrentConfig.Name.Color
-        self.NameLabel.TextSize = CurrentConfig.Name.Size
-        self.NameLabel.Font = CurrentConfig.Name.Font
-        self.NameLabel.TextStrokeTransparency = 0
-        self.NameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-        self.NameLabel.Text = self.Name.Container:gsub("%%s", self.Name.Name)
-        self.NameLabel.Parent = screenGui
-    end
-    
-    -- Label da Distância
-    if CurrentConfig.Distance.Visible then
-        self.DistanceLabel = Instance.new("TextLabel")
-        self.DistanceLabel.Name = "DistanceLabel"
-        self.DistanceLabel.Size = UDim2.new(0, 200, 0, CurrentConfig.Distance.Size)
-        self.DistanceLabel.BackgroundTransparency = 1
-        self.DistanceLabel.TextColor3 = CurrentConfig.Distance.Color
-        self.DistanceLabel.TextSize = CurrentConfig.Distance.Size
-        self.DistanceLabel.Font = CurrentConfig.Distance.Font
-        self.DistanceLabel.TextStrokeTransparency = 0
-        self.DistanceLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-        self.DistanceLabel.Parent = screenGui
-    end
-    
-    -- Criar Tracer
-    if CurrentConfig.Tracer.Visible then
-        local drawingGui = Instance.new("ScreenGui")
-        drawingGui.Name = "TracerGui_" .. self.Reference
-        drawingGui.Parent = game.CoreGui
-        
-        self.Tracer = Instance.new("Frame")
-        self.Tracer.Name = "Tracer"
-        self.Tracer.BackgroundColor3 = self.Color
-        self.Tracer.BorderSizePixel = 0
-        self.Tracer.Parent = drawingGui
-    end
-end
-
-function ESPObject:UpdateElements()
-    if not self.Target or not self.Target.Parent then
-        self:Destroy()
-        return
-    end
-    
-    local character = LocalPlayer.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-    
-    local targetPosition = self.Target.Position or self.Target.CFrame.Position
-    local distance = (character.HumanoidRootPart.Position - targetPosition).Magnitude
-    
-    -- Verificar distância
-    if distance > CurrentConfig.EspMaxDistance or distance < CurrentConfig.EspMinDistance then
-        self:SetVisible(false)
-        return
-    else
-        self:SetVisible(true)
-    end
-    
-    -- Atualizar posição na tela
-    local screenPoint, onScreen = Camera:WorldToViewportPoint(targetPosition)
-    
-    if onScreen then
-        -- Atualizar Nome
-        if self.NameLabel then
-            self.NameLabel.Position = UDim2.new(0, screenPoint.X - 100, 0, screenPoint.Y - 30)
-            local displayText = self.Name.Container:find("%%s") and 
-                self.Name.Container:gsub("%%s", self.Name.Name) or 
-                self.Name.Container:gsub(" ", "") .. self.Name.Name .. self.Name.Container:gsub(" ", "")
-            self.NameLabel.Text = displayText
+    for target, esp in pairs(Kolt.ESPs) do
+        if not esp.target or not esp.target.Parent then
+            Kolt.Remove(target)
+            continue
         end
-        
-        -- Atualizar Distância
-        if self.DistanceLabel then
-            local distanceText = self.DistanceContainer:find("%%s") and
-                self.DistanceContainer:gsub("%%s", math.floor(distance)) or
-                self.DistanceContainer:gsub(" ", "") .. math.floor(distance) .. self.DistanceContainer:gsub(" ", "")
-            self.DistanceLabel.Text = distanceText
-            self.DistanceLabel.Position = UDim2.new(0, screenPoint.X - 100, 0, screenPoint.Y + 10)
+
+        local rootPart = esp.target:IsA("BasePart") and esp.target or esp.target:FindFirstChild("HumanoidRootPart")
+        if not rootPart then
+            continue
         end
-        
-        -- Atualizar Tracer
-        if self.Tracer then
-            local origin = getTracerOrigin()
-            local targetPoint = Vector2.new(screenPoint.X, screenPoint.Y)
-            
-            local distance2D = (targetPoint - origin).Magnitude
-            local angle = math.atan2(targetPoint.Y - origin.Y, targetPoint.X - origin.X)
-            
-            self.Tracer.Size = UDim2.new(0, distance2D, 0, CurrentConfig.Tracer.Thickness)
-            self.Tracer.Position = UDim2.new(0, origin.X, 0, origin.Y)
-            self.Tracer.Rotation = math.deg(angle)
-            self.Tracer.AnchorPoint = Vector2.new(0, 0.5)
+
+        local worldPos = rootPart.Position
+        local screenPos, onScreen = Camera:WorldToViewportPoint(worldPos)
+        local distance = (worldPos - Camera.CFrame.Position).Magnitude
+
+        if distance > Kolt.config.EspMaxDistance or distance < Kolt.config.EspMinDistance then
+            -- Hide drawings
+            for _, drawing in pairs(esp.drawings) do
+                drawing.Visible = false
+            end
+            -- Hide highlight
+            esp.highlight.FillTransparency = 1
+            esp.highlight.OutlineTransparency = 1
+            continue
         end
-    else
-        self:SetVisible(false)
-    end
-end
 
-function ESPObject:SetVisible(visible)
-    if self.NameLabel then self.NameLabel.Visible = visible end
-    if self.DistanceLabel then self.DistanceLabel.Visible = visible end
-    if self.Tracer then self.Tracer.Visible = visible end
-    if self.Highlight then self.Highlight.Enabled = visible end
-end
+        local sPos = Vector2.new(screenPos.X, screenPos.Y)
 
-function ESPObject:StartUpdating()
-    self.Connection = RunService.Heartbeat:Connect(function()
-        self:UpdateElements()
-    end)
-end
-
-function ESPObject:Destroy()
-    if self.Connection then
-        self.Connection:Disconnect()
-        self.Connection = nil
-    end
-    
-    if self.Highlight then self.Highlight:Destroy() end
-    if self.NameLabel and self.NameLabel.Parent then self.NameLabel.Parent:Destroy() end
-    if self.Tracer and self.Tracer.Parent then self.Tracer.Parent:Destroy() end
-    
-    -- Remover da lista
-    for i, obj in ipairs(ESPObjects) do
-        if obj == self then
-            table.remove(ESPObjects, i)
-            break
+        -- Tracer
+        local tracer = esp.drawings.tracer
+        if tracer and Kolt.config.Tracer.Visible then
+            local originPos
+            local origin = esp.Tracer and esp.Tracer.Origin or Kolt.config.Tracer.Origin
+            if origin == "Top" then
+                originPos = Vector2.new(viewportSize.X / 2, 0)
+            elseif origin == "Center" then
+                originPos = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+            else
+                originPos = Vector2.new(viewportSize.X / 2, viewportSize.Y)
+            end
+            tracer.From = originPos
+            tracer.To = sPos
+            tracer.Color = esp.Color
+            tracer.Visible = onScreen
+            tracer.Transparency = tracer.Visible and 0.5 or 0
         end
-    end
-end
 
--- Funções principais da biblioteca
-function KoltESP.Add(path, reference, config)
-    local target = getObjectFromPath(path)
-    if not target then
-        warn("KoltESP: Não foi possível encontrar o objeto no caminho: " .. path)
-        return nil
-    end
-    
-    local espObject = ESPObject.new(target, reference, config)
-    table.insert(ESPObjects, espObject)
-    
-    return espObject
-end
-
-function KoltESP.Remove(target)
-    for i, obj in ipairs(ESPObjects) do
-        if obj.Target == target or obj.Reference == target then
-            obj:Destroy()
-            break
+        -- Name
+        local nameDrawing = esp.drawings.name
+        if nameDrawing and Kolt.config.Name.Visible then
+            local nameText = esp.Name and esp.Name.Text or esp.target.Name
+            local container = esp.Name and esp.Name.Container or Kolt.config.Name.Container
+            nameDrawing.Text = string.format(container, nameText)
+            nameDrawing.Position = sPos - Vector2.new(0, 30)
+            nameDrawing.Color = esp.Color
+            nameDrawing.Visible = onScreen
+            nameDrawing.Transparency = nameDrawing.Visible and 1 or 0
         end
-    end
-end
 
-function KoltESP.Clear()
-    for _, obj in ipairs(ESPObjects) do
-        obj:Destroy()
-    end
-    ESPObjects = {}
-end
+        -- Distance
+        local distanceDrawing = esp.drawings.distance
+        if distanceDrawing and Kolt.config.Distance.Visible then
+            local distText = tostring(math.floor(distance))
+            local container = esp.DistanceContainer or Kolt.config.Distance.Container
+            distanceDrawing.Text = string.format(container, distText)
+            distanceDrawing.Position = sPos + Vector2.new(0, 10)
+            distanceDrawing.Color = esp.Color
+            distanceDrawing.Visible = onScreen
+            distanceDrawing.Transparency = distanceDrawing.Visible and 1 or 0
+        end
 
-function KoltESP.Config(newConfig)
-    for category, settings in pairs(newConfig) do
-        if CurrentConfig[category] then
-            for setting, value in pairs(settings) do
-                CurrentConfig[category][setting] = value
+        -- Highlight
+        if Kolt.config.Highlight.Visible then
+            esp.highlight.FillColor = esp.Color
+            esp.highlight.OutlineColor = esp.Color
+            if (esp.Highlight and esp.Highlight.Filled ~= nil) or Kolt.config.Highlight.Filled then
+                esp.highlight.FillTransparency = Kolt.config.EspHighlightTransparency.Filled
+            else
+                esp.highlight.FillTransparency = 1
+            end
+            if (esp.Highlight and esp.Highlight.Outline ~= nil) or Kolt.config.Highlight.Outline then
+                esp.highlight.OutlineTransparency = Kolt.config.EspHighlightTransparency.Outline
+            else
+                esp.highlight.OutlineTransparency = 1
             end
         else
-            CurrentConfig[category] = settings
+            esp.highlight.FillTransparency = 1
+            esp.highlight.OutlineTransparency = 1
         end
-    end
-    
-    -- Recriar elementos com nova configuração
-    local tempObjects = {}
-    for _, obj in ipairs(ESPObjects) do
-        table.insert(tempObjects, {obj.Target, obj.Reference, obj.Config})
-        obj:Destroy()
-    end
-    
-    ESPObjects = {}
-    for _, data in ipairs(tempObjects) do
-        KoltESP.Add(data[1], data[2], data[3])
     end
 end
 
-function KoltESP.Unload()
-    KoltESP.Clear()
-    
-    -- Limpar conexões globais
-    for _, connection in pairs(Connections) do
-        connection:Disconnect()
+function Kolt.Add(path, reference, localConfig)
+    local target = reference or resolvePath(path)
+    if not target or not target.Parent then
+        return nil
     end
-    Connections = {}
-    
-    -- Limpar GUIs restantes
-    for _, gui in pairs(game.CoreGui:GetChildren()) do
-        if gui.Name:find("KoltESP_") or gui.Name:find("TracerGui_") then
-            gui:Destroy()
-        end
+
+    local esp = {}
+    esp.target = target
+    createDrawings(esp)
+
+    -- Apply local config
+    if localConfig then
+        esp.Color = localConfig.Color or Color3.fromRGB(255, 0, 0)
+        esp.Name = localConfig.Name or {Text = "", Container = "[]"}
+        esp.DistanceContainer = localConfig.DistanceContainer or "()"
+        esp.Tracer = localConfig.Tracer or {Origin = Kolt.config.Tracer.Origin}
+        esp.Highlight = localConfig.Highlight or {Outline = true, Filled = true}
+    else
+        esp.Color = Color3.fromRGB(255, 0, 0)
+        esp.Name = {Text = "", Container = "[]"}
+        esp.DistanceContainer = "()"
+        esp.Tracer = {Origin = Kolt.config.Tracer.Origin}
+        esp.Highlight = {Outline = true, Filled = true}
     end
-    
-    IsLoaded = false
-    print("KoltESP: Biblioteca descarregada com sucesso!")
+
+    Kolt.ESPs[target] = esp
+
+    -- Initial update for highlight
+    updateESP()
+
+    return esp
 end
 
--- Inicialização
-function KoltESP.Init()
-    if IsLoaded then
-        warn("KoltESP: Biblioteca já está carregada!")
-        return
-    end
-    
-    IsLoaded = true
-    print("KoltESP: Biblioteca carregada com sucesso!")
-    
-    -- Cleanup automático quando player sai
-    Connections.PlayerRemoving = game:GetService("Players").PlayerRemoving:Connect(function(player)
-        if player == LocalPlayer then
-            KoltESP.Unload()
+function Kolt.Remove(target)
+    local esp = Kolt.ESPs[target]
+    if esp then
+        for _, drawing in pairs(esp.drawings) do
+            if drawing then
+                drawing:Remove()
+            end
         end
-    end)
+        if esp.highlight then
+            esp.highlight:Destroy()
+        end
+        Kolt.ESPs[target] = nil
+    end
 end
 
--- Auto-inicializar
-KoltESP.Init()
+function Kolt.Clear()
+    for target, _ in pairs(Kolt.ESPs) do
+        Kolt.Remove(target)
+    end
+end
 
--- Aliases para compatibilidade
-_G.KoltESP = KoltESP
-_G.Kolt = KoltESP
+function Kolt.Unload()
+    if updateConnection then
+        updateConnection:Disconnect()
+        updateConnection = nil
+    end
+    Kolt.Clear()
+end
 
-return KoltESP
+updateConnection = RunService.Heartbeat:Connect(updateESP)
+
+return Kolt
