@@ -11,6 +11,7 @@ Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e responsiv
 - 📱 **Responsivo**: Adapta-se a diferentes resoluções de tela, com posicionamento preciso mesmo em distâncias próximas
 - 🔧 **Fácil de Usar**: API simples e intuitiva
 - 🆕 **ESP Collision (Opcional e Individual)**: Cria um Humanoid "Kolt ESP" no alvo e ajusta a transparência de parts invisíveis (de 1 para 0.99) para melhor detecção de colisões ou visibilidade
+- 🆕 **Customização de Textos**: Propriedades individuais para containers (ex: colchetes para nome) e sufixo/container para distância (ex: ".m" com parênteses)
 - 🐛 **Correções Recentes**: Melhoria no posicionamento de textos (Name e Distance) para evitar distorções quando o jogador está próximo (1-10 metros) do alvo
 
 ## 🚀 Instalação
@@ -19,12 +20,25 @@ Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e responsiv
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 ```
 
+## 📋 Sumário (Atalhos)
+
+- [Características](#-características)
+- [Instalação](#-instalação)
+- [Funcionalidades](#-funcionalidades)
+- [Uso Básico](#️-uso-básico)
+- [Removendo ESP](#-removendo-esp)
+- [Configurações Globais](#-configurações-globais)
+- [Exemplos Práticos](#-exemplos-práticos)
+- [Configurações Disponíveis](#️-configurações-disponíveis)
+- [Controles](#-controles)
+- [Licença](#-licença)
+
 ## 📋 Funcionalidades
 
 ### 🎯 Componentes ESP
 - **Tracer**: Linha do ponto de origem até o centro do alvo
-- **Nome**: Exibe o nome do objeto, centralizado
-- **Distância**: Mostra a distância em metros, com formatação precisa (ex: "10.5m")
+- **Nome**: Exibe o nome do objeto, centralizado, com container personalizável (ex: [Nome])
+- **Distância**: Mostra a distância em metros, com formatação precisa (ex: (10.5.m)), sufixo e container personalizáveis
 - **Highlight**: Contorno e preenchimento colorido ao redor do objeto, com transparências ajustáveis
 
 ### 🎮 Origens do Tracer
@@ -40,6 +54,11 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 - Ajusta temporariamente a transparência de todas as parts com valor 1 para 0.99
 - Ao remover o ESP, restaura as transparências originais e destrói o Humanoid
 
+### 🆕 Propriedades Individuais para Textos
+- **NameContainer**: Tabela com `Start` e `End` para envolver o nome (padrão: {Start = "[", End = "]"})
+- **DistanceSuffix**: Sufixo após o valor da distância (padrão: "m")
+- **DistanceContainer**: Tabela com `Start` e `End` para envolver a distância (padrão: {Start = "(", End = ")"})
+
 ## 🛠️ Uso Básico
 
 ### Adicionando ESP a um Objeto
@@ -51,17 +70,23 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 -- Adicionar ESP básico
 ModelESP:Add(workspace.SomeModel)
 
--- Adicionar ESP com nome personalizado, cor única e Collision ativada
+-- Adicionar ESP com nome personalizado, cor única, Collision e customização de textos
 ModelESP:Add(workspace.SomeModel, {
     Name = "Alvo Especial",
     Color = Color3.fromRGB(255, 0, 0),
-    Collision = true  -- Ativa o modo Collision
+    Collision = true,  -- Ativa o modo Collision
+    NameContainer = {Start = "{", End = "}"},  -- Customiza container do nome
+    DistanceSuffix = ".metros",  -- Customiza sufixo da distância
+    DistanceContainer = {Start = "<", End = ">" }  -- Customiza container da distância
 })
 
--- Adicionar ESP com cores personalizadas por elemento e Collision
+-- Adicionar ESP com cores personalizadas por elemento, Collision e textos customizados
 ModelESP:Add(workspace.SomeModel, {
     Name = "Alvo Especial",
     Collision = true,
+    NameContainer = {Start = "[", End = "]"},
+    DistanceSuffix = "m",
+    DistanceContainer = {Start = "(", End = ")"},
     Color = {
         Name = {255, 255, 255},            -- Cor do texto do nome (RGB)
         Distance = {255, 255, 255},        -- Cor do texto da distância (RGB)
@@ -136,7 +161,7 @@ ModelESP.GlobalSettings.MinDistance = 0
 
 ## 📖 Exemplos Práticos
 
-### 🧑‍🤝‍🧑 ESP para Jogadores com Cores Personalizadas e Collision
+### 🧑‍🤝‍🧑 ESP para Jogadores com Cores Personalizadas, Collision e Textos Customizados
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -148,6 +173,9 @@ local function addPlayerESP()
             ModelESP:Add(player.Character, {
                 Name = player.Name,
                 Collision = true,  -- Ativa Collision para este jogador
+                NameContainer = {Start = "[", End = "]"},
+                DistanceSuffix = "m",
+                DistanceContainer = {Start = "(", End = ")"},
                 Color = {
                     Name = {255, 255, 255},        -- Nome em branco
                     Distance = {255, 255, 255},    -- Distância em branco
@@ -172,6 +200,9 @@ game.Players.PlayerAdded:Connect(function(player)
         ModelESP:Add(character, {
             Name = player.Name,
             Collision = true,
+            NameContainer = {Start = "[", End = "]"},
+            DistanceSuffix = "m",
+            DistanceContainer = {Start = "(", End = ")"},
             Color = {
                 Name = {255, 255, 255},
                 Distance = {255, 255, 255},
@@ -193,18 +224,21 @@ game.Players.PlayerRemoving:Connect(function(player)
 end)
 ```
 
-### 🎯 ESP para Objetos Específicos com Collision
+### 🎯 ESP para Objetos Específicos com Collision e Textos Customizados
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
 -- ESP para partes específicas por nome
-local function addPartESP(partName, espName, colorTable, collision)
+local function addPartESP(partName, espName, colorTable, collision, nameContainer, distanceSuffix, distanceContainer)
     for _, part in pairs(workspace:GetDescendants()) do
         if part.Name == partName and part:IsA("BasePart") then
             ModelESP:Add(part, {
                 Name = espName or part.Name,
                 Collision = collision or false,
+                NameContainer = nameContainer or {Start = "[", End = "]"},
+                DistanceSuffix = distanceSuffix or "m",
+                DistanceContainer = distanceContainer or {Start = "(", End = ")"},
                 Color = colorTable or {
                     Name = {255, 255, 0},
                     Distance = {255, 255, 0},
@@ -228,7 +262,7 @@ addPartESP("Chest", "💰 Baú", {
         Filled = {255, 215, 0},
         Outline = {255, 255, 255}
     }
-}, true)  -- Com Collision ativado
+}, true, {Start = "{", End = "}"}, ".m", {Start = "<", End = ">"})  -- Com Collision e textos customizados
 
 addPartESP("Enemy", "👹 Inimigo", {
     Name = {255, 255, 255},
@@ -238,7 +272,7 @@ addPartESP("Enemy", "👹 Inimigo", {
         Filled = {200, 0, 0},
         Outline = {255, 0, 0}
     }
-}, false)  -- Sem Collision
+}, false)  -- Sem Collision, textos padrão
 
 addPartESP("PowerUp", "⚡ Power-Up", {
     Name = {255, 255, 255},
@@ -248,7 +282,7 @@ addPartESP("PowerUp", "⚡ Power-Up", {
         Filled = {0, 200, 200},
         Outline = {0, 255, 255}
     }
-}, true)  -- Com Collision
+}, true, {Start = "[", End = "]"}, " metros", {Start = "(", End = ")"})  -- Com Collision e sufixo customizado
 ```
 
 ### 🔍 ESP por Path Específico com Opções Avançadas
@@ -262,6 +296,9 @@ local targets = {
         path = "workspace.Map.Treasures",
         name = "💎 Tesouro",
         collision = true,
+        nameContainer = {Start = "[", End = "]"},
+        distanceSuffix = "m",
+        distanceContainer = {Start = "(", End = ")"},
         color = {
             Name = {255, 255, 255},
             Distance = {255, 255, 255},
@@ -276,6 +313,9 @@ local targets = {
         path = "workspace.Enemies",
         name = "⚔️ Inimigo",
         collision = false,
+        nameContainer = {Start = "{", End = "}"},
+        distanceSuffix = ".m",
+        distanceContainer = {Start = "<", End = ">"},
         color = {
             Name = {255, 255, 255},
             Distance = {255, 255, 255},
@@ -290,6 +330,9 @@ local targets = {
         path = "workspace.Items",
         name = "📦 Item",
         collision = true,
+        nameContainer = {Start = "[", End = "]"},
+        distanceSuffix = "m",
+        distanceContainer = {Start = "(", End = ")"},
         color = {
             Name = {255, 255, 255},
             Distance = {255, 255, 255},
@@ -314,6 +357,9 @@ for _, target in pairs(targets) do
                 ModelESP:Add(child, {
                     Name = target.name,
                     Collision = target.collision,
+                    NameContainer = target.nameContainer,
+                    DistanceSuffix = target.distanceSuffix,
+                    DistanceContainer = target.distanceContainer,
                     Color = target.color
                 })
             end
@@ -371,9 +417,12 @@ ModelESP.GlobalSettings.AutoRemoveInvalid = true
 ### Estrutura de Configuração ao Adicionar ESP
 ```lua
 {
-    Name = "Nome Personalizado",    -- Nome exibido (opcional)
-    Collision = true/false,         -- Ativar modo Collision (opcional, padrão false)
-    Color = { ... }                 -- Tabela de cores ou Color3 único (opcional)
+    Name = "Nome Personalizado",                -- Nome exibido (opcional)
+    Collision = true/false,                     -- Ativar modo Collision (opcional, padrão false)
+    NameContainer = {Start = "[", End = "]"},   -- Container para o nome (opcional)
+    DistanceSuffix = "m",                       -- Sufixo para distância (opcional)
+    DistanceContainer = {Start = "(", End = ")"}, -- Container para distância (opcional)
+    Color = { ... }                             -- Tabela de cores ou Color3 único (opcional)
 }
 ```
 
