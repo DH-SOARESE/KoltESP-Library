@@ -166,53 +166,64 @@ ModelESP.GlobalSettings.MinDistance = 0
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
--- Função para adicionar ESP a todos os jogadores
-local function addPlayerESP()
-    for _, player in pairs(game.Players:GetPlayers()) do
-        if player ~= game.Players.LocalPlayer and player.Character then
-            ModelESP:Add(player.Character, {
-                Name = player.Name,
-                Collision = true,  -- Ativa Collision para este jogador
-                NameContainer = {Start = "[", End = "]"},
-                DistanceSuffix = "m",
-                DistanceContainer = {Start = "(", End = ")"},
-                Color = {
-                    Name = {255, 255, 255},        -- Nome em branco
-                    Distance = {255, 255, 255},    -- Distância em branco
-                    Tracer = {0, 255, 0},          -- Tracer verde
-                    Highlight = {
-                        Filled = {100, 144, 0},    -- Preenchimento verde escuro
-                        Outline = {0, 255, 0}      -- Contorno verde
-                    }
-                }
-            })
-        end
-    end
-end
+-- ===============================
+-- CONFIGURAÇÕES GLOBAIS
+-- ===============================
+ModelESP:SetGlobalTracerOrigin("Top")  -- Origem do tracer: Top, Center, Bottom, Left, Right
+ModelESP:SetGlobalRainbow(true)        -- Ativa modo arco-íris
+ModelESP:SetGlobalOpacity(0.8)         -- Opacidade (0-1)
+ModelESP:SetGlobalFontSize(16)         -- Tamanho da fonte
+ModelESP:SetGlobalLineThickness(2)     -- Espessura da linha
 
--- Adicionar ESP aos jogadores atuais
-addPlayerESP()
+-- Distâncias
+ModelESP.GlobalSettings.MaxDistance = 500
+ModelESP.GlobalSettings.MinDistance = 10
 
--- Adicionar ESP automaticamente para novos jogadores
-game.Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function(character)
-        wait(1) -- Aguardar o character carregar completamente
-        ModelESP:Add(character, {
+-- Auto remoção de objetos inválidos
+ModelESP.GlobalSettings.AutoRemoveInvalid = true
+
+-- Tipos de ESP visíveis
+ModelESP:SetGlobalESPType("ShowTracer", true)
+ModelESP:SetGlobalESPType("ShowName", true)
+ModelESP:SetGlobalESPType("ShowDistance", true)
+ModelESP:SetGlobalESPType("ShowHighlightFill", true)
+ModelESP:SetGlobalESPType("ShowHighlightOutline", true)
+
+-- ===============================
+-- FUNÇÃO PARA ADICIONAR ESP A JOGADORES
+-- ===============================
+local function addPlayerESP(player)
+    if player.Character then
+        ModelESP:Add(player.Character, {
             Name = player.Name,
-            Collision = true,
-            NameContainer = {Start = "[", End = "]"},
-            DistanceSuffix = "m",
+            Collision = false,
+            DistanceSuffix = ".m",
             DistanceContainer = {Start = "(", End = ")"},
             Color = {
-                Name = {255, 255, 255},
-                Distance = {255, 255, 255},
-                Tracer = {0, 255, 0},
+                Name = {144, 0, 255},         -- Nome roxo
+                Distance = {144, 0, 255},     -- Distância roxa
+                Tracer = {144, 0, 255},       -- Tracer roxo
                 Highlight = {
-                    Filled = {100, 144, 0},
-                    Outline = {0, 255, 0}
+                    Filled = {144, 0, 255},   -- Preenchimento roxo
+                    Outline = {200, 0, 255}   -- Contorno roxo mais claro
                 }
             }
         })
+    end
+end
+
+-- Adicionar ESP para todos os jogadores atuais
+for _, player in pairs(game.Players:GetPlayers()) do
+    if player ~= game.Players.LocalPlayer then
+        addPlayerESP(player)
+    end
+end
+
+-- Adicionar ESP automaticamente para novos jogadores
+game.Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        wait(1) -- Espera o character carregar
+        addPlayerESP(player)
     end)
 end)
 
