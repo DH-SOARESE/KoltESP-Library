@@ -2,7 +2,6 @@
 --// 👤 Autor: Kolt
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
 
-
 local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
 
@@ -31,7 +30,7 @@ local ModelESP = {
     }
 }
 
---// 🌈 Cor arco-íris
+--// Cor arco-íris
 local function getRainbowColor(t)
     local f = 2
     return Color3.fromRGB(
@@ -41,7 +40,7 @@ local function getRainbowColor(t)
     )
 end
 
---// 📍 Tracer Origins (global only)
+--// Tracer Origins (global only)
 local tracerOrigins = {
     Top = function(vs) return Vector2.new(vs.X/2, 0) end,
     Center = function(vs) return Vector2.new(vs.X/2, vs.Y/2) end,
@@ -50,7 +49,7 @@ local tracerOrigins = {
     Right = function(vs) return Vector2.new(vs.X, vs.Y/2) end,
 }
 
---// 📦 Get Bounding Box
+--/ Get Bounding Box
 local function getBoundingBox(target)
     if target:IsA("Model") then
         return target:GetBoundingBox()
@@ -60,14 +59,14 @@ local function getBoundingBox(target)
     return nil, nil
 end
 
---// 🛠️ Cria Drawing
+--// Cria Drawing
 local function createDrawing(class, props)
     local obj = Drawing.new(class)
     for k,v in pairs(props) do obj[k]=v end
     return obj
 end
 
---// ➕ Adiciona ESP
+--// Adiciona ESP
 function ModelESP:Add(target, config)
     if not target or not target:IsA("Instance") then return end
     if not (target:IsA("Model") or target:IsA("BasePart")) then return end
@@ -91,11 +90,11 @@ function ModelESP:Add(target, config)
         Name = config and config.Name or target.Name,
         Colors = defaultColors,
         ModifiedParts = {},
-        NameContainerStart = (config and config.NameContainer and config.NameContainer.Start) or "[",
-        NameContainerEnd = (config and config.NameContainer and config.NameContainer.End) or "]",
-        DistanceSuffix = (config and config.DistanceSuffix) or "m",
-        DistanceContainerStart = (config and config.DistanceContainer and config.DistanceContainer.Start) or "(",
-        DistanceContainerEnd = (config and config.DistanceContainer and config.DistanceContainer.End) or ")"
+        NameContainerStart = (config and config.NameContainer and config.NameContainer.Start) or "",
+        NameContainerEnd = (config and config.NameContainer and config.NameContainer.End) or "",
+        DistanceSuffix = (config and config.DistanceSuffix) or "",
+        DistanceContainerStart = (config and config.DistanceContainer and config.DistanceContainer.Start) or "",
+        DistanceContainerEnd = (config and config.DistanceContainer and config.DistanceContainer.End) or ""
     }
 
     -- Aplicar cores customizadas se fornecidas
@@ -188,7 +187,7 @@ function ModelESP:Add(target, config)
     table.insert(self.Objects, cfg)
 end
 
---// ➖ Remove ESP individual
+--// Remove ESP individual
 function ModelESP:Remove(target)
     for i=#self.Objects,1,-1 do
         local obj = self.Objects[i]
@@ -205,7 +204,7 @@ function ModelESP:Remove(target)
     end
 end
 
---// 🧹 Limpa todos ESP
+--//  Limpa todas ESP
 function ModelESP:Clear()
     for _, obj in ipairs(self.Objects) do
         for _, draw in ipairs({obj.tracerLine,obj.nameText,obj.distanceText}) do if draw then pcall(draw.Remove,draw) end end
@@ -218,7 +217,7 @@ function ModelESP:Clear()
     self.Objects = {}
 end
 
---// 🌐 Update GlobalSettings
+--// Update GlobalSettings
 function ModelESP:UpdateGlobalSettings()
     for _, esp in ipairs(self.Objects) do
         if esp.tracerLine then esp.tracerLine.Thickness = self.GlobalSettings.LineThickness end
@@ -227,7 +226,7 @@ function ModelESP:UpdateGlobalSettings()
     end
 end
 
---// ✅ Configs Globais (APIs)
+--// Configs Globais (APIs)
 function ModelESP:SetGlobalTracerOrigin(origin)
     if tracerOrigins[origin] then
         self.GlobalSettings.TracerOrigin = origin
@@ -253,7 +252,7 @@ function ModelESP:SetGlobalLineThickness(thick)
     self:UpdateGlobalSettings()
 end
 
---// 🔁 Atualização por frame
+--// Atualização por frame
 RunService.RenderStepped:Connect(function()
     if not ModelESP.Enabled then return end
     local vs = camera.ViewportSize
