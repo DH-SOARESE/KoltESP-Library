@@ -3,6 +3,8 @@
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
 --// Atualizações: TracerOrigin mantido estritamente global; Melhorias em posicionamento de textos baseados em bounds; Removidas funcionalidades de Box e Skeleton ESP; Customização de nome e distância centralizados no alvo com quebra de linha próxima.
 --// Melhoria: Suporte a tabela de cores personalizadas por ESP individual, com fallback para cores globais. Compatibilidade com Color3 único mantida.
+--// Correção: Posicionamento de textos agora baseado na projeção do centro para evitar distorção de perspectiva quando próximo.
+--// Adição: Opção individual 'Collision' para criar Humanoid 'Kolt ESP' e ajustar transparência de parts (de 1 para 0.99).
 
 local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
@@ -90,7 +92,8 @@ function ModelESP:Add(target, config)
     local cfg = {
         Target = target,
         Name = config and config.Name or target.Name,
-        Colors = defaultColors
+        Colors = defaultColors,
+        ModifiedParts = {}
     }
 
     -- Aplicar cores customizadas se fornecidas
@@ -120,6 +123,24 @@ function ModelESP:Add(target, config)
                 if config.Color.Highlight.Outline and typeof(config.Color.Highlight.Outline) == "table" and #config.Color.Highlight.Outline == 3 then
                     cfg.Colors.Highlight.Outline = Color3.fromRGB(unpack(config.Color.Highlight.Outline))
                 end
+            end
+        end
+    end
+
+    -- Opção de Collision (individual)
+    if config and config.Collision then
+        local humanoid = target:FindFirstChild("Kolt ESP")
+        if not humanoid then
+            humanoid = Instance.new("Humanoid")
+            humanoid.Name = "Kolt ESP"
+            humanoid.Parent = target
+        end
+        cfg.humanoid = humanoid
+
+        for _, part in ipairs(target:GetDescendants()) do
+            if part:IsA("BasePart") and part.Transparency == 1 then
+                table.insert(cfg.ModifiedParts, {Part = part, OriginalTransparency = part.Transparency})
+                part.Transparency = 0.99
             end
         end
     end
@@ -172,6 +193,10 @@ function ModelESP:Remove(target)
         if obj.Target == target then
             for _, draw in ipairs({obj.tracerLine,obj.nameText,obj.distanceText}) do if draw then pcall(draw.Remove,draw) end end
             if obj.highlight then pcall(obj.highlight.Destroy,obj.highlight) end
+            if obj.humanoid then pcall(obj.humanoid.Destroy, obj.humanoid) end
+            for _, mod in ipairs(obj.ModifiedParts) do
+                if mod.Part then mod.Part.Transparency = mod.OriginalTransparency end
+            end
             table.remove(self.Objects,i)
             break
         end
@@ -183,6 +208,10 @@ function ModelESP:Clear()
     for _, obj in ipairs(self.Objects) do
         for _, draw in ipairs({obj.tracerLine,obj.nameText,obj.distanceText}) do if draw then pcall(draw.Remove,draw) end end
         if obj.highlight then pcall(obj.highlight.Destroy,obj.highlight) end
+        if obj.humanoid then pcall(obj.humanoid.Destroy, obj.humanoid) end
+        for _, mod in ipairs(obj.ModifiedParts) do
+            if mod.Part then mod.Part.Transparency = mod.OriginalTransparency end
+        end
     end
     self.Objects = {}
 end
@@ -260,7 +289,7 @@ RunService.RenderStepped:Connect(function()
         local rainbowColor = getRainbowColor(time)
         local useRainbow = ModelESP.GlobalSettings.RainbowMode
 
-        -- Calcular bounds na tela
+        -- Calcular bounds na tela (mantido para fallback, mas posicionamento usa projeção do centro)
         local screenPoints = {}
         local hx, hy, hz = size.X/2, size.Y/2, size.Z/2
         local relPositions = {
@@ -289,8 +318,9 @@ RunService.RenderStepped:Connect(function()
             minX, maxX, minY, maxY = pos2D.X-25, pos2D.X+25, pos2D.Y-25, pos2D.Y+25
         end
 
-        local centerX = (minX + maxX) / 2
-        local centerY = (minY + maxY) / 2
+        -- Usar projeção do centro para posicionamento para evitar distorção
+        local centerX = pos2D.X
+        local centerY = pos2D.Y
         local nameSize = esp.nameText.Size
         local distSize = esp.distanceText.Size
         local totalHeight = nameSize + distSize
