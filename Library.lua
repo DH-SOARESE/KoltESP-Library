@@ -1,10 +1,7 @@
---// 📦 Library Kolt V1.2
---// 👤 Autor: DH_SOARES
+--// 📦 Library Kolt V1.3
+--// 👤 Autor: Kolt
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
---// Atualizações: TracerOrigin mantido estritamente global; Melhorias em posicionamento de textos baseados em bounds; Removidas funcionalidades de Box e Skeleton ESP; Customização de nome e distância centralizados no alvo com quebra de linha próxima.
---// Melhoria: Suporte a tabela de cores personalizadas por ESP individual, com fallback para cores globais. Compatibilidade com Color3 único mantida.
---// Correção: Posicionamento de textos agora baseado na projeção do centro para evitar distorção de perspectiva quando próximo.
---// Adição: Opção individual 'Collision' para criar Humanoid 'Kolt ESP' e ajustar transparência de parts (de 1 para 0.99).
+
 
 local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
@@ -93,7 +90,12 @@ function ModelESP:Add(target, config)
         Target = target,
         Name = config and config.Name or target.Name,
         Colors = defaultColors,
-        ModifiedParts = {}
+        ModifiedParts = {},
+        NameContainerStart = (config and config.NameContainer and config.NameContainer.Start) or "[",
+        NameContainerEnd = (config and config.NameContainer and config.NameContainer.End) or "]",
+        DistanceSuffix = (config and config.DistanceSuffix) or "m",
+        DistanceContainerStart = (config and config.DistanceContainer and config.DistanceContainer.Start) or "(",
+        DistanceContainerEnd = (config and config.DistanceContainer and config.DistanceContainer.End) or ")"
     }
 
     -- Aplicar cores customizadas se fornecidas
@@ -337,14 +339,14 @@ RunService.RenderStepped:Connect(function()
         if esp.nameText then
             esp.nameText.Visible = ModelESP.GlobalSettings.ShowName
             esp.nameText.Position = Vector2.new(centerX, startY)
-            esp.nameText.Text = esp.Name
+            esp.nameText.Text = esp.NameContainerStart .. esp.Name .. esp.NameContainerEnd
             esp.nameText.Color = useRainbow and rainbowColor or esp.Colors.Name
         end
         -- Distance
         if esp.distanceText then
             esp.distanceText.Visible = ModelESP.GlobalSettings.ShowDistance
             esp.distanceText.Position = Vector2.new(centerX, startY + nameSize)
-            esp.distanceText.Text = string.format("%.1fm", distance)
+            esp.distanceText.Text = esp.DistanceContainerStart .. string.format("%.1f", distance) .. esp.DistanceSuffix .. esp.DistanceContainerEnd
             esp.distanceText.Color = useRainbow and rainbowColor or esp.Colors.Distance
         end
         -- Highlight
