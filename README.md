@@ -1,5 +1,4 @@
-
-# 📦 Kolt ESP Library V1.2
+# 📦 Kolt ESP Library V1.3
 
 Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e responsiva para Roblox, desenvolvida por **DH_SOARES**.
 
@@ -8,9 +7,11 @@ Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e responsiv
 - 🎯 **ESP Completo**: Tracer, Nome, Distância e Highlight
 - 🌈 **Modo Arco-íris**: Cores dinâmicas que mudam automaticamente
 - 🎨 **Customização Avançada de Cores**: Suporte a cores individuais por elemento (Name, Distance, Tracer, Highlight) via tabela ou Color3
-- ⚡ **Performance Otimizada**: Sistema de auto-remoção de objetos inválidos
-- 📱 **Responsivo**: Adapta-se a diferentes resoluções de tela
+- ⚡ **Performance Otimizada**: Sistema de auto-remoção de objetos inválidos e atualizações eficientes por frame
+- 📱 **Responsivo**: Adapta-se a diferentes resoluções de tela, com posicionamento preciso mesmo em distâncias próximas
 - 🔧 **Fácil de Usar**: API simples e intuitiva
+- 🆕 **ESP Collision (Opcional e Individual)**: Cria um Humanoid "Kolt ESP" no alvo e ajusta a transparência de parts invisíveis (de 1 para 0.99) para melhor detecção de colisões ou visibilidade
+- 🐛 **Correções Recentes**: Melhoria no posicionamento de textos (Name e Distance) para evitar distorções quando o jogador está próximo (1-10 metros) do alvo
 
 ## 🚀 Instalação
 
@@ -21,10 +22,10 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 ## 📋 Funcionalidades
 
 ### 🎯 Componentes ESP
-- **Tracer**: Linha do ponto de origem até o alvo
-- **Nome**: Exibe o nome do objeto
-- **Distância**: Mostra a distância em metros
-- **Highlight**: Contorno e preenchimento colorido ao redor do objeto
+- **Tracer**: Linha do ponto de origem até o centro do alvo
+- **Nome**: Exibe o nome do objeto, centralizado
+- **Distância**: Mostra a distância em metros, com formatação precisa (ex: "10.5m")
+- **Highlight**: Contorno e preenchimento colorido ao redor do objeto, com transparências ajustáveis
 
 ### 🎮 Origens do Tracer
 - `Top` - Topo da tela
@@ -32,6 +33,12 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 - `Bottom` - Parte inferior da tela (padrão)
 - `Left` - Lateral esquerda
 - `Right` - Lateral direita
+
+### 🆕 Opção de Collision
+- Ativada individualmente via `Collision = true` no config ao adicionar ESP
+- Cria um Humanoid chamado "Kolt ESP" no alvo (se não existir)
+- Ajusta temporariamente a transparência de todas as parts com valor 1 para 0.99
+- Ao remover o ESP, restaura as transparências originais e destrói o Humanoid
 
 ## 🛠️ Uso Básico
 
@@ -44,15 +51,17 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 -- Adicionar ESP básico
 ModelESP:Add(workspace.SomeModel)
 
--- Adicionar ESP com nome personalizado e cor única
+-- Adicionar ESP com nome personalizado, cor única e Collision ativada
 ModelESP:Add(workspace.SomeModel, {
     Name = "Alvo Especial",
-    Color = Color3.fromRGB(255, 0, 0)
+    Color = Color3.fromRGB(255, 0, 0),
+    Collision = true  -- Ativa o modo Collision
 })
 
--- Adicionar ESP com cores personalizadas por elemento
+-- Adicionar ESP com cores personalizadas por elemento e Collision
 ModelESP:Add(workspace.SomeModel, {
     Name = "Alvo Especial",
+    Collision = true,
     Color = {
         Name = {255, 255, 255},            -- Cor do texto do nome (RGB)
         Distance = {255, 255, 255},        -- Cor do texto da distância (RGB)
@@ -68,10 +77,10 @@ ModelESP:Add(workspace.SomeModel, {
 ### Removendo ESP
 
 ```lua
--- Remover ESP de um objeto específico
+-- Remover ESP de um objeto específico (restaura transparências e remove Humanoid se Collision estava ativado)
 ModelESP:Remove(workspace.SomeModel)
 
--- Limpar todos os ESPs
+-- Limpar todos os ESPs (restaura tudo)
 ModelESP:Clear()
 ```
 
@@ -127,7 +136,7 @@ ModelESP.GlobalSettings.MinDistance = 0
 
 ## 📖 Exemplos Práticos
 
-### 🧑‍🤝‍🧑 ESP para Jogadores com Cores Personalizadas
+### 🧑‍🤝‍🧑 ESP para Jogadores com Cores Personalizadas e Collision
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -138,6 +147,7 @@ local function addPlayerESP()
         if player ~= game.Players.LocalPlayer and player.Character then
             ModelESP:Add(player.Character, {
                 Name = player.Name,
+                Collision = true,  -- Ativa Collision para este jogador
                 Color = {
                     Name = {255, 255, 255},        -- Nome em branco
                     Distance = {255, 255, 255},    -- Distância em branco
@@ -161,6 +171,7 @@ game.Players.PlayerAdded:Connect(function(player)
         wait(1) -- Aguardar o character carregar completamente
         ModelESP:Add(character, {
             Name = player.Name,
+            Collision = true,
             Color = {
                 Name = {255, 255, 255},
                 Distance = {255, 255, 255},
@@ -182,17 +193,18 @@ game.Players.PlayerRemoving:Connect(function(player)
 end)
 ```
 
-### 🎯 ESP para Objetos Específicos
+### 🎯 ESP para Objetos Específicos com Collision
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
 -- ESP para partes específicas por nome
-local function addPartESP(partName, espName, colorTable)
+local function addPartESP(partName, espName, colorTable, collision)
     for _, part in pairs(workspace:GetDescendants()) do
         if part.Name == partName and part:IsA("BasePart") then
             ModelESP:Add(part, {
                 Name = espName or part.Name,
+                Collision = collision or false,
                 Color = colorTable or {
                     Name = {255, 255, 0},
                     Distance = {255, 255, 0},
@@ -216,7 +228,8 @@ addPartESP("Chest", "💰 Baú", {
         Filled = {255, 215, 0},
         Outline = {255, 255, 255}
     }
-})
+}, true)  -- Com Collision ativado
+
 addPartESP("Enemy", "👹 Inimigo", {
     Name = {255, 255, 255},
     Distance = {255, 255, 255},
@@ -225,7 +238,8 @@ addPartESP("Enemy", "👹 Inimigo", {
         Filled = {200, 0, 0},
         Outline = {255, 0, 0}
     }
-})
+}, false)  -- Sem Collision
+
 addPartESP("PowerUp", "⚡ Power-Up", {
     Name = {255, 255, 255},
     Distance = {255, 255, 255},
@@ -234,10 +248,10 @@ addPartESP("PowerUp", "⚡ Power-Up", {
         Filled = {0, 200, 200},
         Outline = {0, 255, 255}
     }
-})
+}, true)  -- Com Collision
 ```
 
-### 🔍 ESP por Path Específico
+### 🔍 ESP por Path Específico com Opções Avançadas
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -247,6 +261,7 @@ local targets = {
     {
         path = "workspace.Map.Treasures",
         name = "💎 Tesouro",
+        collision = true,
         color = {
             Name = {255, 255, 255},
             Distance = {255, 255, 255},
@@ -260,6 +275,7 @@ local targets = {
     {
         path = "workspace.Enemies",
         name = "⚔️ Inimigo",
+        collision = false,
         color = {
             Name = {255, 255, 255},
             Distance = {255, 255, 255},
@@ -273,6 +289,7 @@ local targets = {
     {
         path = "workspace.Items",
         name = "📦 Item",
+        collision = true,
         color = {
             Name = {255, 255, 255},
             Distance = {255, 255, 255},
@@ -296,6 +313,7 @@ for _, target in pairs(targets) do
             if child:IsA("Model") or child:IsA("BasePart") then
                 ModelESP:Add(child, {
                     Name = target.name,
+                    Collision = target.collision,
                     Color = target.color
                 })
             end
@@ -350,6 +368,15 @@ ModelESP.GlobalSettings.AutoRemoveInvalid = true
 }
 ```
 
+### Estrutura de Configuração ao Adicionar ESP
+```lua
+{
+    Name = "Nome Personalizado",    -- Nome exibido (opcional)
+    Collision = true/false,         -- Ativar modo Collision (opcional, padrão false)
+    Color = { ... }                 -- Tabela de cores ou Color3 único (opcional)
+}
+```
+
 ### Estrutura de Cores Personalizadas
 ```lua
 Color = {
@@ -366,7 +393,7 @@ Color = {
 ## 🎮 Controles
 
 ```lua
--- Habilitar/desabilitar completamente
+-- Habilitar/desabilitar completamente a biblioteca
 ModelESP.Enabled = true/false
 
 -- Verificar status
@@ -376,8 +403,8 @@ print("Objetos rastreados:", #ModelESP.Objects)
 
 ## 📄 Licença
 
-Esta biblioteca é fornecida como está, para uso educacional e de entretenimento em Roblox.
+Esta biblioteca é fornecida como está, para uso educacional e de entretenimento em Roblox. Não é destinada a violar termos de serviço ou ser usada em contextos maliciosos.
 
 ---
 
-**Desenvolvido por DH_SOARES** | Versão 1.2
+**Desenvolvido por DH_SOARES** | Versão 1.3 | Última atualização: Setembro 2025
