@@ -307,8 +307,10 @@ end
 function ModelESP:UpdateGlobalSettings()
     for _, esp in ipairs(self.Objects) do
         if esp.tracerLine then esp.tracerLine.Thickness = self.GlobalSettings.LineThickness end
-        if esp.nameText then esp.nameText.Size = self.GlobalSettings.FontSize end
-        if esp.distanceText then esp.distanceText.Size = self.GlobalSettings.FontSize-2 end
+        if esp.nameText then 
+            esp.nameText.Size = self.GlobalSettings.FontSize 
+            if esp.distanceText then esp.distanceText.Size = self.GlobalSettings.FontSize - 2 end
+        end
     end
 end
 
@@ -426,11 +428,35 @@ RunService.RenderStepped:Connect(function()
         end
 
         local cf, size = getBoundingBox(target)
-        if not cf then continue end
+        if not cf then 
+            for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
+            if esp.highlight then esp.highlight.Enabled=false end
+            if esp.arrow then
+                if esp.arrow.Gui then
+                    esp.arrow.Image.Visible = false
+                else
+                    for _, line in pairs(esp.arrow) do line.Visible = false end
+                end
+            end
+            continue 
+        end
         local pos3D = cf.Position
 
         local success, pos2D = pcall(function() return camera:WorldToViewportPoint(pos3D) end)
         if not success then
+            for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
+            if esp.highlight then esp.highlight.Enabled=false end
+            if esp.arrow then
+                if esp.arrow.Gui then
+                    esp.arrow.Image.Visible = false
+                else
+                    for _, line in pairs(esp.arrow) do line.Visible = false end
+                end
+            end
+            continue
+        end
+
+        if pos2D.Z <= 0 then
             for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
             if esp.highlight then esp.highlight.Enabled=false end
             if esp.arrow then
@@ -458,87 +484,67 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
-        local onScreen = pos2D.Z > 0 and pos2D.X >= 0 and pos2D.X <= vs.X and pos2D.Y >= 0 and pos2D.Y <= vs.Y
-        local showEsp = onScreen
-        local showArrow = not onScreen and ModelESP.GlobalSettings.ShowArrow
+        local onScreen = pos2D.X >= 0 and pos2D.X <= vs.X and pos2D.Y >= 0 and pos2D.Y <= vs.Y
+        local drawing_visible = onScreen
+        local showArrow = not onScreen
 
         local rainbowColor = getRainbowColor(time)
         local useRainbow = ModelESP.GlobalSettings.RainbowMode
 
-        -- Calcular bounds na tela (mantido para fallback, mas posicionamento usa projeção do centro)
-        local screenPoints = {}
-        local hx, hy, hz = size.X/2, size.Y/2, size.Z/2
-        local relPositions = {
-            Vector3.new(hx, hy, hz), Vector3.new(hx, hy, -hz), Vector3.new(hx, -hy, hz), Vector3.new(hx, -hy, -hz),
-            Vector3.new(-hx, hy, hz), Vector3.new(-hx, hy, -hz), Vector3.new(-hx, -hy, hz), Vector3.new(-hx, -hy, -hz),
-        }
-        for _, rel in ipairs(relPositions) do
-            local worldPos = cf * rel
-            local vp = camera:WorldToViewportPoint(worldPos)
-            if vp.Z > 0 then
-                table.insert(screenPoints, Vector2.new(vp.X, vp.Y))
-            end
-        end
-
-        local showBounds = #screenPoints > 0
-        local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
-        if showBounds then
-            for _, p in ipairs(screenPoints) do
-                minX = math.min(minX, p.X)
-                maxX = math.max(maxX, p.X)
-                minY = math.min(minY, p.Y)
-                maxY = math.max(maxY, p.Y)
-            end
-        else
-            -- Fallback para centro se nenhum corner visível, mas centro é
-            minX, maxX, minY, maxY = pos2D.X-25, pos2D.X+25, pos2D.Y-25, pos2D.Y+25
-        end
-
-        -- Usar projeção do centro para posicionamento para evitar distorção
+        -- Usar projeção do centro para posicionamento
         local centerX = pos2D.X
         local centerY = pos2D.Y
-        local nameSize = esp.nameText.Size
-        local distSize = esp.distanceText.Size
+        local nameSize = ModelESP.GlobalSettings.FontSize
+        local distSize = ModelESP.GlobalSettings.FontSize - 2
         local totalHeight = nameSize + distSize
         local startY = centerY - totalHeight / 2
 
-        -- ESP elements
-        if showEsp then
-            -- Tracer
-            if esp.tracerLine then
-                esp.tracerLine.Visible = ModelESP.GlobalSettings.ShowTracer
-                esp.tracerLine.From = tracerOrigins[ModelESP.GlobalSettings.TracerOrigin](vs)
-                esp.tracerLine.To = Vector2.new(pos2D.X, pos2D.Y)
-                esp.tracerLine.Color = useRainbow and rainbowColor or esp.Colors.Tracer
-                esp.tracerLine.Transparency = ModelESP.GlobalSettings.Opacity
-            end
-            -- Name
-            if esp.nameText then
-                esp.nameText.Visible = ModelESP.GlobalSettings.ShowName
-                esp.nameText.Position = Vector2.new(centerX, startY)
-                esp.nameText.Text = esp.NameContainerStart .. esp.Name .. esp.NameContainerEnd
-                esp.nameText.Color = useRainbow and rainbowColor or esp.Colors.Name
-                esp.nameText.Transparency = ModelESP.GlobalSettings.Opacity
-            end
-            -- Distance
-            if esp.distanceText then
-                esp.distanceText.Visible = ModelESP.GlobalSettings.ShowDistance
-                esp.distanceText.Position = Vector2.new(centerX, startY + nameSize)
-                esp.distanceText.Text = esp.DistanceContainerStart .. string.format("%.1f", distance) .. esp.DistanceSuffix .. esp.DistanceContainerEnd
-                esp.distanceText.Color = useRainbow and rainbowColor or esp.Colors.Distance
-                esp.distanceText.Transparency = ModelESP.GlobalSettings.Opacity
-            end
-            -- Highlight
-            if esp.highlight then
-                esp.highlight.Enabled = ModelESP.GlobalSettings.ShowHighlightFill or ModelESP.GlobalSettings.ShowHighlightOutline
-                esp.highlight.FillColor = useRainbow and rainbowColor or esp.Colors.Highlight.Filled
-                esp.highlight.OutlineColor = useRainbow and rainbowColor or esp.Colors.Highlight.Outline
-                esp.highlight.FillTransparency = ModelESP.GlobalSettings.ShowHighlightFill and 0.85 or 1
-                esp.highlight.OutlineTransparency = ModelESP.GlobalSettings.ShowHighlightOutline and 0.65 or 1
-            end
-        else
-            for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
-            if esp.highlight then esp.highlight.Enabled=false end
+        local nameTextStr = esp.NameContainerStart .. esp.Name .. esp.NameContainerEnd
+        local distTextStr = esp.DistanceContainerStart .. string.format("%.1f", distance) .. esp.DistanceSuffix .. esp.DistanceContainerEnd
+
+        local color_name = useRainbow and rainbowColor or esp.Colors.Name
+        local color_dist = useRainbow and rainbowColor or esp.Colors.Distance
+        local color_tracer = useRainbow and rainbowColor or esp.Colors.Tracer
+        local hcolor_filled = useRainbow and rainbowColor or esp.Colors.Highlight.Filled
+        local hcolor_outline = useRainbow and rainbowColor or esp.Colors.Highlight.Outline
+
+        -- Highlight (sempre ativado se visível por distância)
+        if esp.highlight then
+            esp.highlight.FillColor = hcolor_filled
+            esp.highlight.OutlineColor = hcolor_outline
+            esp.highlight.FillTransparency = ModelESP.GlobalSettings.ShowHighlightFill and 0.85 or 1
+            esp.highlight.OutlineTransparency = ModelESP.GlobalSettings.ShowHighlightOutline and 0.65 or 1
+            esp.highlight.Enabled = true
+        end
+
+        -- Tracer
+        if esp.tracerLine then
+            esp.tracerLine.Color = color_tracer
+            esp.tracerLine.Transparency = ModelESP.GlobalSettings.Opacity
+            esp.tracerLine.Thickness = ModelESP.GlobalSettings.LineThickness
+            esp.tracerLine.From = tracerOrigins[ModelESP.GlobalSettings.TracerOrigin](vs)
+            esp.tracerLine.To = Vector2.new(pos2D.X, pos2D.Y)
+            esp.tracerLine.Visible = ModelESP.GlobalSettings.ShowTracer and drawing_visible
+        end
+
+        -- Name
+        if esp.nameText then
+            esp.nameText.Color = color_name
+            esp.nameText.Transparency = ModelESP.GlobalSettings.Opacity
+            esp.nameText.Size = ModelESP.GlobalSettings.FontSize
+            esp.nameText.Text = nameTextStr
+            esp.nameText.Position = Vector2.new(centerX, startY)
+            esp.nameText.Visible = ModelESP.GlobalSettings.ShowName and drawing_visible
+        end
+
+        -- Distance
+        if esp.distanceText then
+            esp.distanceText.Color = color_dist
+            esp.distanceText.Transparency = ModelESP.GlobalSettings.Opacity
+            esp.distanceText.Size = ModelESP.GlobalSettings.FontSize - 2
+            esp.distanceText.Text = distTextStr
+            esp.distanceText.Position = Vector2.new(centerX, startY + nameSize)
+            esp.distanceText.Visible = ModelESP.GlobalSettings.ShowDistance and drawing_visible
         end
 
         -- Arrow
