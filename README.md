@@ -32,7 +32,6 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 - [Exemplos Práticos](#-exemplos-práticos)
 - [Configurações Disponíveis](#️-configurações-disponíveis)
 - [Controles](#-controles)
-- [Licença](#-licença)
 
 ## 📋 Funcionalidades
 
@@ -361,11 +360,5 @@ ModelESP.Enabled = false
 print("Ativo:", ModelESP.Enabled)
 print("Alvos:", #ModelESP.Objects)
 ```
-
-## 📄 Licença
-
-Fornecida "as is" para fins educacionais e de entretenimento em Roblox. Não viole ToS ou use maliciosamente.
-
----
 
 **Desenvolvido por DH_SOARES** | Versão 1.4 | Última atualização: 15 de Setembro de 2025
