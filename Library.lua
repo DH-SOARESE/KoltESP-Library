@@ -1,9 +1,11 @@
---// 📦 Library Kolt V1.4
+--// 📦 Library Kolt V1.3
 --// 👤 Autor: Kolt
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
 
 local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
+
+local TopLayer = gethui and gethui() or game:GetService("CoreGui")
 
 local ModelESP = {
     Objects = {},
@@ -21,19 +23,33 @@ local ModelESP = {
         ShowName = true,
         ShowDistance = true,
         ShowArrow = false,
+        ArrowType = "Drawing",
+        ArrowRadius = 130,
         RainbowMode = false,
         MaxDistance = math.huge,
         MinDistance = 0,
         Opacity = 0.8,
-        ArrowOpacity = 0.3,
-        ArrowRadius = 130,
-        ArrowWidth = 24,
-        ArrowHeight = 20,
-        ArrowOutlineThickness = 6,
-        ArrowLineThickness = 3,
         LineThickness = 1.5,
         FontSize = 14,
         AutoRemoveInvalid = true,
+    },
+    GlobalArrowDesign = {
+        Gui = {
+            image = "rbxassetid://11552476728",
+            Color = {255, 0, 0},
+            Opacity = 0.3,
+            Size = {w = 30, h = 30},
+            DisplayOrder = 18,
+            RotationOffset = 90,
+        },
+        Drawing = {
+            Color = {255, 0, 0},
+            OutlineColor = {0, 0, 0},
+            Opacity = 0.3,
+            Size = {w = 30, h = 30},
+            OutlineThickness = 6,
+            LineThickness = 3,
+        }
     }
 }
 
@@ -73,25 +89,34 @@ local function createDrawing(class, props)
     return obj
 end
 
---// Cria Arrow Drawing
-local function createArrowDrawing(esp, globalSettings)
+--// Create Arrow Drawing
+local function createArrowDrawing()
     local arrow = {}
-    local outlineProps = {
-        Color = Color3.new(0, 0, 0),
-        Thickness = globalSettings.ArrowOutlineThickness,
-        Transparency = globalSettings.ArrowOpacity,
-        Visible = false
-    }
-    local lineProps = {
-        Color = esp.Colors.Tracer,
-        Thickness = globalSettings.ArrowLineThickness,
-        Transparency = globalSettings.ArrowOpacity,
-        Visible = false
-    }
-    arrow.outline1 = createDrawing("Line", outlineProps)
-    arrow.outline2 = createDrawing("Line", outlineProps)
-    arrow.line1 = createDrawing("Line", lineProps)
-    arrow.line2 = createDrawing("Line", lineProps)
+    arrow.outline1 = Drawing.new("Line")
+    arrow.outline2 = Drawing.new("Line")
+    arrow.line1 = Drawing.new("Line")
+    arrow.line2 = Drawing.new("Line")
+    for _, line in pairs({arrow.outline1, arrow.outline2, arrow.line1, arrow.line2}) do
+        line.Visible = false
+    end
+    return arrow
+end
+
+--// Create Arrow GUI
+local function createArrowGui()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.IgnoreGuiInset = true
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = TopLayer
+
+    local image = Instance.new("ImageLabel")
+    image.BackgroundTransparency = 1
+    image.ImageTransparency = 1
+    image.Size = UDim2.new(0, 0, 0, 0)
+    image.Parent = screenGui
+
+    local arrow = {Gui = screenGui, Image = image}
     return arrow
 end
 
@@ -123,8 +148,7 @@ function ModelESP:Add(target, config)
         NameContainerEnd = (config and config.NameContainer and config.NameContainer.End) or "",
         DistanceSuffix = (config and config.DistanceSuffix) or "",
         DistanceContainerStart = (config and config.DistanceContainer and config.DistanceContainer.Start) or "",
-        DistanceContainerEnd = (config and config.DistanceContainer and config.DistanceContainer.End) or "",
-        arrow = nil
+        DistanceContainerEnd = (config and config.DistanceContainer and config.DistanceContainer.End) or ""
     }
 
     -- Aplicar cores customizadas se fornecidas
@@ -203,6 +227,20 @@ function ModelESP:Add(target, config)
         Visible = false
     })
 
+    -- Arrow
+    if self.GlobalSettings.ShowArrow then
+        if self.GlobalSettings.ArrowType == "Drawing" then
+            cfg.arrow = createArrowDrawing()
+        elseif self.GlobalSettings.ArrowType == "Gui" then
+            cfg.arrow = createArrowGui()
+            local designGui = self.GlobalArrowDesign.Gui
+            if designGui then
+                cfg.arrow.Image.Image = designGui.image or ""
+                cfg.arrow.Gui.DisplayOrder = designGui.DisplayOrder or 18
+            end
+        end
+    end
+
     -- Highlight
     if self.GlobalSettings.ShowHighlightFill or self.GlobalSettings.ShowHighlightOutline then
         local highlight = Instance.new("Highlight")
@@ -226,8 +264,12 @@ function ModelESP:Remove(target)
             if obj.highlight then pcall(obj.highlight.Destroy,obj.highlight) end
             if obj.humanoid then pcall(obj.humanoid.Destroy, obj.humanoid) end
             if obj.arrow then
-                for _, line in ipairs({obj.arrow.outline1, obj.arrow.outline2, obj.arrow.line1, obj.arrow.line2}) do
-                    if line then pcall(line.Remove, line) end
+                if obj.arrow.Gui then
+                    pcall(function() obj.arrow.Gui:Destroy() end)
+                else
+                    for _, draw in pairs(obj.arrow) do
+                        pcall(function() draw:Remove() end)
+                    end
                 end
             end
             for _, mod in ipairs(obj.ModifiedParts) do
@@ -246,8 +288,12 @@ function ModelESP:Clear()
         if obj.highlight then pcall(obj.highlight.Destroy,obj.highlight) end
         if obj.humanoid then pcall(obj.humanoid.Destroy, obj.humanoid) end
         if obj.arrow then
-            for _, line in ipairs({obj.arrow.outline1, obj.arrow.outline2, obj.arrow.line1, obj.arrow.line2}) do
-                if line then pcall(line.Remove, line) end
+            if obj.arrow.Gui then
+                pcall(function() obj.arrow.Gui:Destroy() end)
+            else
+                for _, draw in pairs(obj.arrow) do
+                    pcall(function() draw:Remove() end)
+                end
             end
         end
         for _, mod in ipairs(obj.ModifiedParts) do
@@ -263,12 +309,36 @@ function ModelESP:UpdateGlobalSettings()
         if esp.tracerLine then esp.tracerLine.Thickness = self.GlobalSettings.LineThickness end
         if esp.nameText then esp.nameText.Size = self.GlobalSettings.FontSize end
         if esp.distanceText then esp.distanceText.Size = self.GlobalSettings.FontSize-2 end
+    end
+end
+
+--// Update Arrows
+function ModelESP:UpdateArrows()
+    -- Destroy old arrows
+    for _, esp in ipairs(self.Objects) do
         if esp.arrow then
-            for _, line in ipairs({esp.arrow.outline1, esp.arrow.outline2}) do
-                if line then line.Thickness = self.GlobalSettings.ArrowOutlineThickness; line.Transparency = self.GlobalSettings.ArrowOpacity end
+            if self.GlobalSettings.ArrowType == "Gui" and esp.arrow.Gui then
+                pcall(function() esp.arrow.Gui:Destroy() end)
+            else
+                for _, draw in pairs(esp.arrow) do
+                    pcall(function() draw:Remove() end)
+                end
             end
-            for _, line in ipairs({esp.arrow.line1, esp.arrow.line2}) do
-                if line then line.Thickness = self.GlobalSettings.ArrowLineThickness; line.Transparency = self.GlobalSettings.ArrowOpacity end
+            esp.arrow = nil
+        end
+    end
+    -- Create new if enabled
+    if self.GlobalSettings.ShowArrow then
+        for _, esp in ipairs(self.Objects) do
+            if self.GlobalSettings.ArrowType == "Drawing" then
+                esp.arrow = createArrowDrawing()
+            elseif self.GlobalSettings.ArrowType == "Gui" then
+                esp.arrow = createArrowGui()
+                local designGui = self.GlobalArrowDesign.Gui
+                if designGui then
+                    esp.arrow.Image.Image = designGui.image or ""
+                    esp.arrow.Gui.DisplayOrder = designGui.DisplayOrder or 18
+                end
             end
         end
     end
@@ -282,6 +352,9 @@ function ModelESP:SetGlobalTracerOrigin(origin)
 end
 function ModelESP:SetGlobalESPType(typeName, enabled)
     self.GlobalSettings[typeName] = enabled
+    if typeName == "ShowArrow" then
+        self:UpdateArrows()
+    end
     self:UpdateGlobalSettings()
 end
 function ModelESP:SetGlobalRainbow(enable)
@@ -299,8 +372,41 @@ function ModelESP:SetGlobalLineThickness(thick)
     self.GlobalSettings.LineThickness = math.max(1,thick)
     self:UpdateGlobalSettings()
 end
-function ModelESP:Arrow(enabled)
-    self.GlobalSettings.ShowArrow = enabled
+
+--// Set Arrow
+function ModelESP:SetArrow(cfg)
+    local changed = false
+    if cfg.ShowArrow ~= nil then
+        self.GlobalSettings.ShowArrow = cfg.ShowArrow
+        changed = true
+    end
+    if cfg.Type then
+        self.GlobalSettings.ArrowType = cfg.Type
+        changed = true
+    end
+    if cfg.visible ~= nil then
+        self.GlobalSettings.ShowArrow = cfg.visible
+        changed = true
+    end
+    if changed then
+        self:UpdateArrows()
+    end
+end
+
+--// Set Arrow Design
+function ModelESP:SetArrowDesign(design)
+    self.GlobalArrowDesign.Gui = design.Gui or self.GlobalArrowDesign.Gui
+    self.GlobalArrowDesign.Drawing = design.Drawing or self.GlobalArrowDesign.Drawing
+    -- Update existing GUIs
+    for _, esp in ipairs(self.Objects) do
+        if esp.arrow and self.GlobalSettings.ArrowType == "Gui" then
+            local cfg = self.GlobalArrowDesign.Gui
+            if cfg then
+                esp.arrow.Image.Image = cfg.image or ""
+                esp.arrow.Gui.DisplayOrder = cfg.DisplayOrder or 18
+            end
+        end
+    end
 end
 
 --// Atualização por frame
@@ -323,64 +429,81 @@ RunService.RenderStepped:Connect(function()
         if not cf then continue end
         local pos3D = cf.Position
 
-        local pos2D, onScreen = camera:WorldToViewportPoint(pos3D)
+        local success, pos2D = pcall(function() return camera:WorldToViewportPoint(pos3D) end)
+        if not success then
+            for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
+            if esp.highlight then esp.highlight.Enabled=false end
+            if esp.arrow then
+                if esp.arrow.Gui then
+                    esp.arrow.Image.Visible = false
+                else
+                    for _, line in pairs(esp.arrow) do line.Visible = false end
+                end
+            end
+            continue
+        end
+
         local distance = (camera.CFrame.Position - pos3D).Magnitude
         local visible = distance >= ModelESP.GlobalSettings.MinDistance and distance <= ModelESP.GlobalSettings.MaxDistance
         if not visible then
             for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
             if esp.highlight then esp.highlight.Enabled=false end
             if esp.arrow then
-                for _, line in ipairs({esp.arrow.outline1, esp.arrow.outline2, esp.arrow.line1, esp.arrow.line2}) do
-                    if line then line.Visible = false end
+                if esp.arrow.Gui then
+                    esp.arrow.Image.Visible = false
+                else
+                    for _, line in pairs(esp.arrow) do line.Visible = false end
                 end
             end
             continue
         end
 
+        local onScreen = pos2D.Z > 0 and pos2D.X >= 0 and pos2D.X <= vs.X and pos2D.Y >= 0 and pos2D.Y <= vs.Y
+        local showEsp = onScreen
+        local showArrow = not onScreen and ModelESP.GlobalSettings.ShowArrow
+
         local rainbowColor = getRainbowColor(time)
         local useRainbow = ModelESP.GlobalSettings.RainbowMode
 
-        local screenCenter = Vector2.new(vs.X / 2, vs.Y / 2)
-
-        if onScreen then
-            -- Show ESP elements
-            -- Calcular bounds na tela (mantido para fallback, mas posicionamento usa projeção do centro)
-            local screenPoints = {}
-            local hx, hy, hz = size.X/2, size.Y/2, size.Z/2
-            local relPositions = {
-                Vector3.new(hx, hy, hz), Vector3.new(hx, hy, -hz), Vector3.new(hx, -hy, hz), Vector3.new(hx, -hy, -hz),
-                Vector3.new(-hx, hy, hz), Vector3.new(-hx, hy, -hz), Vector3.new(-hx, -hy, hz), Vector3.new(-hx, -hy, -hz),
-            }
-            for _, rel in ipairs(relPositions) do
-                local worldPos = cf * rel
-                local vp = camera:WorldToViewportPoint(worldPos)
-                if vp.Z > 0 then
-                    table.insert(screenPoints, Vector2.new(vp.X, vp.Y))
-                end
+        -- Calcular bounds na tela (mantido para fallback, mas posicionamento usa projeção do centro)
+        local screenPoints = {}
+        local hx, hy, hz = size.X/2, size.Y/2, size.Z/2
+        local relPositions = {
+            Vector3.new(hx, hy, hz), Vector3.new(hx, hy, -hz), Vector3.new(hx, -hy, hz), Vector3.new(hx, -hy, -hz),
+            Vector3.new(-hx, hy, hz), Vector3.new(-hx, hy, -hz), Vector3.new(-hx, -hy, hz), Vector3.new(-hx, -hy, -hz),
+        }
+        for _, rel in ipairs(relPositions) do
+            local worldPos = cf * rel
+            local vp = camera:WorldToViewportPoint(worldPos)
+            if vp.Z > 0 then
+                table.insert(screenPoints, Vector2.new(vp.X, vp.Y))
             end
+        end
 
-            local showBounds = #screenPoints > 0
-            local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
-            if showBounds then
-                for _, p in ipairs(screenPoints) do
-                    minX = math.min(minX, p.X)
-                    maxX = math.max(maxX, p.X)
-                    minY = math.min(minY, p.Y)
-                    maxY = math.max(maxY, p.Y)
-                end
-            else
-                -- Fallback para centro se nenhum corner visível, mas centro é
-                minX, maxX, minY, maxY = pos2D.X-25, pos2D.X+25, pos2D.Y-25, pos2D.Y+25
+        local showBounds = #screenPoints > 0
+        local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
+        if showBounds then
+            for _, p in ipairs(screenPoints) do
+                minX = math.min(minX, p.X)
+                maxX = math.max(maxX, p.X)
+                minY = math.min(minY, p.Y)
+                maxY = math.max(maxY, p.Y)
             end
+        else
+            -- Fallback para centro se nenhum corner visível, mas centro é
+            minX, maxX, minY, maxY = pos2D.X-25, pos2D.X+25, pos2D.Y-25, pos2D.Y+25
+        end
 
-            -- Usar projeção do centro para posicionamento para evitar distorção
-            local centerX = pos2D.X
-            local centerY = pos2D.Y
-            local nameSize = esp.nameText.Size
-            local distSize = esp.distanceText.Size
-            local totalHeight = nameSize + distSize
-            local startY = centerY - totalHeight / 2
+        -- Usar projeção do centro para posicionamento para evitar distorção
+        local centerX = pos2D.X
+        local centerY = pos2D.Y
+        local nameSize = esp.nameText.Size
+        local distSize = esp.distanceText.Size
+        local totalHeight = nameSize + distSize
+        local startY = centerY - totalHeight / 2
 
+        -- ESP elements
+        if showEsp then
             -- Tracer
             if esp.tracerLine then
                 esp.tracerLine.Visible = ModelESP.GlobalSettings.ShowTracer
@@ -413,48 +536,74 @@ RunService.RenderStepped:Connect(function()
                 esp.highlight.FillTransparency = ModelESP.GlobalSettings.ShowHighlightFill and 0.85 or 1
                 esp.highlight.OutlineTransparency = ModelESP.GlobalSettings.ShowHighlightOutline and 0.65 or 1
             end
-
-            -- Hide arrow
-            if esp.arrow then
-                for _, line in ipairs({esp.arrow.outline1, esp.arrow.outline2, esp.arrow.line1, esp.arrow.line2}) do
-                    if line then line.Visible = false end
-                end
-            end
         else
-            -- Hide ESP elements
             for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
             if esp.highlight then esp.highlight.Enabled=false end
+        end
 
-            -- Show arrow if enabled
-            if ModelESP.GlobalSettings.ShowArrow then
-                if not esp.arrow then
-                    esp.arrow = createArrowDrawing(esp, ModelESP.GlobalSettings)
-                end
-                local arrow = esp.arrow
-                local dir = (Vector2.new(pos2D.X, pos2D.Y) - screenCenter).Unit
-                local tip = screenCenter + dir * ModelESP.GlobalSettings.ArrowRadius
-                local base = tip - dir * ModelESP.GlobalSettings.ArrowHeight
-                local perp = Vector2.new(-dir.Y, dir.X)
-                local p1 = base + perp * (ModelESP.GlobalSettings.ArrowWidth / 2)
-                local p2 = base - perp * (ModelESP.GlobalSettings.ArrowWidth / 2)
+        -- Arrow
+        if showArrow and esp.arrow then
+            local screenPos = Vector2.new(pos2D.X, pos2D.Y)
+            local screenCenter = Vector2.new(vs.X / 2, vs.Y / 2)
+            local dirVec = screenPos - screenCenter
+            local dir = dirVec.Unit
+            if dir.Magnitude == 0 then dir = Vector2.new(1, 0) end
+            local tip = screenCenter + dir * ModelESP.GlobalSettings.ArrowRadius
+            local arrowColor = useRainbow and rainbowColor or Color3.fromRGB(unpack(ModelESP.GlobalArrowDesign[self.GlobalSettings.ArrowType].Color))
 
-                arrow.outline1.From = p1
-                arrow.outline1.To = tip
-                arrow.outline2.From = p2
-                arrow.outline2.To = tip
-                arrow.line1.From = p1
-                arrow.line1.To = tip
-                arrow.line2.From = p2
-                arrow.line2.To = tip
+            if ModelESP.GlobalSettings.ArrowType == "Drawing" then
+                local cfg = ModelESP.GlobalArrowDesign.Drawing
+                local height = cfg.Size.h
+                local width = cfg.Size.w
+                local base = tip - dir * height
+                local perp = Vector2.new(-dir.Y, dir.X).Unit
+                local p1 = base + perp * (width / 2)
+                local p2 = base - perp * (width / 2)
 
-                local arrowColor = useRainbow and rainbowColor or esp.Colors.Tracer
-                arrow.line1.Color = arrowColor
-                arrow.line2.Color = arrowColor
-                arrow.outline1.Color = Color3.new(0, 0, 0)
-                arrow.outline2.Color = Color3.new(0, 0, 0)
+                esp.arrow.outline1.From = p1
+                esp.arrow.outline1.To = tip
+                esp.arrow.outline1.Color = Color3.fromRGB(unpack(cfg.OutlineColor))
+                esp.arrow.outline1.Thickness = cfg.OutlineThickness
+                esp.arrow.outline1.Transparency = cfg.Opacity
+                esp.arrow.outline1.Visible = true
 
-                for _, line in ipairs({arrow.outline1, arrow.outline2, arrow.line1, arrow.line2}) do
-                    if line then line.Visible = true end
+                esp.arrow.outline2.From = p2
+                esp.arrow.outline2.To = tip
+                esp.arrow.outline2.Color = Color3.fromRGB(unpack(cfg.OutlineColor))
+                esp.arrow.outline2.Thickness = cfg.OutlineThickness
+                esp.arrow.outline2.Transparency = cfg.Opacity
+                esp.arrow.outline2.Visible = true
+
+                esp.arrow.line1.From = p1
+                esp.arrow.line1.To = tip
+                esp.arrow.line1.Color = arrowColor
+                esp.arrow.line1.Thickness = cfg.LineThickness
+                esp.arrow.line1.Transparency = cfg.Opacity
+                esp.arrow.line1.Visible = true
+
+                esp.arrow.line2.From = p2
+                esp.arrow.line2.To = tip
+                esp.arrow.line2.Color = arrowColor
+                esp.arrow.line2.Thickness = cfg.LineThickness
+                esp.arrow.line2.Transparency = cfg.Opacity
+                esp.arrow.line2.Visible = true
+            elseif ModelESP.GlobalSettings.ArrowType == "Gui" then
+                local cfg = ModelESP.GlobalArrowDesign.Gui
+                local pos = tip - Vector2.new(cfg.Size.w / 2, cfg.Size.h / 2)
+                esp.arrow.Image.Position = UDim2.fromOffset(pos.X, pos.Y)
+                esp.arrow.Image.Size = UDim2.fromOffset(cfg.Size.w, cfg.Size.h)
+                local angle = math.atan2(dir.Y, dir.X)
+                esp.arrow.Image.Rotation = math.deg(angle) + (cfg.RotationOffset or 90)
+                esp.arrow.Image.ImageColor3 = arrowColor
+                esp.arrow.Image.ImageTransparency = 1 - cfg.Opacity
+                esp.arrow.Image.Visible = true
+            end
+        elseif esp.arrow then
+            if ModelESP.GlobalSettings.ArrowType == "Gui" then
+                esp.arrow.Image.Visible = false
+            else
+                for _, line in pairs(esp.arrow) do
+                    line.Visible = false
                 end
             end
         end
