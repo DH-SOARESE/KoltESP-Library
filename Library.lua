@@ -1,7 +1,8 @@
---// 📦 Library Kolt V1.4
+--// 📦 Library Kolt V1.5
 --// 👤 Autor: Kolt
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
---// ✨ Nova funcionalidade: Arrow ESP para objetos fora de campo de visão
+--// ✨ Correção: Arrow ESP agora funciona corretamente em todas as direções
+--// 🔧 Melhorias: Sistema de detecção de campo de visão e otimizações
 
 local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
@@ -33,6 +34,7 @@ local ModelESP = {
     ArrowEnabled = false,
     UseDrawingArrow = false,
     ArrowRadius = 130,
+    FOVMargin = 10, -- Margem para considerar objeto "fora de vista"
     Theme = {
         PrimaryColor = Color3.fromRGB(130, 200, 255),
         SecondaryColor = Color3.fromRGB(255, 255, 255),
@@ -76,6 +78,44 @@ local tracerOrigins = {
     Left = function(vs) return Vector2.new(0, vs.Y/2) end,
     Right = function(vs) return Vector2.new(vs.X, vs.Y/2) end,
 }
+
+--// Função para verificar se objeto está no campo de visão
+local function isInViewport(pos2D, vs, margin)
+    margin = margin or 0
+    return pos2D.X >= -margin and pos2D.X <= vs.X + margin and 
+           pos2D.Y >= -margin and pos2D.Y <= vs.Y + margin
+end
+
+--// Função para verificar se objeto está atrás da câmera
+local function isBehindCamera(worldPos)
+    local cameraPos = camera.CFrame.Position
+    local cameraLook = camera.CFrame.LookVector
+    local toTarget = (worldPos - cameraPos).Unit
+    
+    -- Produto escalar para verificar se está atrás (< 0 = atrás)
+    local dot = cameraLook:Dot(toTarget)
+    return dot < 0
+end
+
+--// Função melhorada para determinar se arrow deve aparecer
+local function shouldShowArrow(worldPos, pos2D, vs)
+    -- Se está atrás da câmera, sempre mostra arrow
+    if isBehindCamera(worldPos) then
+        return true
+    end
+    
+    -- Se está na frente mas fora da tela (com margem), mostra arrow
+    if not isInViewport(pos2D, vs, ModelESP.FOVMargin) then
+        return true
+    end
+    
+    -- Se Z <= 0 (muito próximo), mostra arrow
+    if pos2D.Z <= 0 then
+        return true
+    end
+    
+    return false
+end
 
 --/ Get Bounding Box
 local function getBoundingBox(target)
@@ -395,6 +435,10 @@ function ModelESP:SetArrowRadius(radius)
     self.ArrowRadius = math.max(50, radius)
 end
 
+function ModelESP:SetFOVMargin(margin)
+    self.FOVMargin = math.max(0, margin)
+end
+
 --// Configs Globais (APIs)
 function ModelESP:SetGlobalTracerOrigin(origin)
     if tracerOrigins[origin] then
@@ -443,27 +487,14 @@ RunService.RenderStepped:Connect(function()
         local pos3D = cf.Position
 
         local success, pos2D = pcall(function() return camera:WorldToViewportPoint(pos3D) end)
-        if not success or pos2D.Z <= 0 then
+        if not success then
             for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
             if esp.highlight then esp.highlight.Enabled=false end
-            -- Arrow também fica invisível quando objeto não está visível
-            if ModelESP.ArrowEnabled and ModelESP.Arrows[target] then
-                if ModelESP.UseDrawingArrow then
-                    for _, obj in pairs(ModelESP.Arrows[target]) do 
-                        if obj then obj.Visible = false end 
-                    end
-                else
-                    if ModelESP.Arrows[target].Image then 
-                        ModelESP.Arrows[target].Image.Visible = false 
-                    end
-                end
-            end
             continue
         end
 
         local distance = (camera.CFrame.Position - pos3D).Magnitude
         local visible = distance >= ModelESP.GlobalSettings.MinDistance and distance <= ModelESP.GlobalSettings.MaxDistance
-        local onScreen = pos2D.X >= 0 and pos2D.X <= vs.X and pos2D.Y >= 0 and pos2D.Y <= vs.Y
         
         if not visible then
             for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
@@ -486,22 +517,29 @@ RunService.RenderStepped:Connect(function()
         local rainbowColor = getRainbowColor(time)
         local useRainbow = ModelESP.GlobalSettings.RainbowMode
 
-        -- Arrow Logic - só aparece quando objeto está fora da tela
+        -- Arrow Logic melhorada - considera todas as situações
         if ModelESP.ArrowEnabled and ModelESP.Arrows[target] then
             local arrow = ModelESP.Arrows[target]
+            local showArrow = shouldShowArrow(pos3D, pos2D, vs)
             
-            if onScreen then
-                -- Objeto visível na tela, esconde arrow
-                if ModelESP.UseDrawingArrow then
-                    for _, obj in pairs(arrow) do 
-                        if obj then obj.Visible = false end 
-                    end
+            if showArrow then
+                -- Calcula direção da arrow considerando objetos atrás da câmera
+                local dir
+                if isBehindCamera(pos3D) then
+                    -- Se está atrás, inverte a direção para apontar corretamente
+                    local cameraPos = camera.CFrame.Position
+                    local toTarget = (pos3D - cameraPos)
+                    -- Projeta no plano da tela
+                    local cameraRight = camera.CFrame.RightVector
+                    local cameraUp = camera.CFrame.UpVector
+                    local screenX = cameraRight:Dot(toTarget)
+                    local screenY = -cameraUp:Dot(toTarget) -- Inverte Y
+                    dir = Vector2.new(screenX, screenY).Unit
                 else
-                    if arrow.Image then arrow.Image.Visible = false end
+                    -- Se está na frente mas fora da tela, usa direção normal
+                    dir = (Vector2.new(pos2D.X, pos2D.Y) - screenCenter).Unit
                 end
-            else
-                -- Objeto fora da tela, mostra arrow
-                local dir = (Vector2.new(pos2D.X, pos2D.Y) - screenCenter).Unit
+                
                 local tip = screenCenter + dir * ModelESP.ArrowRadius
                 
                 if ModelESP.UseDrawingArrow then
@@ -539,20 +577,30 @@ RunService.RenderStepped:Connect(function()
                         arrow.Image.ImageColor3 = rainbowColor
                     end
                 end
+            else
+                -- Esconde arrow quando não necessária
+                if ModelESP.UseDrawingArrow then
+                    for _, obj in pairs(arrow) do 
+                        if obj then obj.Visible = false end 
+                    end
+                else
+                    if arrow.Image then arrow.Image.Visible = false end
+                end
             end
         end
 
-        -- Se arrow está ativo e objeto fora da tela, temporariamente esconde outras ESPs
-        local shouldHideOtherESP = ModelESP.ArrowEnabled and not onScreen
+        -- ESP normal - só aparece quando objeto está visível na tela e não atrás da câmera
+        local onScreen = isInViewport(pos2D, vs, 0) and pos2D.Z > 0 and not isBehindCamera(pos3D)
+        local shouldHideESP = ModelESP.ArrowEnabled and not onScreen
         
-        if shouldHideOtherESP then
-            -- Esconde ESP normal quando arrow está sendo mostrado
+        if shouldHideESP then
+            -- Esconde ESP normal quando arrow está sendo mostrado ou objeto não visível
             for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do 
                 if draw then draw.Visible = false end 
             end
             if esp.highlight then esp.highlight.Enabled = false end
         else
-            -- Mostra ESP normal quando objeto está na tela ou arrow desabilitado
+            -- Mostra ESP normal quando objeto está na tela
             -- Calcular bounds na tela
             local screenPoints = {}
             local hx, hy, hz = size.X/2, size.Y/2, size.Z/2
