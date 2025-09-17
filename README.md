@@ -461,10 +461,4 @@ print("ESP ativo:", ModelESP.Enabled)
 print("Objetos rastreados:", #ModelESP.Objects)
 ```
 
-## 📄 Licença
-
-Esta biblioteca é fornecida como está, para uso educacional e de entretenimento em Roblox. Não é destinada a violar termos de serviço ou ser usada em contextos maliciosos.
-
----
-
 **Desenvolvido por DH_SOARES** | Versão 1.3 | Última atualização: Setembro 2025
