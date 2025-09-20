@@ -128,6 +128,17 @@ function ModelESP:Add(target, config)
         end
     end
 
+    -- Coletar todas as BaseParts
+    local allParts = {}
+    for _, desc in ipairs(target:GetDescendants()) do
+        if desc:IsA("BasePart") then
+            table.insert(allParts, desc)
+        end
+    end
+    if target:IsA("BasePart") then
+        table.insert(allParts, target)
+    end
+
     -- Opção de Collision (individual)
     if config and config.Collision then
         local humanoid = target:FindFirstChild("Kolt ESP")
@@ -138,10 +149,17 @@ function ModelESP:Add(target, config)
         end
         cfg.humanoid = humanoid
 
-        for _, part in ipairs(target:GetDescendants()) do
-            if part:IsA("BasePart") and part.Transparency == 1 then
+        for _, part in ipairs(allParts) do
+            if part.Transparency == 1 then
                 table.insert(cfg.ModifiedParts, {Part = part, OriginalTransparency = part.Transparency})
                 part.Transparency = 0.99
+            end
+        end
+    else
+        cfg.visibleParts = {}
+        for _, part in ipairs(allParts) do
+            if part.Transparency < 0.99 then
+                table.insert(cfg.visibleParts, part)
             end
         end
     end
@@ -268,9 +286,24 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
-        local cf, size = getBoundingBox(target)
-        if not cf then continue end
-        local pos3D = cf.Position
+        local pos3D
+        if esp.visibleParts then
+            local totalPos = Vector3.zero
+            local totalVolume = 0
+            for _, part in ipairs(esp.visibleParts) do
+                if part.Parent then
+                    local vol = part.Size.X * part.Size.Y * part.Size.Z
+                    totalPos += part.Position * vol
+                    totalVolume += vol
+                end
+            end
+            if totalVolume <= 0 then continue end
+            pos3D = totalPos / totalVolume
+        else
+            local cf = getBoundingBox(target)
+            if not cf then continue end
+            pos3D = cf.Position
+        end
 
         local success, pos2D = pcall(function() return camera:WorldToViewportPoint(pos3D) end)
         if not success or pos2D.Z <= 0 then
@@ -289,35 +322,6 @@ RunService.RenderStepped:Connect(function()
 
         local rainbowColor = getRainbowColor(time)
         local useRainbow = ModelESP.GlobalSettings.RainbowMode
-
-        -- Calcular bounds na tela (mantido para fallback, mas posicionamento usa projeção do centro)
-        local screenPoints = {}
-        local hx, hy, hz = size.X/2, size.Y/2, size.Z/2
-        local relPositions = {
-            Vector3.new(hx, hy, hz), Vector3.new(hx, hy, -hz), Vector3.new(hx, -hy, hz), Vector3.new(hx, -hy, -hz),
-            Vector3.new(-hx, hy, hz), Vector3.new(-hx, hy, -hz), Vector3.new(-hx, -hy, hz), Vector3.new(-hx, -hy, -hz),
-        }
-        for _, rel in ipairs(relPositions) do
-            local worldPos = cf * rel
-            local vp = camera:WorldToViewportPoint(worldPos)
-            if vp.Z > 0 then
-                table.insert(screenPoints, Vector2.new(vp.X, vp.Y))
-            end
-        end
-
-        local showBounds = #screenPoints > 0
-        local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
-        if showBounds then
-            for _, p in ipairs(screenPoints) do
-                minX = math.min(minX, p.X)
-                maxX = math.max(maxX, p.X)
-                minY = math.min(minY, p.Y)
-                maxY = math.max(maxY, p.Y)
-            end
-        else
-            -- Fallback para centro se nenhum corner visível, mas centro é
-            minX, maxX, minY, maxY = pos2D.X-25, pos2D.X+25, pos2D.Y-25, pos2D.Y+25
-        end
 
         -- Usar projeção do centro para posicionamento para evitar distorção
         local centerX = pos2D.X
