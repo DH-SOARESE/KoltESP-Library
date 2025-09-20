@@ -1,9 +1,11 @@
---// 📦 Library Kolt V1.3
+--// 📦 Library Kolt V1.4
 --// 👤 Autor: Kolt
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
 
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 local camera = workspace.CurrentCamera
+local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local ModelESP = {
     Objects = {},
@@ -20,6 +22,7 @@ local ModelESP = {
         ShowHighlightOutline = true,
         ShowName = true,
         ShowDistance = true,
+        ShowArrow = false,
         RainbowMode = false,
         MaxDistance = math.huge,
         MinDistance = 0,
@@ -27,8 +30,22 @@ local ModelESP = {
         LineThickness = 1.5,
         FontSize = 14,
         AutoRemoveInvalid = true,
+        HighlightTransparency = {
+            Filled = 0.85,
+            Outline = 0.65
+        }
+    },
+    Arrow = {
+        Gui = {
+            Image = "",
+            Color = {255, 255, 255},
+            Size = {50, 50},
+            DisplayOrder = 20
+        }
     }
 }
+
+ModelESP.Transparency = {}
 
 --// Cor arco-íris
 local function getRainbowColor(t)
@@ -73,6 +90,7 @@ function ModelESP:Add(target, config)
 
     for _, obj in ipairs(target:GetChildren()) do
         if obj:IsA("Highlight") and obj.Name == "ESPHighlight" then obj:Destroy() end
+        if obj:IsA("BillboardGui") and obj.Name == "ESPArrow" then obj:Destroy() end
     end
 
     local defaultColors = {
@@ -178,10 +196,39 @@ function ModelESP:Add(target, config)
         local highlight = Instance.new("Highlight")
         highlight.Name = "ESPHighlight"
         highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and 0.85 or 1
-        highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and 0.65 or 1
+        highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
+        highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
         highlight.Parent = target
         cfg.highlight = highlight
+    end
+
+    -- Arrow (global config)
+    local cf, size = getBoundingBox(target)
+    local adornee
+    if target:IsA("BasePart") then
+        adornee = target
+    else
+        adornee = target.PrimaryPart or target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Head") or target:FindFirstChildOfClass("BasePart")
+    end
+    if adornee and self.GlobalSettings.ShowArrow and self.Arrow.Gui.Image ~= "" then
+        local bbGui = Instance.new("BillboardGui")
+        bbGui.Name = "ESPArrow"
+        bbGui.Parent = playerGui
+        bbGui.Adornee = adornee
+        bbGui.AlwaysOnTop = true
+        bbGui.Size = UDim2.new(0, self.Arrow.Gui.Size[1], 0, self.Arrow.Gui.Size[2])
+        bbGui.StudsOffset = Vector3.new(0, (size and size.Y / 2 or 3) + 1, 0)
+        bbGui.DisplayOrder = self.Arrow.Gui.DisplayOrder
+        bbGui.Enabled = false
+
+        local img = Instance.new("ImageLabel")
+        img.Parent = bbGui
+        img.BackgroundTransparency = 1
+        img.Size = UDim2.new(1, 0, 1, 0)
+        img.Image = self.Arrow.Gui.Image
+        img.ImageColor3 = Color3.fromRGB(unpack(self.Arrow.Gui.Color))
+
+        cfg.arrowGui = bbGui
     end
 
     table.insert(self.Objects, cfg)
@@ -194,6 +241,7 @@ function ModelESP:Remove(target)
         if obj.Target == target then
             for _, draw in ipairs({obj.tracerLine,obj.nameText,obj.distanceText}) do if draw then pcall(draw.Remove,draw) end end
             if obj.highlight then pcall(obj.highlight.Destroy,obj.highlight) end
+            if obj.arrowGui then pcall(obj.arrowGui.Destroy, obj.arrowGui) end
             if obj.humanoid then pcall(obj.humanoid.Destroy, obj.humanoid) end
             for _, mod in ipairs(obj.ModifiedParts) do
                 if mod.Part then mod.Part.Transparency = mod.OriginalTransparency end
@@ -209,6 +257,7 @@ function ModelESP:Clear()
     for _, obj in ipairs(self.Objects) do
         for _, draw in ipairs({obj.tracerLine,obj.nameText,obj.distanceText}) do if draw then pcall(draw.Remove,draw) end end
         if obj.highlight then pcall(obj.highlight.Destroy,obj.highlight) end
+        if obj.arrowGui then pcall(obj.arrowGui.Destroy, obj.arrowGui) end
         if obj.humanoid then pcall(obj.humanoid.Destroy, obj.humanoid) end
         for _, mod in ipairs(obj.ModifiedParts) do
             if mod.Part then mod.Part.Transparency = mod.OriginalTransparency end
@@ -251,6 +300,21 @@ function ModelESP:SetGlobalLineThickness(thick)
     self.GlobalSettings.LineThickness = math.max(1,thick)
     self:UpdateGlobalSettings()
 end
+function ModelESP:SetGlobalArrow(param, value)
+    if param == "Show" then
+        self.GlobalSettings.ShowArrow = value
+    end
+end
+
+--// Transparency API
+function ModelESP.Transparency:Highlight(tbl)
+    if tbl.Filled then
+        ModelESP.GlobalSettings.HighlightTransparency.Filled = math.clamp(tbl.Filled, 0, 1)
+    end
+    if tbl.Outline then
+        ModelESP.GlobalSettings.HighlightTransparency.Outline = math.clamp(tbl.Outline, 0, 1)
+    end
+end
 
 --// Atualização por frame
 RunService.RenderStepped:Connect(function()
@@ -276,6 +340,7 @@ RunService.RenderStepped:Connect(function()
         if not success or pos2D.Z <= 0 then
             for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
             if esp.highlight then esp.highlight.Enabled=false end
+            if esp.arrowGui then esp.arrowGui.Enabled=false end
             continue
         end
 
@@ -284,6 +349,7 @@ RunService.RenderStepped:Connect(function()
         if not visible then
             for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
             if esp.highlight then esp.highlight.Enabled=false end
+            if esp.arrowGui then esp.arrowGui.Enabled=false end
             continue
         end
 
@@ -353,8 +419,14 @@ RunService.RenderStepped:Connect(function()
             esp.highlight.Enabled = ModelESP.GlobalSettings.ShowHighlightFill or ModelESP.GlobalSettings.ShowHighlightOutline
             esp.highlight.FillColor = useRainbow and rainbowColor or esp.Colors.Highlight.Filled
             esp.highlight.OutlineColor = useRainbow and rainbowColor or esp.Colors.Highlight.Outline
-            esp.highlight.FillTransparency = ModelESP.GlobalSettings.ShowHighlightFill and 0.85 or 1
-            esp.highlight.OutlineTransparency = ModelESP.GlobalSettings.ShowHighlightOutline and 0.65 or 1
+            esp.highlight.FillTransparency = ModelESP.GlobalSettings.ShowHighlightFill and ModelESP.GlobalSettings.HighlightTransparency.Filled or 1
+            esp.highlight.OutlineTransparency = ModelESP.GlobalSettings.ShowHighlightOutline and ModelESP.GlobalSettings.HighlightTransparency.Outline or 1
+        end
+        -- Arrow
+        if esp.arrowGui then
+            esp.arrowGui.Enabled = ModelESP.GlobalSettings.ShowArrow
+            local arrowColor = useRainbow and rainbowColor or Color3.fromRGB(unpack(ModelESP.Arrow.Gui.Color))
+            esp.arrowGui.ImageLabel.ImageColor3 = arrowColor
         end
     end
 end)
