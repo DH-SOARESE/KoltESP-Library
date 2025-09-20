@@ -1,18 +1,19 @@
-# 📦 Kolt ESP Library V1.3
+# 📦 Kolt ESP Library V1.4
 
 Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e responsiva para Roblox, desenvolvida por **DH_SOARES**.
 
 ## ✨ Características
 
-- 🎯 **ESP Completo**: Tracer, Nome, Distância e Highlight
-- 🌈 **Modo Arco-íris**: Cores dinâmicas que mudam automaticamente
-- 🎨 **Customização Avançada de Cores**: Suporte a cores individuais por elemento (Name, Distance, Tracer, Highlight) via tabela ou Color3
-- ⚡ **Performance Otimizada**: Sistema de auto-remoção de objetos inválidos e atualizações eficientes por frame
-- 📱 **Responsivo**: Adapta-se a diferentes resoluções de tela, com posicionamento preciso mesmo em distâncias próximas
-- 🔧 **Fácil de Usar**: API simples e intuitiva
+- 🎯 **ESP Completo**: Tracer, Nome, Distância, Highlight e Arrow
+- 🌈 **Modo Arco-íris**: Cores dinâmicas que mudam automaticamente, aplicáveis a todos os elementos
+- 🎨 **Customização Avançada de Cores**: Suporte a cores individuais por elemento (Name, Distance, Tracer, Highlight) via tabela RGB ou Color3 único
+- ⚡ **Performance Otimizada**: Sistema de auto-remoção de objetos inválidos, atualizações eficientes por frame e gerenciamento inteligente de visibilidade
+- 📱 **Responsivo**: Adapta-se a diferentes resoluções de tela, com posicionamento preciso mesmo em distâncias próximas (correção para evitar distorções a 1-10 metros)
+- 🔧 **Fácil de Usar**: API simples, robusta e elegante, com métodos intuitivos para configurações globais e individuais
+- 🆕 **Arrow Global**: Imagem personalizável (como uma seta) exibida acima do alvo, com suporte a cor RGB, tamanho, ordem de exibição e modo arco-íris
+- 🆕 **Transparência Ajustável para Highlight**: Controle preciso sobre a transparência do outline e fill via API dedicada
 - 🆕 **ESP Collision (Opcional e Individual)**: Cria um Humanoid "Kolt ESP" no alvo e ajusta a transparência de parts invisíveis (de 1 para 0.99) para melhor detecção de colisões ou visibilidade
 - 🆕 **Customização de Textos**: Propriedades individuais para containers (ex: colchetes para nome) e sufixo/container para distância (ex: ".m" com parênteses)
-- 🐛 **Correções Recentes**: Melhoria no posicionamento de textos (Name e Distance) para evitar distorções quando o jogador está próximo (1-10 metros) do alvo
 
 ## 🚀 Instalação
 
@@ -36,17 +37,11 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 ## 📋 Funcionalidades
 
 ### 🎯 Componentes ESP
-- **Tracer**: Linha do ponto de origem até o centro do alvo
+- **Tracer**: Linha do ponto de origem até o centro do alvo, com origens configuráveis (Top, Center, Bottom, Left, Right)
 - **Nome**: Exibe o nome do objeto, centralizado, com container personalizável (ex: [Nome])
 - **Distância**: Mostra a distância em metros, com formatação precisa (ex: (10.5.m)), sufixo e container personalizáveis
-- **Highlight**: Contorno e preenchimento colorido ao redor do objeto, com transparências ajustáveis
-
-### 🎮 Origens do Tracer
-- `Top` - Topo da tela
-- `Center` - Centro da tela
-- `Bottom` - Parte inferior da tela (padrão)
-- `Left` - Lateral esquerda
-- `Right` - Lateral direita
+- **Highlight**: Contorno e preenchimento colorido ao redor do objeto, com transparências ajustáveis individualmente
+- **Arrow**: Imagem global (ex: seta) exibida acima do alvo via BillboardGui, com suporte a asset ID, cor, tamanho e ordem de exibição
 
 ### 🆕 Opção de Collision
 - Ativada individualmente via `Collision = true` no config ao adicionar ESP
@@ -55,9 +50,9 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 - Ao remover o ESP, restaura as transparências originais e destrói o Humanoid
 
 ### 🆕 Propriedades Individuais para Textos
-- **NameContainer**: Tabela com `Start` e `End` para envolver o nome (padrão: {Start = "[", End = "]"})
-- **DistanceSuffix**: Sufixo após o valor da distância (padrão: "m")
-- **DistanceContainer**: Tabela com `Start` e `End` para envolver a distância (padrão: {Start = "(", End = ")"})
+- **NameContainer**: Tabela com `Start` e `End` para envolver o nome (padrão: vazio)
+- **DistanceSuffix**: Sufixo após o valor da distância (padrão: vazio)
+- **DistanceContainer**: Tabela com `Start` e `End` para envolver a distância (padrão: vazio)
 
 ## 🛠️ Uso Básico
 
@@ -70,7 +65,7 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 -- Adicionar ESP básico
 ModelESP:Add(workspace.SomeModel)
 
--- Adicionar ESP com nome personalizado, cor única, Collision e customização de textos
+-- Adicionar ESP com nome personalizado, cor única, Collision, textos customizados e novas features
 ModelESP:Add(workspace.SomeModel, {
     Name = "Alvo Especial",
     Color = Color3.fromRGB(255, 0, 0),
@@ -102,7 +97,7 @@ ModelESP:Add(workspace.SomeModel, {
 ### Removendo ESP
 
 ```lua
--- Remover ESP de um objeto específico (restaura transparências e remove Humanoid se Collision estava ativado)
+-- Remover ESP de um objeto específico (restaura transparências, remove Humanoid se Collision ativado e destroi Arrow se configurado)
 ModelESP:Remove(workspace.SomeModel)
 
 -- Limpar todos os ESPs (restaura tudo)
@@ -128,6 +123,9 @@ ModelESP:SetGlobalESPType("ShowHighlightFill", true)
 
 -- Mostrar/ocultar highlight outline
 ModelESP:SetGlobalESPType("ShowHighlightOutline", true)
+
+-- Mostrar/ocultar arrow global
+ModelESP:SetGlobalArrow("Show", true)
 ```
 
 ### Personalizando Aparência
@@ -136,10 +134,10 @@ ModelESP:SetGlobalESPType("ShowHighlightOutline", true)
 -- Definir origem do tracer
 ModelESP:SetGlobalTracerOrigin("Bottom") -- Top, Center, Bottom, Left, Right
 
--- Ativar modo arco-íris (sobrescreve cores individuais)
+-- Ativar modo arco-íris (sobrescreve cores individuais, inclusive para Arrow)
 ModelESP:SetGlobalRainbow(true)
 
--- Ajustar opacidade (0-1)
+-- Ajustar opacidade geral (0-1)
 ModelESP:SetGlobalOpacity(0.8)
 
 -- Definir tamanho da fonte
@@ -147,6 +145,19 @@ ModelESP:SetGlobalFontSize(16)
 
 -- Ajustar espessura da linha
 ModelESP:SetGlobalLineThickness(2)
+
+-- Configurar transparência do highlight
+ModelESP.Transparency:Highlight {Outline = 0.3, Filled = 0.5}  -- Valores entre 0 (opaco) e 1 (transparente)
+
+-- Configurar arrow global (definir antes de adicionar ESPs)
+ModelESP.Arrow = {
+    Gui = {
+        Image = "rbxassetid://1234567890",  -- ID do asset de imagem
+        Color = {255, 0, 0},                -- Cor RGB inicial (pode ser afetada por rainbow)
+        Size = {50, 50},                    -- Tamanho em pixels
+        DisplayOrder = 20                   -- Ordem de exibição (maior sobrepõe outros)
+    }
+}
 ```
 
 ### Controle de Distância
@@ -161,7 +172,7 @@ ModelESP.GlobalSettings.MinDistance = 0
 
 ## 📖 Exemplos Práticos
 
-### 🧑‍🤝‍🧑 ESP para Jogadores com Cores Personalizadas, Collision e Textos Customizados
+### 🧑‍🤝‍🧑 ESP para Jogadores com Cores Personalizadas, Collision, Textos Customizados e Arrow
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -174,6 +185,18 @@ ModelESP:SetGlobalRainbow(true)        -- Ativa modo arco-íris
 ModelESP:SetGlobalOpacity(0.8)         -- Opacidade (0-1)
 ModelESP:SetGlobalFontSize(16)         -- Tamanho da fonte
 ModelESP:SetGlobalLineThickness(2)     -- Espessura da linha
+ModelESP.Transparency:Highlight {Outline = 0.3, Filled = 0.5}  -- Transparência do highlight
+
+-- Configurar arrow global
+ModelESP.Arrow = {
+    Gui = {
+        Image = "rbxassetid://1234567890",  -- Exemplo de ID de imagem
+        Color = {255, 255, 255},
+        Size = {40, 40},
+        DisplayOrder = 25
+    }
+}
+ModelESP:SetGlobalArrow("Show", true)  -- Ativar arrow
 
 -- Distâncias
 ModelESP.GlobalSettings.MaxDistance = 500
@@ -235,10 +258,13 @@ game.Players.PlayerRemoving:Connect(function(player)
 end)
 ```
 
-### 🎯 ESP para Objetos Específicos com Collision e Textos Customizados
+### 🎯 ESP para Objetos Específicos com Collision, Textos Customizados e Transparência
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+
+-- Configurar transparência global do highlight
+ModelESP.Transparency:Highlight {Outline = 0.4, Filled = 0.6}
 
 -- ESP para partes específicas por nome
 local function addPartESP(partName, espName, colorTable, collision, nameContainer, distanceSuffix, distanceContainer)
@@ -296,10 +322,21 @@ addPartESP("PowerUp", "⚡ Power-Up", {
 }, true, {Start = "[", End = "]"}, " metros", {Start = "(", End = ")"})  -- Com Collision e sufixo customizado
 ```
 
-### 🔍 ESP por Path Específico com Opções Avançadas
+### 🔍 ESP por Path Específico com Opções Avançadas e Arrow
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+
+-- Configurar arrow global
+ModelESP.Arrow = {
+    Gui = {
+        Image = "rbxassetid://9876543210",
+        Color = {0, 255, 0},
+        Size = {60, 60},
+        DisplayOrder = 30
+    }
+}
+ModelESP:SetGlobalArrow("Show", true)
 
 -- ESP para objetos em caminhos específicos
 local targets = {
@@ -320,40 +357,7 @@ local targets = {
             }
         }
     },
-    {
-        path = "workspace.Enemies",
-        name = "⚔️ Inimigo",
-        collision = false,
-        nameContainer = {Start = "{", End = "}"},
-        distanceSuffix = ".m",
-        distanceContainer = {Start = "<", End = ">"},
-        color = {
-            Name = {255, 255, 255},
-            Distance = {255, 255, 255},
-            Tracer = {255, 100, 100},
-            Highlight = {
-                Filled = {200, 50, 50},
-                Outline = {255, 100, 100}
-            }
-        }
-    },
-    {
-        path = "workspace.Items",
-        name = "📦 Item",
-        collision = true,
-        nameContainer = {Start = "[", End = "]"},
-        distanceSuffix = "m",
-        distanceContainer = {Start = "(", End = ")"},
-        color = {
-            Name = {255, 255, 255},
-            Distance = {255, 255, 255},
-            Tracer = {100, 255, 100},
-            Highlight = {
-                Filled = {50, 200, 50},
-                Outline = {100, 255, 100}
-            }
-        }
-    }
+    -- ... (outros targets semelhantes)
 }
 
 for _, target in pairs(targets) do
@@ -379,7 +383,7 @@ for _, target in pairs(targets) do
 end
 ```
 
-### 🌈 Configuração Avançada
+### 🌈 Configuração Avançada com Transparência e Arrow
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -395,6 +399,18 @@ ModelESP:SetGlobalRainbow(true)
 ModelESP:SetGlobalOpacity(0.9)
 ModelESP:SetGlobalFontSize(18)
 ModelESP:SetGlobalLineThickness(3)
+ModelESP.Transparency:Highlight {Outline = 0.2, Filled = 0.4}  -- Transparência customizada
+
+-- Configurar arrow
+ModelESP.Arrow = {
+    Gui = {
+        Image = "rbxassetid://1122334455",
+        Color = {255, 255, 0},
+        Size = {50, 50},
+        DisplayOrder = 20
+    }
+}
+ModelESP:SetGlobalArrow("Show", true)
 
 -- Definir distâncias
 ModelESP.GlobalSettings.MaxDistance = 500 -- 500 studs máximo
@@ -415,13 +431,18 @@ ModelESP.GlobalSettings.AutoRemoveInvalid = true
     ShowHighlightOutline = true,    -- Mostrar contorno do highlight
     ShowName = true,                -- Mostrar nome
     ShowDistance = true,            -- Mostrar distância
+    ShowArrow = false,              -- Mostrar arrow global
     RainbowMode = false,            -- Modo arco-íris
     MaxDistance = math.huge,        -- Distância máxima
     MinDistance = 0,                -- Distância mínima
     Opacity = 0.8,                  -- Opacidade (0-1)
     LineThickness = 1.5,            -- Espessura da linha
     FontSize = 14,                  -- Tamanho da fonte
-    AutoRemoveInvalid = true        -- Auto-remover objetos inválidos
+    AutoRemoveInvalid = true,       -- Auto-remover objetos inválidos
+    HighlightTransparency = {
+        Filled = 0.85,              -- Transparência do preenchimento (0-1)
+        Outline = 0.65              -- Transparência do contorno (0-1)
+    }
 }
 ```
 
@@ -461,4 +482,4 @@ print("ESP ativo:", ModelESP.Enabled)
 print("Objetos rastreados:", #ModelESP.Objects)
 ```
 
-**Desenvolvido por DH_SOARES** | Versão 1.3 | Última atualização: Setembro 2025
+**Desenvolvido por DH_SOARES** | Versão 1.4 | Última atualização: Setembro 2025
