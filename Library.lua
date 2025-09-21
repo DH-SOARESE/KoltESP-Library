@@ -1,6 +1,7 @@
---// 📦 Library Kolt V1.3
+--// 📦 Library Kolt V1.4
 --// 👤 Autor: Kolt
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
+--// Melhorias: Adicionado método Readjustment para reajustar ESP em novos alvos com novas configs, verificação para evitar duplicatas no Add, função interna GetESP para buscar configs por target, otimizações menores e mais APIs úteis como ToggleIndividual, SetColor, SetName e UpdateConfig.
 
 local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
@@ -66,10 +67,22 @@ local function createDrawing(class, props)
     return obj
 end
 
+--// Função interna para obter ESP por target
+function ModelESP:GetESP(target)
+    for _, esp in ipairs(self.Objects) do
+        if esp.Target == target then return esp end
+    end
+    return nil
+end
+
 --// Adiciona ESP
 function ModelESP:Add(target, config)
     if not target or not target:IsA("Instance") then return end
     if not (target:IsA("Model") or target:IsA("BasePart")) then return end
+
+    -- Verifica se já existe e remove para evitar duplicatas
+    local existing = self:GetESP(target)
+    if existing then self:Remove(target) end
 
     for _, obj in ipairs(target:GetChildren()) do
         if obj:IsA("Highlight") and obj.Name == "ESPHighlight" then obj:Destroy() end
@@ -87,6 +100,7 @@ function ModelESP:Add(target, config)
 
     local cfg = {
         Target = target,
+        Enabled = true,  -- Adicionado: habilitado individualmente
         Name = config and config.Name or target.Name,
         Colors = defaultColors,
         ModifiedParts = {},
@@ -205,6 +219,240 @@ function ModelESP:Add(target, config)
     table.insert(self.Objects, cfg)
 end
 
+--// Reajusta ESP para novo alvo com nova config
+function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
+    if not newTarget or not newTarget:IsA("Instance") then return end
+    if not (newTarget:IsA("Model") or newTarget:IsA("BasePart")) then return end
+
+    local esp = self:GetESP(oldTarget)
+    if not esp then return end
+
+    -- Limpa setups antigos
+    if esp.highlight then
+        esp.highlight:Destroy()
+        esp.highlight = nil
+    end
+    if esp.humanoid then
+        esp.humanoid:Destroy()
+        esp.humanoid = nil
+    end
+    for _, mod in ipairs(esp.ModifiedParts) do
+        if mod.Part and mod.Part.Parent then
+            mod.Part.Transparency = mod.OriginalTransparency
+        end
+    end
+    esp.ModifiedParts = {}
+    esp.visibleParts = nil
+
+    -- Atualiza target
+    esp.Target = newTarget
+
+    -- Atualiza config
+    esp.Name = newConfig and newConfig.Name or newTarget.Name
+    esp.NameContainerStart = (newConfig and newConfig.NameContainer and newConfig.NameContainer.Start) or ""
+    esp.NameContainerEnd = (newConfig and newConfig.NameContainer and newConfig.NameContainer.End) or ""
+    esp.DistanceSuffix = (newConfig and newConfig.DistanceSuffix) or ""
+    esp.DistanceContainerStart = (newConfig and newConfig.DistanceContainer and newConfig.DistanceContainer.Start) or ""
+    esp.DistanceContainerEnd = (newConfig and newConfig.DistanceContainer and newConfig.DistanceContainer.End) or ""
+
+    -- Atualiza cores
+    local defaultColors = {
+        Name = self.Theme.PrimaryColor,
+        Distance = self.Theme.PrimaryColor,
+        Tracer = self.Theme.PrimaryColor,
+        Highlight = {
+            Filled = self.Theme.PrimaryColor,
+            Outline = self.Theme.SecondaryColor
+        }
+    }
+    esp.Colors = defaultColors
+    if newConfig and newConfig.Color then
+        if typeof(newConfig.Color) == "Color3" then
+            esp.Colors.Name = newConfig.Color
+            esp.Colors.Distance = newConfig.Color
+            esp.Colors.Tracer = newConfig.Color
+            esp.Colors.Highlight.Filled = newConfig.Color
+            esp.Colors.Highlight.Outline = newConfig.Color
+        elseif typeof(newConfig.Color) == "table" then
+            if newConfig.Color.Name and typeof(newConfig.Color.Name) == "table" and #newConfig.Color.Name == 3 then
+                esp.Colors.Name = Color3.fromRGB(unpack(newConfig.Color.Name))
+            end
+            if newConfig.Color.Distance and typeof(newConfig.Color.Distance) == "table" and #newConfig.Color.Distance == 3 then
+                esp.Colors.Distance = Color3.fromRGB(unpack(newConfig.Color.Distance))
+            end
+            if newConfig.Color.Tracer and typeof(newConfig.Color.Tracer) == "table" and #newConfig.Color.Tracer == 3 then
+                esp.Colors.Tracer = Color3.fromRGB(unpack(newConfig.Color.Tracer))
+            end
+            if newConfig.Color.Highlight and typeof(newConfig.Color.Highlight) == "table" then
+                if newConfig.Color.Highlight.Filled and typeof(newConfig.Color.Highlight.Filled) == "table" and #newConfig.Color.Highlight.Filled == 3 then
+                    esp.Colors.Highlight.Filled = Color3.fromRGB(unpack(newConfig.Color.Highlight.Filled))
+                end
+                if newConfig.Color.Highlight.Outline and typeof(newConfig.Color.Highlight.Outline) == "table" and #newConfig.Color.Highlight.Outline == 3 then
+                    esp.Colors.Highlight.Outline = Color3.fromRGB(unpack(newConfig.Color.Highlight.Outline))
+                end
+            end
+        end
+    end
+
+    -- Coletar novas BaseParts
+    local allParts = {}
+    for _, desc in ipairs(newTarget:GetDescendants()) do
+        if desc:IsA("BasePart") then table.insert(allParts, desc) end
+    end
+    if newTarget:IsA("BasePart") then table.insert(allParts, newTarget) end
+
+    -- Reconfigura Collision se aplicável
+    local collision = newConfig and newConfig.Collision
+    if collision then
+        local humanoid = newTarget:FindFirstChild("Kolt ESP")
+        if not humanoid then
+            humanoid = Instance.new("Humanoid")
+            humanoid.Name = "Kolt ESP"
+            humanoid.Parent = newTarget
+        end
+        esp.humanoid = humanoid
+        for _, part in ipairs(allParts) do
+            if part.Transparency == 1 then
+                table.insert(esp.ModifiedParts, {Part = part, OriginalTransparency = part.Transparency})
+                part.Transparency = 0.99
+            end
+        end
+    else
+        esp.visibleParts = {}
+        for _, part in ipairs(allParts) do
+            if part.Transparency < 0.99 then table.insert(esp.visibleParts, part) end
+        end
+    end
+
+    -- Novo Highlight
+    if self.GlobalSettings.ShowHighlightFill or self.GlobalSettings.ShowHighlightOutline then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "ESPHighlight"
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and 0.85 or 1
+        highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and 0.65 or 1
+        highlight.Parent = newTarget
+        esp.highlight = highlight
+    end
+end
+
+--// Atualiza config de um ESP existente sem mudar o target
+function ModelESP:UpdateConfig(target, newConfig)
+    local esp = self:GetESP(target)
+    if not esp then return end
+
+    -- Atualiza campos simples
+    if newConfig.Name then esp.Name = newConfig.Name end
+    if newConfig.NameContainer then
+        esp.NameContainerStart = newConfig.NameContainer.Start or ""
+        esp.NameContainerEnd = newConfig.NameContainer.End or ""
+    end
+    if newConfig.DistanceSuffix then esp.DistanceSuffix = newConfig.DistanceSuffix end
+    if newConfig.DistanceContainer then
+        esp.DistanceContainerStart = newConfig.DistanceContainer.Start or ""
+        esp.DistanceContainerEnd = newConfig.DistanceContainer.End or ""
+    end
+
+    -- Atualiza cores
+    if newConfig.Color then
+        if typeof(newConfig.Color) == "Color3" then
+            esp.Colors.Name = newConfig.Color
+            esp.Colors.Distance = newConfig.Color
+            esp.Colors.Tracer = newConfig.Color
+            esp.Colors.Highlight.Filled = newConfig.Color
+            esp.Colors.Highlight.Outline = newConfig.Color
+        elseif typeof(newConfig.Color) == "table" then
+            if newConfig.Color.Name then esp.Colors.Name = Color3.fromRGB(unpack(newConfig.Color.Name)) end
+            if newConfig.Color.Distance then esp.Colors.Distance = Color3.fromRGB(unpack(newConfig.Color.Distance)) end
+            if newConfig.Color.Tracer then esp.Colors.Tracer = Color3.fromRGB(unpack(newConfig.Color.Tracer)) end
+            if newConfig.Color.Highlight then
+                if newConfig.Color.Highlight.Filled then esp.Colors.Highlight.Filled = Color3.fromRGB(unpack(newConfig.Color.Highlight.Filled)) end
+                if newConfig.Color.Highlight.Outline then esp.Colors.Highlight.Outline = Color3.fromRGB(unpack(newConfig.Color.Highlight.Outline)) end
+            end
+        end
+    end
+
+    -- Se Collision mudou, reconfigura (requer limpeza e re-setup)
+    local newCollision = newConfig.Collision
+    if newCollision ~= (esp.humanoid ~= nil) then
+        -- Limpa atual
+        if esp.highlight then esp.highlight:Destroy() esp.highlight = nil end
+        if esp.humanoid then esp.humanoid:Destroy() esp.humanoid = nil end
+        for _, mod in ipairs(esp.ModifiedParts) do
+            if mod.Part and mod.Part.Parent then mod.Part.Transparency = mod.OriginalTransparency end
+        end
+        esp.ModifiedParts = {}
+        esp.visibleParts = nil
+
+        -- Re-setup baseado no novo
+        local allParts = {}
+        for _, desc in ipairs(target:GetDescendants()) do
+            if desc:IsA("BasePart") then table.insert(allParts, desc) end
+        end
+        if target:IsA("BasePart") then table.insert(allParts, target) end
+
+        if newCollision then
+            local humanoid = target:FindFirstChild("Kolt ESP")
+            if not humanoid then
+                humanoid = Instance.new("Humanoid")
+                humanoid.Name = "Kolt ESP"
+                humanoid.Parent = target
+            end
+            esp.humanoid = humanoid
+            for _, part in ipairs(allParts) do
+                if part.Transparency == 1 then
+                    table.insert(esp.ModifiedParts, {Part = part, OriginalTransparency = part.Transparency})
+                    part.Transparency = 0.99
+                end
+            end
+        else
+            esp.visibleParts = {}
+            for _, part in ipairs(allParts) do
+                if part.Transparency < 0.99 then table.insert(esp.visibleParts, part) end
+            end
+        end
+
+        -- Novo Highlight
+        if self.GlobalSettings.ShowHighlightFill or self.GlobalSettings.ShowHighlightOutline then
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "ESPHighlight"
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and 0.85 or 1
+            highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and 0.65 or 1
+            highlight.Parent = target
+            esp.highlight = highlight
+        end
+    end
+end
+
+--// API útil: Alterna habilitado individual
+function ModelESP:ToggleIndividual(target, enabled)
+    local esp = self:GetESP(target)
+    if esp then
+        esp.Enabled = enabled
+    end
+end
+
+--// API útil: Define cor única para um ESP
+function ModelESP:SetColor(target, color)
+    local esp = self:GetESP(target)
+    if esp and typeof(color) == "Color3" then
+        esp.Colors.Name = color
+        esp.Colors.Distance = color
+        esp.Colors.Tracer = color
+        esp.Colors.Highlight.Filled = color
+        esp.Colors.Highlight.Outline = color
+    end
+end
+
+--// API útil: Define nome para um ESP
+function ModelESP:SetName(target, newName)
+    local esp = self:GetESP(target)
+    if esp then
+        esp.Name = newName
+    end
+end
+
 --// Remove ESP individual
 function ModelESP:Remove(target)
     for i=#self.Objects,1,-1 do
@@ -283,6 +531,12 @@ RunService.RenderStepped:Connect(function()
             if ModelESP.GlobalSettings.AutoRemoveInvalid then
                 ModelESP:Remove(target)
             end
+            continue
+        end
+
+        if not esp.Enabled then
+            for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
+            if esp.highlight then esp.highlight.Enabled=false end
             continue
         end
 
