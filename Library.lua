@@ -1,10 +1,26 @@
 --// 📦 Library Kolt V1.4
 --// 👤 Autor: Kolt
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
---// Melhorias: Adicionado método Readjustment para reajustar ESP em novos alvos com novas configs, verificação para evitar duplicatas no Add, função interna GetESP para buscar configs por target, otimizações menores e mais APIs úteis como ToggleIndividual, SetColor, SetName e UpdateConfig.
+
 
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local camera = workspace.CurrentCamera
+
+local HighlightFolderName = "KoltESPHighlights" 
+local highlightFolder = nil 
+
+local function getHighlightFolder()
+    if not highlightFolder then
+        highlightFolder = ReplicatedStorage:FindFirstChild(HighlightFolderName)
+        if not highlightFolder then
+            highlightFolder = Instance.new("Folder")
+            highlightFolder.Name = HighlightFolderName
+            highlightFolder.Parent = ReplicatedStorage
+        end
+    end
+    return highlightFolder
+end
 
 local ModelESP = {
     Objects = {},
@@ -28,6 +44,10 @@ local ModelESP = {
         LineThickness = 1.5,
         FontSize = 14,
         AutoRemoveInvalid = true,
+        HighlightTransparency = {
+            Filled = 0.5,
+            Outline = 0.3
+        }
     }
 }
 
@@ -73,6 +93,27 @@ function ModelESP:GetESP(target)
         if esp.Target == target then return esp end
     end
     return nil
+end
+
+--// Configura o nome da pasta de highlights
+function ModelESP:SetHighlightFolderName(name)
+    if typeof(name) == "string" and name ~= "" then
+        HighlightFolderName = name
+        -- Reseta a pasta para recriação com novo nome se necessário
+        highlightFolder = nil
+    end
+end
+
+--// Define transparências globais de highlight
+function ModelESP:SetGlobalHighlightTransparency(trans)
+    if typeof(trans) == "table" then
+        if trans.Filled and typeof(trans.Filled) == "number" then
+            self.GlobalSettings.HighlightTransparency.Filled = math.clamp(trans.Filled, 0, 1)
+        end
+        if trans.Outline and typeof(trans.Outline) == "number" then
+            self.GlobalSettings.HighlightTransparency.Outline = math.clamp(trans.Outline, 0, 1)
+        end
+    end
 end
 
 --// Adiciona ESP
@@ -210,9 +251,10 @@ function ModelESP:Add(target, config)
         local highlight = Instance.new("Highlight")
         highlight.Name = "ESPHighlight"
         highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and 0.85 or 1
-        highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and 0.65 or 1
-        highlight.Parent = target
+        highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
+        highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+        highlight.Adornee = target
+        highlight.Parent = getHighlightFolder()
         cfg.highlight = highlight
     end
 
@@ -329,9 +371,10 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
         local highlight = Instance.new("Highlight")
         highlight.Name = "ESPHighlight"
         highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and 0.85 or 1
-        highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and 0.65 or 1
-        highlight.Parent = newTarget
+        highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
+        highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+        highlight.Adornee = newTarget
+        highlight.Parent = getHighlightFolder()
         esp.highlight = highlight
     end
 end
@@ -417,9 +460,10 @@ function ModelESP:UpdateConfig(target, newConfig)
             local highlight = Instance.new("Highlight")
             highlight.Name = "ESPHighlight"
             highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and 0.85 or 1
-            highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and 0.65 or 1
-            highlight.Parent = target
+            highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
+            highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+            highlight.Adornee = target
+            highlight.Parent = getHighlightFolder()
             esp.highlight = highlight
         end
     end
@@ -489,6 +533,10 @@ function ModelESP:UpdateGlobalSettings()
         if esp.tracerLine then esp.tracerLine.Thickness = self.GlobalSettings.LineThickness end
         if esp.nameText then esp.nameText.Size = self.GlobalSettings.FontSize end
         if esp.distanceText then esp.distanceText.Size = self.GlobalSettings.FontSize-2 end
+        if esp.highlight then
+            esp.highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
+            esp.highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+        end
     end
 end
 
@@ -611,8 +659,8 @@ RunService.RenderStepped:Connect(function()
             esp.highlight.Enabled = ModelESP.GlobalSettings.ShowHighlightFill or ModelESP.GlobalSettings.ShowHighlightOutline
             esp.highlight.FillColor = useRainbow and rainbowColor or esp.Colors.Highlight.Filled
             esp.highlight.OutlineColor = useRainbow and rainbowColor or esp.Colors.Highlight.Outline
-            esp.highlight.FillTransparency = ModelESP.GlobalSettings.ShowHighlightFill and 0.85 or 1
-            esp.highlight.OutlineTransparency = ModelESP.GlobalSettings.ShowHighlightOutline and 0.65 or 1
+            esp.highlight.FillTransparency = ModelESP.GlobalSettings.ShowHighlightFill and ModelESP.GlobalSettings.HighlightTransparency.Filled or 1
+            esp.highlight.OutlineTransparency = ModelESP.GlobalSettings.ShowHighlightOutline and ModelESP.GlobalSettings.HighlightTransparency.Outline or 1
         end
     end
 end)
