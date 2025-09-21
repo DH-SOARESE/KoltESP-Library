@@ -1,19 +1,21 @@
 # 📦 Kolt ESP Library V1.4
 
-Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente customizável para Roblox, desenvolvida por **DH_SOARES**. Projetada para oferecer um sistema de ESP robusto e responsivo, com foco em performance e facilidade de uso.
+Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente customizável para Roblox, desenvolvida por **DH_SOARES**. Projetada para oferecer um sistema de ESP robusto e responsivo, com foco em performance, facilidade de uso e gerenciamento otimizado de recursos.
 
 ## ✨ Características
 
 - 🎯 **ESP Completo**: Suporte a Tracer, Nome, Distância e Highlight.
 - 🌈 **Modo Arco-íris**: Cores dinâmicas que mudam automaticamente.
 - 🎨 **Customização Avançada de Cores**: Suporte a cores individuais por elemento (Name, Distance, Tracer, Highlight) via tabela ou Color3.
-- ⚡ **Performance Otimizada**: Sistema de auto-remoção de objetos inválidos, verificação de duplicatas e atualizações eficientes por frame.
+- ⚡ **Performance Otimizada**: Sistema de auto-remoção de objetos inválidos, verificação de duplicatas, atualizações eficientes por frame e armazenamento centralizado de Highlights em uma pasta no ReplicatedStorage para reduzir clutter no workspace.
 - 📱 **Responsivo**: Adapta-se a diferentes resoluções, com posicionamento preciso mesmo em distâncias próximas (1-10 metros).
 - 🔧 **Fácil de Usar**: API intuitiva com métodos para gerenciamento avançado de ESPs.
 - 🆕 **ESP Collision (Opcional e Individual)**: Cria um Humanoid "Kolt ESP" no alvo e ajusta transparência de parts invisíveis (de 1 para 0.99) para melhor detecção de colisões ou visibilidade.
 - 🆕 **Customização de Textos**: Propriedades individuais para containers de nome (ex: `{Nome}`) e distância (ex: `<10.5.metros>`), com sufixos configuráveis.
-- 🆕 **Novos Métodos**: Inclui `Readjustment` para mudar o alvo de um ESP, `ToggleIndividual`, `SetColor`, `SetName` e `UpdateConfig` para maior controle.
-- 🐛 **Correções e Melhorias**: Evita duplicatas no método `Add`, otimiza gerenciamento de transparência e melhora a modularidade do código.
+- 🆕 **Transparências de Highlight Configuráveis**: Ajuste global para transparências de preenchimento e outline via `SetGlobalHighlightTransparency`.
+- 🆕 **Pasta Central para Highlights**: Armazena todos os Highlights em uma pasta no ReplicatedStorage (nome configurável via `SetHighlightFolderName`), usando `Adornee` para vincular ao alvo.
+- 🆕 **Novos Métodos**: Inclui `Readjustment` para mudar o alvo de um ESP, `ToggleIndividual`, `SetColor`, `SetName`, `UpdateConfig`, `SetGlobalHighlightTransparency` e `SetHighlightFolderName` para maior controle.
+- 🐛 **Correções e Melhorias**: Evita duplicatas no método `Add`, otimiza gerenciamento de transparência, melhora a modularidade do código e adiciona criação lazy da pasta de highlights.
 
 ## 🚀 Instalação
 
@@ -40,7 +42,7 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 - **Tracer**: Linha do ponto de origem configurável até o centro do alvo.
 - **Nome**: Exibe o nome do objeto, centralizado, com container personalizável (ex: `{Nome}`).
 - **Distância**: Mostra a distância em metros com formatação precisa (ex: `<10.5.metros>`), com sufixo e container customizáveis.
-- **Highlight**: Contorno e preenchimento colorido ao redor do objeto, com transparências ajustáveis.
+- **Highlight**: Contorno e preenchimento colorido ao redor do objeto, com transparências ajustáveis globalmente.
 
 ### 🎮 Origens do Tracer
 - `Top` - Topo da tela.
@@ -60,12 +62,20 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 - **DistanceSuffix**: Sufixo após o valor da distância (padrão: vazio).
 - **DistanceContainer**: Tabela com `Start` e `End` para envolver a distância (padrão: vazio).
 
+### 🆕 Gerenciamento de Highlights
+- Todos os Highlights são armazenados em uma pasta no ReplicatedStorage (padrão: "KoltESPHighlights").
+- Use `Adornee` para vincular o Highlight ao alvo sem parentá-lo diretamente.
+- Nome da pasta configurável via `SetHighlightFolderName("NovoNome")`.
+- Transparências globais: `HighlightTransparency = {Filled = 0.5, Outline = 0.3}` (ajustável via API).
+
 ### 🆕 APIs Avançadas
 - **Readjustment**: Altera o alvo de um ESP existente, aplicando nova configuração.
 - **ToggleIndividual**: Habilita/desabilita um ESP específico sem removê-lo.
 - **SetColor**: Define uma cor única para todos os elementos de um ESP.
 - **SetName**: Altera o nome exibido de um ESP.
 - **UpdateConfig**: Atualiza configurações de um ESP existente (nome, cores, containers, etc.) sem mudar o alvo.
+- **SetGlobalHighlightTransparency**: Ajusta transparências globais de Highlight.
+- **SetHighlightFolderName**: Define o nome da pasta central para Highlights.
 
 ## 🛠️ Uso Básico
 
@@ -74,6 +84,12 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 ```lua
 -- Carregar a biblioteca
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+
+-- Definir nome da pasta de highlights (opcional, antes de adicionar ESPs)
+ModelESP:SetHighlightFolderName("MyESPHighlights")
+
+-- Ajustar transparências globais de highlights (opcional)
+ModelESP:SetGlobalHighlightTransparency({Filled = 0.6, Outline = 0.4})
 
 -- Adicionar ESP básico
 ModelESP:Add(workspace.SomeModel)
@@ -187,6 +203,7 @@ ModelESP:SetGlobalRainbow(true)
 ModelESP:SetGlobalOpacity(0.8)
 ModelESP:SetGlobalFontSize(16)
 ModelESP:SetGlobalLineThickness(2)
+ModelESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3}) -- Ajusta transparências de highlights
 ```
 
 ### Controle de Distância
@@ -202,6 +219,10 @@ ModelESP.GlobalSettings.MinDistance = 0
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+
+-- Configura pasta e transparências
+ModelESP:SetHighlightFolderName("PlayerESPHighlights")
+ModelESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
 
 -- Configurações globais
 ModelESP:SetGlobalTracerOrigin("Top")
@@ -267,6 +288,10 @@ end)
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
+-- Configura pasta e transparências
+ModelESP:SetHighlightFolderName("ObjectESPHighlights")
+ModelESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3})
+
 -- Função para adicionar ESP a partes por nome
 local function addPartESP(partName, espName, colorTable, collision, nameContainer, distanceSuffix, distanceContainer)
     for _, part in pairs(workspace:GetDescendants()) do
@@ -327,6 +352,10 @@ addPartESP("PowerUp", "⚡ Power-Up", {
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+
+-- Configura pasta e transparências
+ModelESP:SetHighlightFolderName("DynamicESPHighlights")
+ModelESP:SetGlobalHighlightTransparency({Filled = 0.4, Outline = 0.2})
 
 -- Configuração de alvos
 local targets = {
@@ -427,7 +456,11 @@ end)
     Opacity = 0.8,
     LineThickness = 1.5,
     FontSize = 14,
-    AutoRemoveInvalid = true
+    AutoRemoveInvalid = true,
+    HighlightTransparency = {
+        Filled = 0.5,
+        Outline = 0.3
+    }
 }
 ```
 
@@ -467,4 +500,4 @@ print("ESP ativo:", ModelESP.Enabled)
 print("Objetos rastreados:", #ModelESP.Objects)
 ```
 
-**Desenvolvido por DH_SOARES** | Versão 1.4 | Última atualização: Setembro 2025
+**Desenvolvido por DH_SOARES** | Versão 1.5 | Última atualização: Setembro 2025
