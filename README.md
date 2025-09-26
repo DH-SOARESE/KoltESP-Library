@@ -1,4 +1,4 @@
-# 📦 Kolt ESP Library V1.4
+# 📦 Kolt ESP Library V1.5
 
 Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente customizável para Roblox, desenvolvida por **DH_SOARES**. Projetada para oferecer um sistema de ESP robusto e responsivo, com foco em performance, facilidade de uso e gerenciamento otimizado de recursos.
 
@@ -14,8 +14,10 @@ Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente
 - 🆕 **Customização de Textos**: Propriedades individuais para containers de nome (ex: `{Nome}`) e distância (ex: `<10.5.metros>`), com sufixos configuráveis.
 - 🆕 **Transparências de Highlight Configuráveis**: Ajuste global para transparências de preenchimento e outline via `SetGlobalHighlightTransparency`.
 - 🆕 **Pasta Central para Highlights**: Armazena todos os Highlights em uma pasta no ReplicatedStorage (nome configurável via `SetHighlightFolderName`), usando `Adornee` para vincular ao alvo.
-- 🆕 **Novos Métodos**: Inclui `Readjustment` para mudar o alvo de um ESP, `ToggleIndividual`, `SetColor`, `SetName`, `UpdateConfig`, `SetGlobalHighlightTransparency` e `SetHighlightFolderName` para maior controle.
-- 🐛 **Correções e Melhorias**: Evita duplicatas no método `Add`, otimiza gerenciamento de transparência, melhora a modularidade do código e adiciona criação lazy da pasta de highlights.
+- 🆕 **Novos Métodos**: Inclui `Readjustment` para mudar o alvo de um ESP, `ToggleIndividual`, `SetColor`, `SetName`, `UpdateConfig`, `SetGlobalHighlightTransparency`, `SetHighlightFolderName` e `SetDisplayOrder` para maior controle.
+- 🆕 **Sistema de Camadas para Drawings**: Cada ESP tem um `DisplayOrder` individual (ZIndex para Tracer, Name e Distance), permitindo que elementos com valores mais altos sejam renderizados sobre os de valores mais baixos.
+- 🆕 **Otimização de Highlights**: Highlights são criados uma vez por ESP e atualizados eficientemente no loop de render (cores, transparências e visibilidade), sem recriação constante para melhorar a performance.
+- 🐛 **Correções e Melhorias**: Evita duplicatas no método `Add`, otimiza gerenciamento de transparência, melhora a modularidade do código, adiciona criação lazy da pasta de highlights e garante atualizações eficientes sem reconstrução desnecessária.
 
 ## 🚀 Instalação
 
@@ -42,7 +44,7 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 - **Tracer**: Linha do ponto de origem configurável até o centro do alvo.
 - **Nome**: Exibe o nome do objeto, centralizado, com container personalizável (ex: `{Nome}`).
 - **Distância**: Mostra a distância em metros com formatação precisa (ex: `<10.5.metros>`), com sufixo e container customizáveis.
-- **Highlight**: Contorno e preenchimento colorido ao redor do objeto, com transparências ajustáveis globalmente.
+- **Highlight**: Contorno e preenchimento colorido ao redor do objeto, com transparências ajustáveis globalmente e atualizações eficientes sem recriação.
 
 ### 🎮 Origens do Tracer
 - `Top` - Topo da tela.
@@ -67,13 +69,21 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 - Use `Adornee` para vincular o Highlight ao alvo sem parentá-lo diretamente.
 - Nome da pasta configurável via `SetHighlightFolderName("NovoNome")`.
 - Transparências globais: `HighlightTransparency = {Filled = 0.5, Outline = 0.3}` (ajustável via API).
+- Otimização: Highlights são atualizados in-place no loop de render, evitando recriação para melhor performance.
+
+### 🆕 Sistema de Camadas (DisplayOrder)
+- Aplicado aos elementos Drawing (Tracer, Name, Distance).
+- Cada ESP tem um `DisplayOrder` individual (padrão: 0), que define o ZIndex.
+- Valores mais altos (ex: 10) são renderizados sobre valores mais baixos (ex: 1).
+- Configurável ao adicionar/atualizar ESP e via API `SetDisplayOrder`.
 
 ### 🆕 APIs Avançadas
 - **Readjustment**: Altera o alvo de um ESP existente, aplicando nova configuração.
 - **ToggleIndividual**: Habilita/desabilita um ESP específico sem removê-lo.
 - **SetColor**: Define uma cor única para todos os elementos de um ESP.
 - **SetName**: Altera o nome exibido de um ESP.
-- **UpdateConfig**: Atualiza configurações de um ESP existente (nome, cores, containers, etc.) sem mudar o alvo.
+- **SetDisplayOrder**: Define o DisplayOrder (ZIndex) de um ESP específico.
+- **UpdateConfig**: Atualiza configurações de um ESP existente (nome, cores, containers, DisplayOrder, etc.) sem mudar o alvo.
 - **SetGlobalHighlightTransparency**: Ajusta transparências globais de Highlight.
 - **SetHighlightFolderName**: Define o nome da pasta central para Highlights.
 
@@ -94,23 +104,25 @@ ModelESP:SetGlobalHighlightTransparency({Filled = 0.6, Outline = 0.4})
 -- Adicionar ESP básico
 ModelESP:Add(workspace.SomeModel)
 
--- Adicionar ESP com nome, cor única, Collision e customização de textos
+-- Adicionar ESP com nome, cor única, Collision, customização de textos e DisplayOrder
 ModelESP:Add(workspace.SomeModel, {
     Name = "Alvo Especial",
     Color = Color3.fromRGB(255, 0, 0),
     Collision = true,
     NameContainer = {Start = "{", End = "}"},
     DistanceSuffix = ".metros",
-    DistanceContainer = {Start = "<", End = ">"}
+    DistanceContainer = {Start = "<", End = ">"},
+    DisplayOrder = 5  -- Renderizado sobre ESPs com DisplayOrder menor
 })
 
--- Adicionar ESP com cores personalizadas por elemento
+-- Adicionar ESP com cores personalizadas por elemento e DisplayOrder alto
 ModelESP:Add(workspace.SomeModel, {
     Name = "Alvo Especial",
     Collision = true,
     NameContainer = {Start = "[", End = "]"},
     DistanceSuffix = "m",
     DistanceContainer = {Start = "(", End = ")"},
+    DisplayOrder = 10,
     Color = {
         Name = {255, 255, 255},
         Distance = {255, 255, 255},
@@ -135,7 +147,8 @@ ModelESP:Readjustment(workspace.NewModel, workspace.OldModel, {
     Collision = false,
     NameContainer = {Start = "[", End = "]"},
     DistanceSuffix = "m",
-    DistanceContainer = {Start = "(", End = ")"}
+    DistanceContainer = {Start = "(", End = ")"},
+    DisplayOrder = 8
 })
 ```
 
@@ -156,7 +169,8 @@ ModelESP:UpdateConfig(workspace.SomeModel, {
     },
     Collision = false,
     NameContainer = {Start = "{", End = "}"},
-    DistanceSuffix = ".metros"
+    DistanceSuffix = ".metros",
+    DisplayOrder = 3  -- Atualiza a camada de renderização
 })
 ```
 
@@ -171,6 +185,9 @@ ModelESP:SetColor(workspace.SomeModel, Color3.fromRGB(0, 255, 0))
 
 -- Alterar apenas o nome
 ModelESP:SetName(workspace.SomeModel, "Novo Nome")
+
+-- Alterar apenas o DisplayOrder
+ModelESP:SetDisplayOrder(workspace.SomeModel, 7)
 ```
 
 ### Removendo ESP
@@ -215,7 +232,7 @@ ModelESP.GlobalSettings.MinDistance = 0
 
 ## 📖 Exemplos Práticos
 
-### 🧑‍🤝‍🧑 ESP para Jogadores com Cores Personalizadas
+### 🧑‍🤝‍🧑 ESP para Jogadores com Cores Personalizadas e Camadas
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -247,6 +264,7 @@ local function addPlayerESP(player)
             Collision = false,
             DistanceSuffix = ".m",
             DistanceContainer = {Start = "(", End = ")"},
+            DisplayOrder = 10,  -- Alta prioridade para jogadores
             Color = {
                 Name = {144, 0, 255},
                 Distance = {144, 0, 255},
@@ -283,7 +301,7 @@ game.Players.PlayerRemoving:Connect(function(player)
 end)
 ```
 
-### 🎯 ESP para Objetos Específicos com Collision
+### 🎯 ESP para Objetos Específicos com Collision e Camadas
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -293,7 +311,7 @@ ModelESP:SetHighlightFolderName("ObjectESPHighlights")
 ModelESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3})
 
 -- Função para adicionar ESP a partes por nome
-local function addPartESP(partName, espName, colorTable, collision, nameContainer, distanceSuffix, distanceContainer)
+local function addPartESP(partName, espName, colorTable, collision, nameContainer, distanceSuffix, distanceContainer, displayOrder)
     for _, part in pairs(workspace:GetDescendants()) do
         if part.Name == partName and (part:IsA("BasePart") or part:IsA("Model")) then
             ModelESP:Add(part, {
@@ -302,6 +320,7 @@ local function addPartESP(partName, espName, colorTable, collision, nameContaine
                 NameContainer = nameContainer or {Start = "[", End = "]"},
                 DistanceSuffix = distanceSuffix or "m",
                 DistanceContainer = distanceContainer or {Start = "(", End = ")"},
+                DisplayOrder = displayOrder or 0,
                 Color = colorTable or {
                     Name = {255, 255, 0},
                     Distance = {255, 255, 0},
@@ -316,7 +335,7 @@ local function addPartESP(partName, espName, colorTable, collision, nameContaine
     end
 end
 
--- Exemplos de uso
+-- Exemplos de uso com diferentes DisplayOrders
 addPartESP("Chest", "💰 Baú", {
     Name = {255, 255, 255},
     Distance = {255, 255, 255},
@@ -325,7 +344,7 @@ addPartESP("Chest", "💰 Baú", {
         Filled = {255, 215, 0},
         Outline = {255, 255, 255}
     }
-}, true, {Start = "{", End = "}"}, ".m", {Start = "<", End = ">"})
+}, true, {Start = "{", End = "}"}, ".m", {Start = "<", End = ">"}, 5)
 
 addPartESP("Enemy", "👹 Inimigo", {
     Name = {255, 255, 255},
@@ -335,7 +354,7 @@ addPartESP("Enemy", "👹 Inimigo", {
         Filled = {200, 0, 0},
         Outline = {255, 0, 0}
     }
-}, false)
+}, false, nil, nil, nil, 10)  -- Alta camada para inimigos
 
 addPartESP("PowerUp", "⚡ Power-Up", {
     Name = {255, 255, 255},
@@ -345,10 +364,10 @@ addPartESP("PowerUp", "⚡ Power-Up", {
         Filled = {0, 200, 200},
         Outline = {0, 255, 255}
     }
-}, true, {Start = "[", End = "]"}, " metros", {Start = "(", End = ")"})
+}, true, {Start = "[", End = "]"}, " metros", {Start = "(", End = ")"}, 2)
 ```
 
-### 🔍 ESP por Path Específico com Reajuste Dinâmico
+### 🔍 ESP por Path Específico com Reajuste Dinâmico e Camadas
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -366,6 +385,7 @@ local targets = {
         nameContainer = {Start = "[", End = "]"},
         distanceSuffix = "m",
         distanceContainer = {Start = "(", End = ")"},
+        displayOrder = 4,
         color = {
             Name = {255, 255, 255},
             Distance = {255, 255, 255},
@@ -383,6 +403,7 @@ local targets = {
         nameContainer = {Start = "{", End = "}"},
         distanceSuffix = ".m",
         distanceContainer = {Start = "<", End = ">"},
+        displayOrder = 9,
         color = {
             Name = {255, 255, 255},
             Distance = {255, 255, 255},
@@ -410,6 +431,7 @@ for _, target in pairs(targets) do
                     NameContainer = target.nameContainer,
                     DistanceSuffix = target.distanceSuffix,
                     DistanceContainer = target.distanceContainer,
+                    DisplayOrder = target.displayOrder,
                     Color = target.color
                 })
             end
@@ -425,6 +447,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
         ModelESP:Readjustment(newTarget, oldTarget, {
             Name = "Novo Tesouro",
             Collision = true,
+            DisplayOrder = 6,
             Color = {
                 Name = {255, 255, 255},
                 Distance = {255, 255, 255},
@@ -472,6 +495,7 @@ end)
     NameContainer = {Start = "[", End = "]"},
     DistanceSuffix = "m",
     DistanceContainer = {Start = "(", End = ")"},
+    DisplayOrder = 0,  -- Número inteiro para camada de renderização
     Color = { ... } -- Tabela de cores ou Color3 único
 }
 ```
