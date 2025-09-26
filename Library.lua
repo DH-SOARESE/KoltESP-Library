@@ -259,6 +259,10 @@ function ModelESP:Add(target, config)
         highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
         highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+        local useRainbow = self.GlobalSettings.RainbowMode
+        local initColor = useRainbow and getRainbowColor(tick()) or cfg.Colors.Highlight.Filled
+        highlight.FillColor = initColor
+        highlight.OutlineColor = useRainbow and initColor or cfg.Colors.Highlight.Outline
         highlight.Adornee = target
         highlight.Parent = getHighlightFolder()
         cfg.highlight = highlight
@@ -276,10 +280,6 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
     if not esp then return end
 
     -- Limpa setups antigos
-    if esp.highlight then
-        esp.highlight:Destroy()
-        esp.highlight = nil
-    end
     if esp.humanoid then
         esp.humanoid:Destroy()
         esp.humanoid = nil
@@ -375,14 +375,33 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
 
     -- Novo Highlight
     if self.GlobalSettings.ShowHighlightFill or self.GlobalSettings.ShowHighlightOutline then
-        local highlight = Instance.new("Highlight")
-        highlight.Name = "ESPHighlight"
-        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
-        highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
-        highlight.Adornee = newTarget
-        highlight.Parent = getHighlightFolder()
-        esp.highlight = highlight
+        if esp.highlight then
+            esp.highlight.Adornee = newTarget
+            local useRainbow = self.GlobalSettings.RainbowMode
+            local initColor = useRainbow and getRainbowColor(tick()) or esp.Colors.Highlight.Filled
+            esp.highlight.FillColor = initColor
+            esp.highlight.OutlineColor = useRainbow and initColor or esp.Colors.Highlight.Outline
+            esp.highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
+            esp.highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+        else
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "ESPHighlight"
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            local useRainbow = self.GlobalSettings.RainbowMode
+            local initColor = useRainbow and getRainbowColor(tick()) or esp.Colors.Highlight.Filled
+            highlight.FillColor = initColor
+            highlight.OutlineColor = useRainbow and initColor or esp.Colors.Highlight.Outline
+            highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
+            highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+            highlight.Adornee = newTarget
+            highlight.Parent = getHighlightFolder()
+            esp.highlight = highlight
+        end
+    else
+        if esp.highlight then
+            esp.highlight:Destroy()
+            esp.highlight = nil
+        end
     end
 
     -- Atualiza ZIndex dos drawings
@@ -437,7 +456,6 @@ function ModelESP:UpdateConfig(target, newConfig)
     local newCollision = newConfig.Collision
     if newCollision ~= (esp.humanoid ~= nil) then
         -- Limpa atual
-        if esp.highlight then esp.highlight:Destroy() esp.highlight = nil end
         if esp.humanoid then esp.humanoid:Destroy() esp.humanoid = nil end
         for _, mod in ipairs(esp.ModifiedParts) do
             if mod.Part and mod.Part.Parent then mod.Part.Transparency = mod.OriginalTransparency end
@@ -473,16 +491,34 @@ function ModelESP:UpdateConfig(target, newConfig)
             end
         end
 
-        -- Novo Highlight
+        -- Atualiza Highlight se existir ou cria novo
         if self.GlobalSettings.ShowHighlightFill or self.GlobalSettings.ShowHighlightOutline then
-            local highlight = Instance.new("Highlight")
-            highlight.Name = "ESPHighlight"
-            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
-            highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
-            highlight.Adornee = target
-            highlight.Parent = getHighlightFolder()
-            esp.highlight = highlight
+            if esp.highlight then
+                local useRainbow = self.GlobalSettings.RainbowMode
+                local initColor = useRainbow and getRainbowColor(tick()) or esp.Colors.Highlight.Filled
+                esp.highlight.FillColor = initColor
+                esp.highlight.OutlineColor = useRainbow and initColor or esp.Colors.Highlight.Outline
+                esp.highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
+                esp.highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+            else
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "ESPHighlight"
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                local useRainbow = self.GlobalSettings.RainbowMode
+                local initColor = useRainbow and getRainbowColor(tick()) or esp.Colors.Highlight.Filled
+                highlight.FillColor = initColor
+                highlight.OutlineColor = useRainbow and initColor or esp.Colors.Highlight.Outline
+                highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
+                highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+                highlight.Adornee = target
+                highlight.Parent = getHighlightFolder()
+                esp.highlight = highlight
+            end
+        else
+            if esp.highlight then
+                esp.highlight:Destroy()
+                esp.highlight = nil
+            end
         end
     end
 end
