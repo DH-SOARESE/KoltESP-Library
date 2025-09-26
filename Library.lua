@@ -149,7 +149,8 @@ function ModelESP:Add(target, config)
         NameContainerEnd = (config and config.NameContainer and config.NameContainer.End) or "",
         DistanceSuffix = (config and config.DistanceSuffix) or "",
         DistanceContainerStart = (config and config.DistanceContainer and config.DistanceContainer.Start) or "",
-        DistanceContainerEnd = (config and config.DistanceContainer and config.DistanceContainer.End) or ""
+        DistanceContainerEnd = (config and config.DistanceContainer and config.DistanceContainer.End) or "",
+        DisplayOrder = config and config.DisplayOrder or 0  -- Novo: Camada individual
     }
 
     -- Aplicar cores customizadas se fornecidas
@@ -225,6 +226,8 @@ function ModelESP:Add(target, config)
         Transparency = self.GlobalSettings.Opacity,
         Visible = false
     })
+    cfg.tracerLine.ZIndex = cfg.DisplayOrder
+
     cfg.nameText = createDrawing("Text", {
         Text = cfg.Name,
         Size = self.GlobalSettings.FontSize,
@@ -235,6 +238,8 @@ function ModelESP:Add(target, config)
         Transparency = self.GlobalSettings.Opacity,
         Visible = false
     })
+    cfg.nameText.ZIndex = cfg.DisplayOrder
+
     cfg.distanceText = createDrawing("Text", {
         Text = "",
         Size = self.GlobalSettings.FontSize-2,
@@ -245,6 +250,7 @@ function ModelESP:Add(target, config)
         Transparency = self.GlobalSettings.Opacity,
         Visible = false
     })
+    cfg.distanceText.ZIndex = cfg.DisplayOrder
 
     -- Highlight
     if self.GlobalSettings.ShowHighlightFill or self.GlobalSettings.ShowHighlightOutline then
@@ -296,6 +302,7 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.DistanceSuffix = (newConfig and newConfig.DistanceSuffix) or ""
     esp.DistanceContainerStart = (newConfig and newConfig.DistanceContainer and newConfig.DistanceContainer.Start) or ""
     esp.DistanceContainerEnd = (newConfig and newConfig.DistanceContainer and newConfig.DistanceContainer.End) or ""
+    esp.DisplayOrder = newConfig and newConfig.DisplayOrder or 0  -- Novo: Atualiza DisplayOrder
 
     -- Atualiza cores
     local defaultColors = {
@@ -377,6 +384,11 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
         highlight.Parent = getHighlightFolder()
         esp.highlight = highlight
     end
+
+    -- Atualiza ZIndex dos drawings
+    if esp.tracerLine then esp.tracerLine.ZIndex = esp.DisplayOrder end
+    if esp.nameText then esp.nameText.ZIndex = esp.DisplayOrder end
+    if esp.distanceText then esp.distanceText.ZIndex = esp.DisplayOrder end
 end
 
 --// Atualiza config de um ESP existente sem mudar o target
@@ -394,6 +406,12 @@ function ModelESP:UpdateConfig(target, newConfig)
     if newConfig.DistanceContainer then
         esp.DistanceContainerStart = newConfig.DistanceContainer.Start or ""
         esp.DistanceContainerEnd = newConfig.DistanceContainer.End or ""
+    end
+    if newConfig.DisplayOrder ~= nil then 
+        esp.DisplayOrder = newConfig.DisplayOrder
+        if esp.tracerLine then esp.tracerLine.ZIndex = esp.DisplayOrder end
+        if esp.nameText then esp.nameText.ZIndex = esp.DisplayOrder end
+        if esp.distanceText then esp.distanceText.ZIndex = esp.DisplayOrder end
     end
 
     -- Atualiza cores
@@ -494,6 +512,17 @@ function ModelESP:SetName(target, newName)
     local esp = self:GetESP(target)
     if esp then
         esp.Name = newName
+    end
+end
+
+--// API útil: Define DisplayOrder para um ESP
+function ModelESP:SetDisplayOrder(target, displayOrder)
+    local esp = self:GetESP(target)
+    if esp then
+        esp.DisplayOrder = displayOrder
+        if esp.tracerLine then esp.tracerLine.ZIndex = esp.DisplayOrder end
+        if esp.nameText then esp.nameText.ZIndex = esp.DisplayOrder end
+        if esp.distanceText then esp.distanceText.ZIndex = esp.DisplayOrder end
     end
 end
 
