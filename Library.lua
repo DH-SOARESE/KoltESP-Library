@@ -1,10 +1,10 @@
---// 📦 Library Kolt V1.6
+--// 📦 Library Kolt V1.5
 --// 👤 Autor: Kolt
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
 
+
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
 local camera = workspace.CurrentCamera
 
 local HighlightFolderName = "KoltESPHighlights" 
@@ -24,7 +24,6 @@ end
 
 local ModelESP = {
     Objects = {},
-    PlayerConnections = {},
     Enabled = true,
     Theme = {
         PrimaryColor = Color3.fromRGB(130, 200, 255),
@@ -33,9 +32,6 @@ local ModelESP = {
     },
     GlobalSettings = {
         TracerOrigin = "Bottom",
-        TracerTarget = "Bottom",
-        TextPosition = "Top",
-        TextSpacing = 2,
         ShowTracer = true,
         ShowHighlightFill = true,
         ShowHighlightOutline = true,
@@ -74,17 +70,6 @@ local tracerOrigins = {
     Right = function(vs) return Vector2.new(vs.X, vs.Y/2) end,
 }
 
---// Tracer Targets
-local function getTracerTo(centerX, topY, bottomY, centerY, target)
-    if target == "Bottom" then
-        return Vector2.new(centerX, bottomY)
-    elseif target == "Top" then
-        return Vector2.new(centerX, topY)
-    else
-        return Vector2.new(centerX, centerY)
-    end
-end
-
 --/ Get Bounding Box
 local function getBoundingBox(target)
     if target:IsA("Model") then
@@ -93,36 +78,6 @@ local function getBoundingBox(target)
         return target.CFrame, target.Size
     end
     return nil, nil
-end
-
---// Get Screen BBox
-local function getScreenBBox(cf, size)
-    local halfSize = size / 2
-    local offsets = {
-        Vector3.new(-halfSize.X, -halfSize.Y, -halfSize.Z),
-        Vector3.new(-halfSize.X, -halfSize.Y, halfSize.Z),
-        Vector3.new(-halfSize.X, halfSize.Y, -halfSize.Z),
-        Vector3.new(-halfSize.X, halfSize.Y, halfSize.Z),
-        Vector3.new(halfSize.X, -halfSize.Y, -halfSize.Z),
-        Vector3.new(halfSize.X, -halfSize.Y, halfSize.Z),
-        Vector3.new(halfSize.X, halfSize.Y, -halfSize.Z),
-        Vector3.new(halfSize.X, halfSize.Y, halfSize.Z),
-    }
-    local minVec = Vector2.new(math.huge, math.huge)
-    local maxVec = Vector2.new(-math.huge, -math.huge)
-    local anyInFront = false
-    for _, offset in ipairs(offsets) do
-        local worldPos = cf * offset
-        local vec3 = camera:WorldToViewportPoint(worldPos)
-        if vec3.Z > 0 then
-            anyInFront = true
-            local pos2 = Vector2.new(vec3.X, vec3.Y)
-            minVec = Vector2.new(math.min(minVec.X, pos2.X), math.min(minVec.Y, pos2.Y))
-            maxVec = Vector2.new(math.max(maxVec.X, pos2.X), math.max(maxVec.Y, pos2.Y))
-        end
-    end
-    if not anyInFront then return nil end
-    return minVec, maxVec
 end
 
 --// Cria Drawing
@@ -161,33 +116,6 @@ function ModelESP:SetGlobalHighlightTransparency(trans)
     end
 end
 
---// Nova API: Adiciona ESP a um player com auto-correção em respawn
-function ModelESP:AddToPlayer(player, config)
-    if not player:IsA("Player") then return end
-    local function addESP(char)
-        if char then
-            ModelESP:Add(char, config)
-        end
-    end
-    addESP(player.Character)
-    local conn = player.CharacterAdded:Connect(addESP)
-    self.PlayerConnections[player] = conn
-end
-
---// Nova API: Remove ESP de um player e desconecta listener
-function ModelESP:RemoveFromPlayer(player)
-    if not player:IsA("Player") then return end
-    local char = player.Character
-    if char then
-        self:Remove(char)
-    end
-    local conn = self.PlayerConnections[player]
-    if conn then
-        conn:Disconnect()
-        self.PlayerConnections[player] = nil
-    end
-end
-
 --// Adiciona ESP
 function ModelESP:Add(target, config)
     if not target or not target:IsA("Instance") then return end
@@ -213,7 +141,7 @@ function ModelESP:Add(target, config)
 
     local cfg = {
         Target = target,
-        Enabled = true,
+        Enabled = true,  -- Adicionado: habilitado individualmente
         Name = config and config.Name or target.Name,
         Colors = defaultColors,
         ModifiedParts = {},
@@ -222,8 +150,7 @@ function ModelESP:Add(target, config)
         DistanceSuffix = (config and config.DistanceSuffix) or "",
         DistanceContainerStart = (config and config.DistanceContainer and config.DistanceContainer.Start) or "",
         DistanceContainerEnd = (config and config.DistanceContainer and config.DistanceContainer.End) or "",
-        DisplayOrder = config and config.DisplayOrder or 0,
-        Collision = config and config.Collision or false  -- Armazena Collision explicitamente
+        DisplayOrder = config and config.DisplayOrder or 0  -- Novo: Camada individual
     }
 
     -- Aplicar cores customizadas se fornecidas
@@ -269,7 +196,7 @@ function ModelESP:Add(target, config)
     end
 
     -- Opção de Collision (individual)
-    if cfg.Collision then
+    if config and config.Collision then
         local humanoid = target:FindFirstChild("Kolt ESP")
         if not humanoid then
             humanoid = Instance.new("Humanoid")
@@ -282,6 +209,13 @@ function ModelESP:Add(target, config)
             if part.Transparency == 1 then
                 table.insert(cfg.ModifiedParts, {Part = part, OriginalTransparency = part.Transparency})
                 part.Transparency = 0.99
+            end
+        end
+    else
+        cfg.visibleParts = {}
+        for _, part in ipairs(allParts) do
+            if part.Transparency < 0.99 then
+                table.insert(cfg.visibleParts, part)
             end
         end
     end
@@ -356,6 +290,7 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
         end
     end
     esp.ModifiedParts = {}
+    esp.visibleParts = nil
 
     -- Atualiza target
     esp.Target = newTarget
@@ -367,8 +302,7 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.DistanceSuffix = (newConfig and newConfig.DistanceSuffix) or ""
     esp.DistanceContainerStart = (newConfig and newConfig.DistanceContainer and newConfig.DistanceContainer.Start) or ""
     esp.DistanceContainerEnd = (newConfig and newConfig.DistanceContainer and newConfig.DistanceContainer.End) or ""
-    esp.DisplayOrder = newConfig and newConfig.DisplayOrder or 0
-    esp.Collision = newConfig and newConfig.Collision or false
+    esp.DisplayOrder = newConfig and newConfig.DisplayOrder or 0  -- Novo: Atualiza DisplayOrder
 
     -- Atualiza cores
     local defaultColors = {
@@ -417,7 +351,8 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
     if newTarget:IsA("BasePart") then table.insert(allParts, newTarget) end
 
     -- Reconfigura Collision se aplicável
-    if esp.Collision then
+    local collision = newConfig and newConfig.Collision
+    if collision then
         local humanoid = newTarget:FindFirstChild("Kolt ESP")
         if not humanoid then
             humanoid = Instance.new("Humanoid")
@@ -430,6 +365,11 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
                 table.insert(esp.ModifiedParts, {Part = part, OriginalTransparency = part.Transparency})
                 part.Transparency = 0.99
             end
+        end
+    else
+        esp.visibleParts = {}
+        for _, part in ipairs(allParts) do
+            if part.Transparency < 0.99 then table.insert(esp.visibleParts, part) end
         end
     end
 
@@ -492,9 +432,6 @@ function ModelESP:UpdateConfig(target, newConfig)
         if esp.nameText then esp.nameText.ZIndex = esp.DisplayOrder end
         if esp.distanceText then esp.distanceText.ZIndex = esp.DisplayOrder end
     end
-    if newConfig.Collision ~= nil then
-        esp.Collision = newConfig.Collision
-    end
 
     -- Atualiza cores
     if newConfig.Color then
@@ -516,63 +453,72 @@ function ModelESP:UpdateConfig(target, newConfig)
     end
 
     -- Se Collision mudou, reconfigura (requer limpeza e re-setup)
-    -- Limpa atual
-    if esp.humanoid then esp.humanoid:Destroy() esp.humanoid = nil end
-    for _, mod in ipairs(esp.ModifiedParts) do
-        if mod.Part and mod.Part.Parent then mod.Part.Transparency = mod.OriginalTransparency end
-    end
-    esp.ModifiedParts = {}
-
-    -- Re-setup baseado no novo
-    local allParts = {}
-    for _, desc in ipairs(target:GetDescendants()) do
-        if desc:IsA("BasePart") then table.insert(allParts, desc) end
-    end
-    if target:IsA("BasePart") then table.insert(allParts, target) end
-
-    if esp.Collision then
-        local humanoid = target:FindFirstChild("Kolt ESP")
-        if not humanoid then
-            humanoid = Instance.new("Humanoid")
-            humanoid.Name = "Kolt ESP"
-            humanoid.Parent = target
+    local newCollision = newConfig.Collision
+    if newCollision ~= (esp.humanoid ~= nil) then
+        -- Limpa atual
+        if esp.humanoid then esp.humanoid:Destroy() esp.humanoid = nil end
+        for _, mod in ipairs(esp.ModifiedParts) do
+            if mod.Part and mod.Part.Parent then mod.Part.Transparency = mod.OriginalTransparency end
         end
-        esp.humanoid = humanoid
-        for _, part in ipairs(allParts) do
-            if part.Transparency == 1 then
-                table.insert(esp.ModifiedParts, {Part = part, OriginalTransparency = part.Transparency})
-                part.Transparency = 0.99
+        esp.ModifiedParts = {}
+        esp.visibleParts = nil
+
+        -- Re-setup baseado no novo
+        local allParts = {}
+        for _, desc in ipairs(target:GetDescendants()) do
+            if desc:IsA("BasePart") then table.insert(allParts, desc) end
+        end
+        if target:IsA("BasePart") then table.insert(allParts, target) end
+
+        if newCollision then
+            local humanoid = target:FindFirstChild("Kolt ESP")
+            if not humanoid then
+                humanoid = Instance.new("Humanoid")
+                humanoid.Name = "Kolt ESP"
+                humanoid.Parent = target
+            end
+            esp.humanoid = humanoid
+            for _, part in ipairs(allParts) do
+                if part.Transparency == 1 then
+                    table.insert(esp.ModifiedParts, {Part = part, OriginalTransparency = part.Transparency})
+                    part.Transparency = 0.99
+                end
+            end
+        else
+            esp.visibleParts = {}
+            for _, part in ipairs(allParts) do
+                if part.Transparency < 0.99 then table.insert(esp.visibleParts, part) end
             end
         end
-    end
 
-    -- Atualiza Highlight se existir ou cria novo
-    if self.GlobalSettings.ShowHighlightFill or self.GlobalSettings.ShowHighlightOutline then
-        if esp.highlight then
-            local useRainbow = self.GlobalSettings.RainbowMode
-            local initColor = useRainbow and getRainbowColor(tick()) or esp.Colors.Highlight.Filled
-            esp.highlight.FillColor = initColor
-            esp.highlight.OutlineColor = useRainbow and initColor or esp.Colors.Highlight.Outline
-            esp.highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
-            esp.highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+        -- Atualiza Highlight se existir ou cria novo
+        if self.GlobalSettings.ShowHighlightFill or self.GlobalSettings.ShowHighlightOutline then
+            if esp.highlight then
+                local useRainbow = self.GlobalSettings.RainbowMode
+                local initColor = useRainbow and getRainbowColor(tick()) or esp.Colors.Highlight.Filled
+                esp.highlight.FillColor = initColor
+                esp.highlight.OutlineColor = useRainbow and initColor or esp.Colors.Highlight.Outline
+                esp.highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
+                esp.highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+            else
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "ESPHighlight"
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                local useRainbow = self.GlobalSettings.RainbowMode
+                local initColor = useRainbow and getRainbowColor(tick()) or esp.Colors.Highlight.Filled
+                highlight.FillColor = initColor
+                highlight.OutlineColor = useRainbow and initColor or esp.Colors.Highlight.Outline
+                highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
+                highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+                highlight.Adornee = target
+                highlight.Parent = getHighlightFolder()
+                esp.highlight = highlight
+            end
         else
-            local highlight = Instance.new("Highlight")
-            highlight.Name = "ESPHighlight"
-            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            local useRainbow = self.GlobalSettings.RainbowMode
-            local initColor = useRainbow and getRainbowColor(tick()) or esp.Colors.Highlight.Filled
-            highlight.FillColor = initColor
-            highlight.OutlineColor = useRainbow and initColor or esp.Colors.Highlight.Outline
-            highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
-            highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
-            highlight.Adornee = target
-            highlight.Parent = getHighlightFolder()
-            esp.highlight = highlight
-        end
-    else
-        if esp.highlight then
-            esp.highlight:Destroy()
-            esp.highlight = nil
+            if esp.highlight then
+                esp.highlight:Destroy()
+                esp.highlight = nil
+            end
         end
     end
 end
@@ -644,10 +590,6 @@ function ModelESP:Clear()
         end
     end
     self.Objects = {}
-    for _, conn in pairs(self.PlayerConnections) do
-        conn:Disconnect()
-    end
-    self.PlayerConnections = {}
 end
 
 --// Update GlobalSettings
@@ -667,21 +609,6 @@ end
 function ModelESP:SetGlobalTracerOrigin(origin)
     if tracerOrigins[origin] then
         self.GlobalSettings.TracerOrigin = origin
-    end
-end
-function ModelESP:SetGlobalTracerTarget(target)
-    if target == "Top" or target == "Bottom" or target == "Center" then
-        self.GlobalSettings.TracerTarget = target
-    end
-end
-function ModelESP:SetGlobalTextPosition(position)
-    if position == "Top" or position == "Bottom" or position == "Center" then
-        self.GlobalSettings.TextPosition = position
-    end
-end
-function ModelESP:SetGlobalTextSpacing(spacing)
-    if typeof(spacing) == "number" then
-        self.GlobalSettings.TextSpacing = spacing
     end
 end
 function ModelESP:SetGlobalESPType(typeName, enabled)
@@ -726,12 +653,27 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
-        local cf, size = getBoundingBox(target)
-        if not cf then continue end
-        local pos3D = cf.Position
+        local pos3D
+        if esp.visibleParts then
+            local totalPos = Vector3.zero
+            local totalVolume = 0
+            for _, part in ipairs(esp.visibleParts) do
+                if part.Parent then
+                    local vol = part.Size.X * part.Size.Y * part.Size.Z
+                    totalPos += part.Position * vol
+                    totalVolume += vol
+                end
+            end
+            if totalVolume <= 0 then continue end
+            pos3D = totalPos / totalVolume
+        else
+            local cf = getBoundingBox(target)
+            if not cf then continue end
+            pos3D = cf.Position
+        end
 
-        local screenMin, screenMax = getScreenBBox(cf, size)
-        if not screenMin then
+        local success, pos2D = pcall(function() return camera:WorldToViewportPoint(pos3D) end)
+        if not success or pos2D.Z <= 0 then
             for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
             if esp.highlight then esp.highlight.Enabled=false end
             continue
@@ -748,57 +690,42 @@ RunService.RenderStepped:Connect(function()
         local rainbowColor = getRainbowColor(time)
         local useRainbow = ModelESP.GlobalSettings.RainbowMode
 
-        local centerX = (screenMin.X + screenMax.X) / 2
-        local topY = screenMin.Y
-        local bottomY = screenMax.Y
-        local centerY = (topY + bottomY) / 2
+        -- Usar projeção do centro para posicionamento para evitar distorção
+        local centerX = pos2D.X
+        local centerY = pos2D.Y
+        local nameSize = esp.nameText.Size
+        local distSize = esp.distanceText.Size
+        local totalHeight = nameSize + distSize
+        local startY = centerY - totalHeight / 2
 
         -- Tracer
         if esp.tracerLine then
             esp.tracerLine.Visible = ModelESP.GlobalSettings.ShowTracer
             esp.tracerLine.From = tracerOrigins[ModelESP.GlobalSettings.TracerOrigin](vs)
-            esp.tracerLine.To = getTracerTo(centerX, topY, bottomY, centerY, ModelESP.GlobalSettings.TracerTarget)
+            esp.tracerLine.To = Vector2.new(pos2D.X, pos2D.Y)
             esp.tracerLine.Color = useRainbow and rainbowColor or esp.Colors.Tracer
         end
-
-        -- Textos
-        local showName = ModelESP.GlobalSettings.ShowName
-        local showDist = ModelESP.GlobalSettings.ShowDistance
-        local nameH = showName and esp.nameText.Size or 0
-        local distH = showDist and esp.distanceText.Size or 0
-        local spacing = ModelESP.GlobalSettings.TextSpacing
-        local totalH = (showName and nameH or 0) + (showDist and distH or 0) + (showName and showDist and spacing or 0)
-        local stackTopY
-        if ModelESP.GlobalSettings.TextPosition == "Top" then
-            stackTopY = topY - totalH
-        elseif ModelESP.GlobalSettings.TextPosition == "Bottom" then
-            stackTopY = bottomY
-        else  -- Center
-            stackTopY = centerY - totalH / 2
-        end
-        local currentY = stackTopY
-
-        if showName and esp.nameText then
-            esp.nameText.Visible = true
-            esp.nameText.Position = Vector2.new(centerX, currentY + nameH / 2)
+        -- Name
+        if esp.nameText then
+            esp.nameText.Visible = ModelESP.GlobalSettings.ShowName
+            esp.nameText.Position = Vector2.new(centerX, startY)
             esp.nameText.Text = esp.NameContainerStart .. esp.Name .. esp.NameContainerEnd
             esp.nameText.Color = useRainbow and rainbowColor or esp.Colors.Name
-            currentY = currentY + nameH + (showDist and spacing or 0)
         end
-        if showDist and esp.distanceText then
-            esp.distanceText.Visible = true
-            esp.distanceText.Position = Vector2.new(centerX, currentY + distH / 2)
+        -- Distance
+        if esp.distanceText then
+            esp.distanceText.Visible = ModelESP.GlobalSettings.ShowDistance
+            esp.distanceText.Position = Vector2.new(centerX, startY + nameSize)
             esp.distanceText.Text = esp.DistanceContainerStart .. string.format("%.1f", distance) .. esp.DistanceSuffix .. esp.DistanceContainerEnd
             esp.distanceText.Color = useRainbow and rainbowColor or esp.Colors.Distance
         end
-
         -- Highlight
         if esp.highlight then
             esp.highlight.Enabled = ModelESP.GlobalSettings.ShowHighlightFill or ModelESP.GlobalSettings.ShowHighlightOutline
             esp.highlight.FillColor = useRainbow and rainbowColor or esp.Colors.Highlight.Filled
             esp.highlight.OutlineColor = useRainbow and rainbowColor or esp.Colors.Highlight.Outline
             esp.highlight.FillTransparency = ModelESP.GlobalSettings.ShowHighlightFill and ModelESP.GlobalSettings.HighlightTransparency.Filled or 1
-            esp.highlight.OutlineTransparency = ModelESP.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+            esp.highlight.OutlineTransparency = ModelESP.GlobalSettings.ShowHighlightOutline and ModelESP.GlobalSettings.HighlightTransparency.Outline or 1
         end
     end
 end)
