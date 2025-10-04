@@ -150,7 +150,14 @@ function ModelESP:Add(target, config)
         DistanceSuffix = (config and config.DistanceSuffix) or "",
         DistanceContainerStart = (config and config.DistanceContainer and config.DistanceContainer.Start) or "",
         DistanceContainerEnd = (config and config.DistanceContainer and config.DistanceContainer.End) or "",
-        DisplayOrder = config and config.DisplayOrder or 0  -- Novo: Camada individual
+        DisplayOrder = config and config.DisplayOrder or 0,  -- Novo: Camada individual
+        Types = {
+            Tracer = config and config.Types and config.Types.Tracer == false and false or true,
+            Name = config and config.Types and config.Types.Name == false and false or true,
+            Distance = config and config.Types and config.Types.Distance == false and false or true,
+            HighlightFill = config and config.Types and config.Types.HighlightFill == false and false or true,
+            HighlightOutline = config and config.Types and config.Types.HighlightOutline == false and false or true,
+        }
     }
 
     -- Aplicar cores customizadas se fornecidas
@@ -343,6 +350,15 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
         end
     end
 
+    -- Atualiza types
+    esp.Types = {
+        Tracer = newConfig and newConfig.Types and newConfig.Types.Tracer == false and false or true,
+        Name = newConfig and newConfig.Types and newConfig.Types.Name == false and false or true,
+        Distance = newConfig and newConfig.Types and newConfig.Types.Distance == false and false or true,
+        HighlightFill = newConfig and newConfig.Types and newConfig.Types.HighlightFill == false and false or true,
+        HighlightOutline = newConfig and newConfig.Types and newConfig.Types.HighlightOutline == false and false or true,
+    }
+
     -- Coletar novas BaseParts
     local allParts = {}
     for _, desc in ipairs(newTarget:GetDescendants()) do
@@ -450,6 +466,15 @@ function ModelESP:UpdateConfig(target, newConfig)
                 if newConfig.Color.Highlight.Outline then esp.Colors.Highlight.Outline = Color3.fromRGB(unpack(newConfig.Color.Highlight.Outline)) end
             end
         end
+    end
+
+    -- Atualiza types
+    if newConfig.Types then
+        if newConfig.Types.Tracer ~= nil then esp.Types.Tracer = newConfig.Types.Tracer == false and false or true end
+        if newConfig.Types.Name ~= nil then esp.Types.Name = newConfig.Types.Name == false and false or true end
+        if newConfig.Types.Distance ~= nil then esp.Types.Distance = newConfig.Types.Distance == false and false or true end
+        if newConfig.Types.HighlightFill ~= nil then esp.Types.HighlightFill = newConfig.Types.HighlightFill == false and false or true end
+        if newConfig.Types.HighlightOutline ~= nil then esp.Types.HighlightOutline = newConfig.Types.HighlightOutline == false and false or true end
     end
 
     -- Se Collision mudou, reconfigura (requer limpeza e re-setup)
@@ -592,15 +617,67 @@ function ModelESP:Clear()
     self.Objects = {}
 end
 
+--// Função de descarregamento
+function ModelESP:Unload()
+    if self.connection then
+        self.connection:Disconnect()
+        self.connection = nil
+    end
+    self.Enabled = false
+    self:Clear()
+    local folder = ReplicatedStorage:FindFirstChild(HighlightFolderName)
+    if folder then
+        folder:Destroy()
+    end
+    highlightFolder = nil
+end
+
+--// Sistema de habilitar/desabilitar global
+function ModelESP:EnableAll()
+    self.Enabled = true
+end
+
+function ModelESP:DisableAll()
+    self.Enabled = false
+end
+
 --// Update GlobalSettings
 function ModelESP:UpdateGlobalSettings()
+    local showAnyHighlight = self.GlobalSettings.ShowHighlightFill or self.GlobalSettings.ShowHighlightOutline
     for _, esp in ipairs(self.Objects) do
-        if esp.tracerLine then esp.tracerLine.Thickness = self.GlobalSettings.LineThickness end
-        if esp.nameText then esp.nameText.Size = self.GlobalSettings.FontSize end
-        if esp.distanceText then esp.distanceText.Size = self.GlobalSettings.FontSize-2 end
-        if esp.highlight then
-            esp.highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
-            esp.highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+        if esp.tracerLine then 
+            esp.tracerLine.Thickness = self.GlobalSettings.LineThickness 
+            esp.tracerLine.Transparency = self.GlobalSettings.Opacity
+        end
+        if esp.nameText then 
+            esp.nameText.Size = self.GlobalSettings.FontSize 
+            esp.nameText.Transparency = self.GlobalSettings.Opacity
+        end
+        if esp.distanceText then 
+            esp.distanceText.Size = self.GlobalSettings.FontSize-2 
+            esp.distanceText.Transparency = self.GlobalSettings.Opacity
+        end
+        if showAnyHighlight then
+            if not esp.highlight then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "ESPHighlight"
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                local useRainbow = self.GlobalSettings.RainbowMode
+                local initColor = useRainbow and getRainbowColor(tick()) or esp.Colors.Highlight.Filled
+                highlight.FillColor = initColor
+                highlight.OutlineColor = useRainbow and initColor or esp.Colors.Highlight.Outline
+                highlight.FillTransparency = self.GlobalSettings.ShowHighlightFill and self.GlobalSettings.HighlightTransparency.Filled or 1
+                highlight.OutlineTransparency = self.GlobalSettings.ShowHighlightOutline and self.GlobalSettings.HighlightTransparency.Outline or 1
+                highlight.Adornee = esp.Target
+                highlight.Parent = getHighlightFolder()
+                esp.highlight = highlight
+            end
+            -- transparências atualizadas no loop de render
+        else
+            if esp.highlight then
+                esp.highlight:Destroy()
+                esp.highlight = nil
+            end
         end
     end
 end
@@ -632,7 +709,7 @@ function ModelESP:SetGlobalLineThickness(thick)
 end
 
 --// Atualização por frame
-RunService.RenderStepped:Connect(function()
+ModelESP.connection = RunService.RenderStepped:Connect(function()
     if not ModelESP.Enabled then return end
     local vs = camera.ViewportSize
     local time = tick()
@@ -700,32 +777,34 @@ RunService.RenderStepped:Connect(function()
 
         -- Tracer
         if esp.tracerLine then
-            esp.tracerLine.Visible = ModelESP.GlobalSettings.ShowTracer
+            esp.tracerLine.Visible = ModelESP.GlobalSettings.ShowTracer and esp.Types.Tracer
             esp.tracerLine.From = tracerOrigins[ModelESP.GlobalSettings.TracerOrigin](vs)
             esp.tracerLine.To = Vector2.new(pos2D.X, pos2D.Y)
             esp.tracerLine.Color = useRainbow and rainbowColor or esp.Colors.Tracer
         end
         -- Name
         if esp.nameText then
-            esp.nameText.Visible = ModelESP.GlobalSettings.ShowName
+            esp.nameText.Visible = ModelESP.GlobalSettings.ShowName and esp.Types.Name
             esp.nameText.Position = Vector2.new(centerX, startY)
             esp.nameText.Text = esp.NameContainerStart .. esp.Name .. esp.NameContainerEnd
             esp.nameText.Color = useRainbow and rainbowColor or esp.Colors.Name
         end
         -- Distance
         if esp.distanceText then
-            esp.distanceText.Visible = ModelESP.GlobalSettings.ShowDistance
+            esp.distanceText.Visible = ModelESP.GlobalSettings.ShowDistance and esp.Types.Distance
             esp.distanceText.Position = Vector2.new(centerX, startY + nameSize)
             esp.distanceText.Text = esp.DistanceContainerStart .. string.format("%.1f", distance) .. esp.DistanceSuffix .. esp.DistanceContainerEnd
             esp.distanceText.Color = useRainbow and rainbowColor or esp.Colors.Distance
         end
         -- Highlight
         if esp.highlight then
-            esp.highlight.Enabled = ModelESP.GlobalSettings.ShowHighlightFill or ModelESP.GlobalSettings.ShowHighlightOutline
+            local showFill = ModelESP.GlobalSettings.ShowHighlightFill and esp.Types.HighlightFill
+            local showOutline = ModelESP.GlobalSettings.ShowHighlightOutline and esp.Types.HighlightOutline
+            esp.highlight.Enabled = showFill or showOutline
             esp.highlight.FillColor = useRainbow and rainbowColor or esp.Colors.Highlight.Filled
             esp.highlight.OutlineColor = useRainbow and rainbowColor or esp.Colors.Highlight.Outline
-            esp.highlight.FillTransparency = ModelESP.GlobalSettings.ShowHighlightFill and ModelESP.GlobalSettings.HighlightTransparency.Filled or 1
-            esp.highlight.OutlineTransparency = ModelESP.GlobalSettings.ShowHighlightOutline and ModelESP.GlobalSettings.HighlightTransparency.Outline or 1
+            esp.highlight.FillTransparency = showFill and ModelESP.GlobalSettings.HighlightTransparency.Filled or 1
+            esp.highlight.OutlineTransparency = showOutline and ModelESP.GlobalSettings.HighlightTransparency.Outline or 1
         end
     end
 end)
