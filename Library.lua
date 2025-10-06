@@ -1,4 +1,4 @@
---// 📦 Library Kolt V1.5
+--// 📦 Library Kolt V1.6
 --// 👤 Autor: Kolt
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
 
@@ -47,7 +47,10 @@ local ModelESP = {
         HighlightTransparency = {
             Filled = 0.5,
             Outline = 0.3
-        }
+        },
+        TextOutlineEnabled = true,
+        TextOutlineColor = Color3.fromRGB(0, 0, 0),
+        TextOutlineThickness = 1
     }
 }
 
@@ -157,7 +160,10 @@ function ModelESP:Add(target, config)
             Distance = config and config.Types and config.Types.Distance == false and false or true,
             HighlightFill = config and config.Types and config.Types.HighlightFill == false and false or true,
             HighlightOutline = config and config.Types and config.Types.HighlightOutline == false and false or true,
-        }
+        },
+        TextOutlineEnabled = config and config.TextOutlineEnabled or self.GlobalSettings.TextOutlineEnabled,
+        TextOutlineColor = config and config.TextOutlineColor or self.GlobalSettings.TextOutlineColor,
+        TextOutlineThickness = config and config.TextOutlineThickness or self.GlobalSettings.TextOutlineThickness
     }
 
     -- Aplicar cores customizadas se fornecidas
@@ -239,8 +245,8 @@ function ModelESP:Add(target, config)
         Text = cfg.Name,
         Size = self.GlobalSettings.FontSize,
         Center = true,
-        Outline = true,
-        OutlineColor = self.Theme.OutlineColor,
+        Outline = cfg.TextOutlineEnabled,
+        OutlineColor = cfg.TextOutlineColor,
         Font = Drawing.Fonts.Monospace,
         Transparency = self.GlobalSettings.Opacity,
         Visible = false
@@ -251,8 +257,8 @@ function ModelESP:Add(target, config)
         Text = "",
         Size = self.GlobalSettings.FontSize-2,
         Center = true,
-        Outline = true,
-        OutlineColor = self.Theme.OutlineColor,
+        Outline = cfg.TextOutlineEnabled,
+        OutlineColor = cfg.TextOutlineColor,
         Font = Drawing.Fonts.Monospace,
         Transparency = self.GlobalSettings.Opacity,
         Visible = false
@@ -310,6 +316,9 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.DistanceContainerStart = (newConfig and newConfig.DistanceContainer and newConfig.DistanceContainer.Start) or ""
     esp.DistanceContainerEnd = (newConfig and newConfig.DistanceContainer and newConfig.DistanceContainer.End) or ""
     esp.DisplayOrder = newConfig and newConfig.DisplayOrder or 0  -- Novo: Atualiza DisplayOrder
+    esp.TextOutlineEnabled = newConfig and newConfig.TextOutlineEnabled or self.GlobalSettings.TextOutlineEnabled
+    esp.TextOutlineColor = newConfig and newConfig.TextOutlineColor or self.GlobalSettings.TextOutlineColor
+    esp.TextOutlineThickness = newConfig and newConfig.TextOutlineThickness or self.GlobalSettings.TextOutlineThickness
 
     -- Atualiza cores
     local defaultColors = {
@@ -422,8 +431,16 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
 
     -- Atualiza ZIndex dos drawings
     if esp.tracerLine then esp.tracerLine.ZIndex = esp.DisplayOrder end
-    if esp.nameText then esp.nameText.ZIndex = esp.DisplayOrder end
-    if esp.distanceText then esp.distanceText.ZIndex = esp.DisplayOrder end
+    if esp.nameText then 
+        esp.nameText.ZIndex = esp.DisplayOrder 
+        esp.nameText.Outline = esp.TextOutlineEnabled
+        esp.nameText.OutlineColor = esp.TextOutlineColor
+    end
+    if esp.distanceText then 
+        esp.distanceText.ZIndex = esp.DisplayOrder 
+        esp.distanceText.Outline = esp.TextOutlineEnabled
+        esp.distanceText.OutlineColor = esp.TextOutlineColor
+    end
 end
 
 --// Atualiza config de um ESP existente sem mudar o target
@@ -447,6 +464,20 @@ function ModelESP:UpdateConfig(target, newConfig)
         if esp.tracerLine then esp.tracerLine.ZIndex = esp.DisplayOrder end
         if esp.nameText then esp.nameText.ZIndex = esp.DisplayOrder end
         if esp.distanceText then esp.distanceText.ZIndex = esp.DisplayOrder end
+    end
+    if newConfig.TextOutlineEnabled ~= nil then 
+        esp.TextOutlineEnabled = newConfig.TextOutlineEnabled
+        if esp.nameText then esp.nameText.Outline = esp.TextOutlineEnabled end
+        if esp.distanceText then esp.distanceText.Outline = esp.TextOutlineEnabled end
+    end
+    if newConfig.TextOutlineColor then 
+        esp.TextOutlineColor = newConfig.TextOutlineColor
+        if esp.nameText then esp.nameText.OutlineColor = esp.TextOutlineColor end
+        if esp.distanceText then esp.distanceText.OutlineColor = esp.TextOutlineColor end
+    end
+    if newConfig.TextOutlineThickness then 
+        esp.TextOutlineThickness = newConfig.TextOutlineThickness
+        -- Nota: Drawing.Text não suporta thickness de outline diretamente, mas pode ser usado para lógica futura ou extensões
     end
 
     -- Atualiza cores
@@ -587,6 +618,27 @@ function ModelESP:SetDisplayOrder(target, displayOrder)
     end
 end
 
+--// API útil: Define propriedades de outline de texto para um ESP
+function ModelESP:SetTextOutline(target, enabled, color, thickness)
+    local esp = self:GetESP(target)
+    if esp then
+        if enabled ~= nil then
+            esp.TextOutlineEnabled = enabled
+            if esp.nameText then esp.nameText.Outline = enabled end
+            if esp.distanceText then esp.distanceText.Outline = enabled end
+        end
+        if color then
+            esp.TextOutlineColor = color
+            if esp.nameText then esp.nameText.OutlineColor = color end
+            if esp.distanceText then esp.distanceText.OutlineColor = color end
+        end
+        if thickness then
+            esp.TextOutlineThickness = thickness
+            -- Nota: Pode ser usado para lógica futura, pois Drawing.Text não suporta thickness nativamente
+        end
+    end
+end
+
 --// Remove ESP individual
 function ModelESP:Remove(target)
     for i=#self.Objects,1,-1 do
@@ -652,10 +704,14 @@ function ModelESP:UpdateGlobalSettings()
         if esp.nameText then 
             esp.nameText.Size = self.GlobalSettings.FontSize 
             esp.nameText.Transparency = self.GlobalSettings.Opacity
+            esp.nameText.Outline = self.GlobalSettings.TextOutlineEnabled
+            esp.nameText.OutlineColor = self.GlobalSettings.TextOutlineColor
         end
         if esp.distanceText then 
             esp.distanceText.Size = self.GlobalSettings.FontSize-2 
             esp.distanceText.Transparency = self.GlobalSettings.Opacity
+            esp.distanceText.Outline = self.GlobalSettings.TextOutlineEnabled
+            esp.distanceText.OutlineColor = self.GlobalSettings.TextOutlineColor
         end
         if showAnyHighlight then
             if not esp.highlight then
@@ -707,6 +763,12 @@ function ModelESP:SetGlobalLineThickness(thick)
     self.GlobalSettings.LineThickness = math.max(1,thick)
     self:UpdateGlobalSettings()
 end
+function ModelESP:SetGlobalTextOutline(enabled, color, thickness)
+    if enabled ~= nil then self.GlobalSettings.TextOutlineEnabled = enabled end
+    if color then self.GlobalSettings.TextOutlineColor = color end
+    if thickness then self.GlobalSettings.TextOutlineThickness = thickness end
+    self:UpdateGlobalSettings()
+end
 
 --// Atualização por frame
 ModelESP.connection = RunService.RenderStepped:Connect(function()
@@ -741,8 +803,17 @@ ModelESP.connection = RunService.RenderStepped:Connect(function()
                     totalVolume += vol
                 end
             end
-            if totalVolume <= 0 then continue end
-            pos3D = totalPos / totalVolume
+            if totalVolume > 0 then
+                pos3D = totalPos / totalVolume
+            else
+                -- Fallback para centro do model se não houver partes visíveis
+                local cf = getBoundingBox(target)
+                if cf then
+                    pos3D = cf.Position
+                else
+                    continue
+                end
+            end
         else
             local cf = getBoundingBox(target)
             if not cf then continue end
