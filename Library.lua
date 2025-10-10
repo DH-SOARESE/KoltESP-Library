@@ -1,10 +1,11 @@
 --// 📦 Library Kolt V1.6
 --// 👤 Autor: Kolt
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
-
+--// Novo: Suporte a respawn de players com AddToPlayer e RemoveFromPlayer
 
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 local camera = workspace.CurrentCamera
 
 local HighlightFolderName = "KoltESPHighlights" 
@@ -676,6 +677,9 @@ function ModelESP:Unload()
         self.connection = nil
     end
     self.Enabled = false
+    for player in pairs(PlayerESPs) do
+        self:RemoveFromPlayer(player)
+    end
     self:Clear()
     local folder = ReplicatedStorage:FindFirstChild(HighlightFolderName)
     if folder then
@@ -770,6 +774,57 @@ function ModelESP:SetGlobalTextOutline(enabled, color, thickness)
     self:UpdateGlobalSettings()
 end
 
+--// Suporte a players com respawn/reset
+local PlayerESPs = {}
+
+function ModelESP:AddToPlayer(player, config)
+    if not player:IsA("Player") then return end
+
+    if PlayerESPs[player] then
+        self:RemoveFromPlayer(player)
+    end
+
+    local entry = {
+        Config = config or {},
+        Connections = {},
+        CurrentTarget = nil
+    }
+    PlayerESPs[player] = entry
+
+    local function setupESP()
+        local char = player.Character
+        if char then
+            -- Espera um frame para o character carregar completamente
+            task.wait()
+            self:Add(char, entry.Config)
+            entry.CurrentTarget = char
+        end
+    end
+
+    entry.Connections.charAdded = player.CharacterAdded:Connect(setupESP)
+    entry.Connections.charRemoving = player.CharacterRemoving:Connect(function(oldChar)
+        self:Remove(oldChar)
+        entry.CurrentTarget = nil
+    end)
+
+    setupESP()
+end
+
+function ModelESP:RemoveFromPlayer(player)
+    local entry = PlayerESPs[player]
+    if not entry then return end
+
+    for _, conn in pairs(entry.Connections) do
+        conn:Disconnect()
+    end
+
+    if entry.CurrentTarget then
+        self:Remove(entry.CurrentTarget)
+    end
+
+    PlayerESPs[player] = nil
+end
+
 --// Atualização por frame
 ModelESP.connection = RunService.RenderStepped:Connect(function()
     if not ModelESP.Enabled then return end
@@ -796,14 +851,16 @@ ModelESP.connection = RunService.RenderStepped:Connect(function()
         if esp.visibleParts then
             local totalPos = Vector3.zero
             local totalVolume = 0
+            local validParts = 0
             for _, part in ipairs(esp.visibleParts) do
-                if part.Parent then
+                if part and part.Parent then
                     local vol = part.Size.X * part.Size.Y * part.Size.Z
                     totalPos += part.Position * vol
                     totalVolume += vol
+                    validParts += 1
                 end
             end
-            if totalVolume > 0 then
+            if totalVolume > 0 and validParts > 0 then
                 pos3D = totalPos / totalVolume
             else
                 -- Fallback para centro do model se não houver partes visíveis
