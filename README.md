@@ -1,7 +1,6 @@
-
 # 📦 Kolt ESP Library V1.6
 
-Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente customizável para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Projetada para oferecer um sistema de ESP robusto e responsivo, com foco em performance, facilidade de uso e gerenciamento otimizado de recursos. Esta versão introduz melhorias em robustez e customização visual, como fallback para o centro do modelo quando não há partes visíveis e propriedades avançadas para outline de textos.
+Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente customizável para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Projetada para oferecer um sistema de ESP robusto e responsivo, com foco em performance, facilidade de uso e gerenciamento otimizado de recursos. Esta versão introduz melhorias em robustez, customização visual e funcionalidades avançadas, incluindo dependência dinâmica de cores, suporte a respawn do jogador local e limitação por campo de visão (FOV) com círculo visual opcional.
 
 ## ✨ Características
 
@@ -15,7 +14,7 @@ Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente
 - 🆕 **Customização de Textos**: Propriedades individuais para containers de nome (ex: `{Nome}`) e distância (ex: `<10.5.metros>`), com sufixos configuráveis.
 - 🆕 **Transparências de Highlight Configuráveis**: Ajuste global para transparências de preenchimento e outline via `SetGlobalHighlightTransparency`.
 - 🆕 **Pasta Central para Highlights**: Armazena todos os Highlights em uma pasta no ReplicatedStorage (nome configurável via `SetHighlightFolderName`), usando `Adornee` para vincular ao alvo.
-- 🆕 **Novos Métodos**: Inclui `Readjustment` para mudar o alvo de um ESP, `ToggleIndividual`, `SetColor`, `SetName`, `UpdateConfig`, `SetGlobalHighlightTransparency`, `SetHighlightFolderName`, `SetDisplayOrder`, `Unload`, `EnableAll`, `DisableAll`, `SetTextOutline` e `SetGlobalTextOutline` para maior controle.
+- 🆕 **Novos Métodos**: Inclui `Readjustment` para mudar o alvo de um ESP, `ToggleIndividual`, `SetColor`, `SetName`, `UpdateConfig`, `SetGlobalHighlightTransparency`, `SetHighlightFolderName`, `SetDisplayOrder`, `Unload`, `EnableAll`, `DisableAll`, `SetTextOutline`, `SetGlobalTextOutline` e `FovEsp` para maior controle.
 - 🆕 **Sistema de Camadas para Drawings**: Cada ESP tem um `DisplayOrder` individual (ZIndex para Tracer, Name e Distance), permitindo que elementos com valores mais altos sejam renderizados sobre os de valores mais baixos.
 - 🆕 **Otimização de Highlights**: Highlights são criados uma vez por ESP e atualizados eficientemente no loop de render (cores, transparências e visibilidade), sem recriação constante para melhorar a performance.
 - 🆕 **Função de Descarregamento**: Método `Unload` para limpar completamente a biblioteca, desconectar eventos e remover recursos.
@@ -23,7 +22,10 @@ Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente
 - 🆕 **Tipos Individuais de ESP**: Cada ESP pode configurar tipos específicos (Tracer, Name, Distance, HighlightFill, HighlightOutline), respeitando configurações globais (se globalmente desativado, individual não pode ativar).
 - 🆕 **Fallback para Centro do Modelo**: Se o alvo não tiver partes com transparência < 1, seleciona o centro do modelo como ponto de referência.
 - 🆕 **Propriedades de Outline para Textos**: Configurável global e individualmente (habilitado, cor, espessura) para os textos de nome e distância.
-- 🐛 **Correções e Melhorias**: Evita duplicatas no método `Add`, otimiza gerenciamento de transparência, melhora a modularidade do código, adiciona criação lazy da pasta de highlights e garante atualizações eficientes sem reconstrução desnecessária.
+- 🆕 **Dependência de Cor Dinâmica**: Permite definir uma função personalizada para calcular a cor do ESP individualmente com base em variáveis como distância ou posição.
+- 🆕 **Restart on Respawn**: Recria automaticamente os objetos Drawing ao respawn do jogador local para prevenir perda de referências.
+- 🆕 **ESP FOV**: Limita a renderização do ESP a um campo de visão definido (FOV), com opção para exibir um círculo visual na tela.
+- 🐛 **Correções e Melhorias**: Evita duplicatas no método `Add`, otimiza gerenciamento de transparência, melhora a modularidade do código, adiciona criação lazy da pasta de highlights, garante atualizações eficientes sem reconstrução desnecessária e aprimora a estabilidade geral.
 
 ## 🚀 Instalação
 
@@ -97,6 +99,19 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 ### 🆕 Fallback para Centro do Modelo
 - Se não houver partes visíveis (transparência < 0.99), usa o centro do bounding box do modelo como posição de referência para evitar falhas no posicionamento.
 
+### 🆕 Dependência de Cor Dinâmica
+- Configurável individualmente via `ColorDependency = function(esp, distance, pos3D) return Color3.new(...) end`.
+- A função é chamada a cada frame e pode retornar uma cor baseada em lógica personalizada (ex: mudar cor com base na distância).
+- Se definida, sobrepõe as cores estáticas (exceto no modo arco-íris).
+
+### 🆕 Restart on Respawn
+- Automaticamente recria os objetos Drawing (Tracer, Name, Distance) ao respawn do jogador local para manter a funcionalidade sem perda de referências.
+
+### 🆕 ESP FOV
+- Limita a visibilidade do ESP a um ângulo de visão definido (FOV em graus).
+- Opção para exibir um círculo visual na tela representando o FOV.
+- Configurável via `FovEsp(_, enabled, EspFov)`, onde `enabled` ativa o limite e o círculo, e `EspFov` define o valor (padrão: 90).
+
 ### 🆕 APIs Avançadas
 - **Readjustment**: Altera o alvo de um ESP existente, aplicando nova configuração.
 - **ToggleIndividual**: Habilita/desabilita um ESP específico sem removê-lo.
@@ -110,6 +125,7 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 - **SetGlobalTextOutline**: Ajusta propriedades globais de outline de texto.
 - **Unload**: Descarrega completamente a biblioteca, desconectando eventos e limpando recursos.
 - **EnableAll/DisableAll**: Habilita/desabilita todos os ESPs globalmente.
+- **FovEsp**: Ativa/desativa o limite de FOV e o círculo visual, com valor opcional.
 
 ## 🛠️ Uso Básico
 
@@ -128,10 +144,13 @@ ModelESP:SetGlobalHighlightTransparency({Filled = 0.6, Outline = 0.4})
 -- Ajustar outline global de textos (opcional)
 ModelESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
 
+-- Ativar limite de FOV com círculo (opcional)
+ModelESP:FovEsp("Show Esp Fov", true, 90)
+
 -- Adicionar ESP básico
 ModelESP:Add(workspace.SomeModel)
 
--- Adicionar ESP com nome, cor única, Collision, customização de textos, DisplayOrder, tipos individuais e outline de texto
+-- Adicionar ESP com nome, cor única, Collision, customização de textos, DisplayOrder, tipos individuais, outline de texto e dependência de cor
 ModelESP:Add(workspace.SomeModel, {
     Name = "Alvo Especial",
     Color = Color3.fromRGB(255, 0, 0),
@@ -149,7 +168,14 @@ ModelESP:Add(workspace.SomeModel, {
     },
     TextOutlineEnabled = true,
     TextOutlineColor = Color3.fromRGB(0, 0, 0),
-    TextOutlineThickness = 1
+    TextOutlineThickness = 1,
+    ColorDependency = function(esp, distance, pos3D)
+        if distance < 50 then
+            return Color3.fromRGB(255, 0, 0)  -- Vermelho se próximo
+        else
+            return Color3.fromRGB(0, 255, 0)  -- Verde se distante
+        end
+    end
 })
 
 -- Adicionar ESP com cores personalizadas por elemento, DisplayOrder alto e outline customizado
@@ -199,7 +225,10 @@ ModelESP:Readjustment(workspace.NewModel, workspace.OldModel, {
     },
     TextOutlineEnabled = true,
     TextOutlineColor = Color3.fromRGB(50, 50, 50),
-    TextOutlineThickness = 2
+    TextOutlineThickness = 2,
+    ColorDependency = function(esp, distance, pos3D)
+        return Color3.fromHSV(distance / 1000, 1, 1)  -- Cor baseada em distância
+    end
 })
 ```
 
@@ -227,7 +256,8 @@ ModelESP:UpdateConfig(workspace.SomeModel, {
         HighlightOutline = true
     },
     TextOutlineEnabled = false,
-    TextOutlineColor = Color3.fromRGB(100, 100, 100)
+    TextOutlineColor = Color3.fromRGB(100, 100, 100),
+    ColorDependency = nil  -- Remove dependência de cor
 })
 ```
 
@@ -287,11 +317,14 @@ ModelESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3}) -- Ajusta
 ModelESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1) -- Ajusta outline global de textos
 ```
 
-### Controle de Distância
+### Controle de Distância e FOV
 
 ```lua
 ModelESP.GlobalSettings.MaxDistance = 1000
 ModelESP.GlobalSettings.MinDistance = 0
+
+-- Ativar FOV com círculo e definir valor
+ModelESP:FovEsp("Show Esp Fov", true, 120)
 ```
 
 ### Controle Global de Visibilidade
@@ -306,7 +339,7 @@ ModelESP:DisableAll()
 
 ## 📖 Exemplos Práticos
 
-### 🧑‍🤝‍🧑 ESP para Jogadores com Cores Personalizadas, Camadas, Tipos Individuais e Outline de Texto
+### 🧑‍🤝‍🧑 ESP para Jogadores com Cores Personalizadas, Camadas, Tipos Individuais, Outline de Texto e Dependência de Cor
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -318,9 +351,12 @@ ModelESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
 -- Configura outline global
 ModelESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
 
+-- Ativar FOV
+ModelESP:FovEsp("Show Esp Fov", true, 90)
+
 -- Configurações globais
 ModelESP:SetGlobalTracerOrigin("Top")
-ModelESP:SetGlobalRainbow(true)
+ModelESP:SetGlobalRainbow(false)  -- Desativado para usar dependência de cor
 ModelESP:SetGlobalOpacity(0.8)
 ModelESP:SetGlobalFontSize(16)
 ModelESP:SetGlobalLineThickness(2)
@@ -360,7 +396,13 @@ local function addPlayerESP(player)
             },
             TextOutlineEnabled = true,
             TextOutlineColor = Color3.fromRGB(0, 0, 0),
-            TextOutlineThickness = 1
+            TextOutlineThickness = 1,
+            ColorDependency = function(esp, distance, pos3D)
+                if distance > 100 then
+                    return Color3.fromRGB(255, 165, 0)  -- Laranja se distante
+                end
+                return nil  -- Usa cor padrão se não
+            end
         })
     end
 end
@@ -395,7 +437,7 @@ game:GetService("UserInputService").InputBegan:Connect(function(input)
 end)
 ```
 
-### 🎯 ESP para Objetos Específicos com Collision, Camadas, Tipos Individuais e Outline de Texto
+### 🎯 ESP para Objetos Específicos com Collision, Camadas, Tipos Individuais, Outline de Texto e FOV
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -407,8 +449,11 @@ ModelESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3})
 -- Configura outline global
 ModelESP:SetGlobalTextOutline(false, Color3.fromRGB(255, 255, 255), 2)
 
+-- Ativar FOV sem círculo
+ModelESP:FovEsp("Show Esp Fov", true, 60)  -- Limita a 60 graus, mas sem mostrar o círculo (altere para true para mostrar)
+
 -- Função para adicionar ESP a partes por nome
-local function addPartESP(partName, espName, colorTable, collision, nameContainer, distanceSuffix, distanceContainer, displayOrder, types, textOutlineEnabled, textOutlineColor, textOutlineThickness)
+local function addPartESP(partName, espName, colorTable, collision, nameContainer, distanceSuffix, distanceContainer, displayOrder, types, textOutlineEnabled, textOutlineColor, textOutlineThickness, colorDependency)
     for _, part in pairs(workspace:GetDescendants()) do
         if part.Name == partName and (part:IsA("BasePart") or part:IsA("Model")) then
             ModelESP:Add(part, {
@@ -436,13 +481,14 @@ local function addPartESP(partName, espName, colorTable, collision, nameContaine
                 },
                 TextOutlineEnabled = textOutlineEnabled,
                 TextOutlineColor = textOutlineColor,
-                TextOutlineThickness = textOutlineThickness
+                TextOutlineThickness = textOutlineThickness,
+                ColorDependency = colorDependency
             })
         end
     end
 end
 
--- Exemplos de uso com diferentes DisplayOrders, Types e Outlines
+-- Exemplos de uso com diferentes DisplayOrders, Types, Outlines e Dependência de Cor
 addPartESP("Chest", "💰 Baú", {
     Name = {255, 255, 255},
     Distance = {255, 255, 255},
@@ -454,7 +500,9 @@ addPartESP("Chest", "💰 Baú", {
 }, true, {Start = "{", End = "}"}, ".m", {Start = "<", End = ">"}, 5, {
     Tracer = false,  -- Sem tracer para baús
     HighlightFill = true
-}, true, Color3.fromRGB(0, 0, 0), 1)
+}, true, Color3.fromRGB(0, 0, 0), 1, function(esp, distance, pos3D)
+    return Color3.fromRGB(255, 255 - distance * 2, 0)  -- Amarelo fading com distância
+end)
 
 addPartESP("Enemy", "👹 Inimigo", {
     Name = {255, 255, 255},
@@ -483,7 +531,7 @@ addPartESP("PowerUp", "⚡ Power-Up", {
 }, true, Color3.fromRGB(50, 50, 50), 1)
 ```
 
-### 🔍 ESP por Path Específico com Reajuste Dinâmico, Camadas, Tipos e Outline de Texto
+### 🔍 ESP por Path Específico com Reajuste Dinâmico, Camadas, Tipos, Outline de Texto e Dependência de Cor
 
 ```lua
 local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -494,6 +542,9 @@ ModelESP:SetGlobalHighlightTransparency({Filled = 0.4, Outline = 0.2})
 
 -- Configura outline global
 ModelESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
+
+-- Ativar FOV
+ModelESP:FovEsp("Show Esp Fov", true, 90)
 
 -- Configuração de alvos
 local targets = {
@@ -520,7 +571,10 @@ local targets = {
         },
         textOutlineEnabled = true,
         textOutlineColor = Color3.fromRGB(0, 0, 0),
-        textOutlineThickness = 1
+        textOutlineThickness = 1,
+        colorDependency = function(esp, distance, pos3D)
+            return Color3.fromRGB(0, 255 - distance, 255 - distance)  -- Azul fading com distância
+        end
     },
     {
         path = "workspace.Enemies",
@@ -569,7 +623,8 @@ for _, target in pairs(targets) do
                     Color = target.color,
                     TextOutlineEnabled = target.textOutlineEnabled,
                     TextOutlineColor = target.textOutlineColor,
-                    TextOutlineThickness = target.textOutlineThickness
+                    TextOutlineThickness = target.textOutlineThickness,
+                    ColorDependency = target.colorDependency
                 })
             end
         end
@@ -600,7 +655,10 @@ game:GetService("RunService").Heartbeat:Connect(function()
             },
             TextOutlineEnabled = true,
             TextOutlineColor = Color3.fromRGB(0, 0, 0),
-            TextOutlineThickness = 1
+            TextOutlineThickness = 1,
+            ColorDependency = function(esp, distance, pos3D)
+                return Color3.fromRGB(math.min(255, distance * 10), 0, 0)  -- Vermelho intensificando com distância
+            end
         })
     end
 end)
@@ -630,7 +688,10 @@ end)
     },
     TextOutlineEnabled = true,
     TextOutlineColor = Color3.fromRGB(0, 0, 0),
-    TextOutlineThickness = 1
+    TextOutlineThickness = 1,
+    FovEnabled = false,
+    Fov = 90,
+    FovCircleEnabled = false
 }
 ```
 
@@ -653,6 +714,7 @@ end)
     TextOutlineEnabled = true/false,
     TextOutlineColor = Color3.fromRGB(0, 0, 0),
     TextOutlineThickness = 1,
+    ColorDependency = function(esp, distance, pos3D) return Color3.new(...) end,  -- Função opcional para cor dinâmica
     Color = { ... } -- Tabela de cores ou Color3 único
 }
 ```
