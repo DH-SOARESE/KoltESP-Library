@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local camera = workspace.CurrentCamera
+local localPlayer = Players.LocalPlayer
 
 local HighlightFolderName = "KoltESPHighlights" 
 local highlightFolder = nil 
@@ -51,7 +52,10 @@ local ModelESP = {
         },
         TextOutlineEnabled = true,
         TextOutlineColor = Color3.fromRGB(0, 0, 0),
-        TextOutlineThickness = 1
+        TextOutlineThickness = 1,
+        FovEnabled = false,
+        Fov = 90,
+        FovCircleEnabled = false
     }
 }
 
@@ -90,6 +94,15 @@ local function createDrawing(class, props)
     for k,v in pairs(props) do obj[k]=v end
     return obj
 end
+
+local fovCircle = createDrawing("Circle", {
+    NumSides = 64,
+    Filled = false,
+    Thickness = 1.5,
+    Transparency = ModelESP.GlobalSettings.Opacity,
+    Color = ModelESP.Theme.SecondaryColor,
+    Visible = false
+})
 
 --// Função interna para obter ESP por target
 function ModelESP:GetESP(target)
@@ -164,7 +177,8 @@ function ModelESP:Add(target, config)
         },
         TextOutlineEnabled = config and config.TextOutlineEnabled or self.GlobalSettings.TextOutlineEnabled,
         TextOutlineColor = config and config.TextOutlineColor or self.GlobalSettings.TextOutlineColor,
-        TextOutlineThickness = config and config.TextOutlineThickness or self.GlobalSettings.TextOutlineThickness
+        TextOutlineThickness = config and config.TextOutlineThickness or self.GlobalSettings.TextOutlineThickness,
+        ColorDependency = config and config.ColorDependency or nil  -- Novo: Dependência de cor
     }
 
     -- Aplicar cores customizadas se fornecidas
@@ -320,6 +334,7 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.TextOutlineEnabled = newConfig and newConfig.TextOutlineEnabled or self.GlobalSettings.TextOutlineEnabled
     esp.TextOutlineColor = newConfig and newConfig.TextOutlineColor or self.GlobalSettings.TextOutlineColor
     esp.TextOutlineThickness = newConfig and newConfig.TextOutlineThickness or self.GlobalSettings.TextOutlineThickness
+    esp.ColorDependency = newConfig and newConfig.ColorDependency or nil  -- Novo: Dependência de cor
 
     -- Atualiza cores
     local defaultColors = {
@@ -479,6 +494,9 @@ function ModelESP:UpdateConfig(target, newConfig)
     if newConfig.TextOutlineThickness then 
         esp.TextOutlineThickness = newConfig.TextOutlineThickness
         -- Nota: Drawing.Text não suporta thickness de outline diretamente, mas pode ser usado para lógica futura ou extensões
+    end
+    if newConfig.ColorDependency then 
+        esp.ColorDependency = newConfig.ColorDependency
     end
 
     -- Atualiza cores
@@ -686,6 +704,7 @@ function ModelESP:Unload()
         folder:Destroy()
     end
     highlightFolder = nil
+    if fovCircle then fovCircle:Remove() end
 end
 
 --// Sistema de habilitar/desabilitar global
@@ -774,6 +793,15 @@ function ModelESP:SetGlobalTextOutline(enabled, color, thickness)
     self:UpdateGlobalSettings()
 end
 
+--// Novo: Configuração de FOV ESP
+function ModelESP:FovEsp(_, enabled, EspFov)
+    self.GlobalSettings.FovEnabled = enabled
+    self.GlobalSettings.FovCircleEnabled = enabled  -- Assumindo que "Show Esp Fov" implica mostrar o círculo quando ativado
+    if EspFov then
+        self.GlobalSettings.Fov = EspFov
+    end
+end
+
 --// Suporte a players com respawn/reset
 local PlayerESPs = {}
 
@@ -825,11 +853,86 @@ function ModelESP:RemoveFromPlayer(player)
     PlayerESPs[player] = nil
 end
 
+--// Novo: Recriar drawings no respawn do jogador local
+local function recreateDrawings()
+    for _, esp in ipairs(ModelESP.Objects) do
+        if esp.tracerLine then
+            local props = {
+                Thickness = esp.tracerLine.Thickness,
+                Transparency = esp.tracerLine.Transparency,
+                Color = esp.tracerLine.Color,
+                Visible = esp.tracerLine.Visible,
+                ZIndex = esp.tracerLine.ZIndex,
+            }
+            esp.tracerLine:Remove()
+            esp.tracerLine = createDrawing("Line", props)
+        end
+        if esp.nameText then
+            local props = {
+                Text = esp.nameText.Text,
+                Size = esp.nameText.Size,
+                Center = esp.nameText.Center,
+                Outline = esp.nameText.Outline,
+                OutlineColor = esp.nameText.OutlineColor,
+                Font = esp.nameText.Font,
+                Color = esp.nameText.Color,
+                Transparency = esp.nameText.Transparency,
+                Visible = esp.nameText.Visible,
+                Position = esp.nameText.Position,
+                ZIndex = esp.nameText.ZIndex,
+            }
+            esp.nameText:Remove()
+            esp.nameText = createDrawing("Text", props)
+        end
+        if esp.distanceText then
+            local props = {
+                Text = esp.distanceText.Text,
+                Size = esp.distanceText.Size,
+                Center = esp.distanceText.Center,
+                Outline = esp.distanceText.Outline,
+                OutlineColor = esp.distanceText.OutlineColor,
+                Font = esp.distanceText.Font,
+                Color = esp.distanceText.Color,
+                Transparency = esp.distanceText.Transparency,
+                Visible = esp.distanceText.Visible,
+                Position = esp.distanceText.Position,
+                ZIndex = esp.distanceText.ZIndex,
+            }
+            esp.distanceText:Remove()
+            esp.distanceText = createDrawing("Text", props)
+        end
+    end
+end
+
+if localPlayer then
+    localPlayer.CharacterAdded:Connect(function()
+        task.wait()
+        recreateDrawings()
+    end)
+end
+
 --// Atualização por frame
 ModelESP.connection = RunService.RenderStepped:Connect(function()
     if not ModelESP.Enabled then return end
     local vs = camera.ViewportSize
     local time = tick()
+    local useRainbow = ModelESP.GlobalSettings.RainbowMode
+    local rainbowColor = getRainbowColor(time)
+
+    -- Atualizar círculo de FOV se ativado
+    if ModelESP.GlobalSettings.FovCircleEnabled then
+        local fovRad = math.rad(ModelESP.GlobalSettings.Fov / 2)
+        local camFovRad = math.rad(camera.FieldOfView / 2)
+        local radius = math.tan(fovRad) / math.tan(camFovRad) * (vs.Y / 2)
+        fovCircle.Position = vs / 2
+        fovCircle.Radius = radius
+        fovCircle.Color = useRainbow and rainbowColor or ModelESP.Theme.SecondaryColor
+        fovCircle.Transparency = ModelESP.GlobalSettings.Opacity
+        fovCircle.Thickness = ModelESP.GlobalSettings.LineThickness
+        fovCircle.Visible = true
+    else
+        fovCircle.Visible = false
+    end
 
     for i=#ModelESP.Objects,1,-1 do
         local esp = ModelESP.Objects[i]
@@ -892,8 +995,30 @@ ModelESP.connection = RunService.RenderStepped:Connect(function()
             continue
         end
 
-        local rainbowColor = getRainbowColor(time)
-        local useRainbow = ModelESP.GlobalSettings.RainbowMode
+        -- Verificação de FOV
+        if ModelESP.GlobalSettings.FovEnabled then
+            local direction = (pos3D - camera.CFrame.Position).Unit
+            local dot = camera.CFrame.LookVector:Dot(direction)
+            if dot < 0 then
+                visible = false
+            else
+                local angle = math.acos(dot)
+                if angle > math.rad(ModelESP.GlobalSettings.Fov / 2) then
+                    visible = false
+                end
+            end
+        end
+        if not visible then
+            for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
+            if esp.highlight then esp.highlight.Enabled=false end
+            continue
+        end
+
+        -- Dependência de cor
+        local currentColor = nil
+        if esp.ColorDependency and typeof(esp.ColorDependency) == "function" then
+            currentColor = esp.ColorDependency(esp, distance, pos3D)
+        end
 
         -- Usar projeção do centro para posicionamento para evitar distorção
         local centerX = pos2D.X
@@ -908,29 +1033,29 @@ ModelESP.connection = RunService.RenderStepped:Connect(function()
             esp.tracerLine.Visible = ModelESP.GlobalSettings.ShowTracer and esp.Types.Tracer
             esp.tracerLine.From = tracerOrigins[ModelESP.GlobalSettings.TracerOrigin](vs)
             esp.tracerLine.To = Vector2.new(pos2D.X, pos2D.Y)
-            esp.tracerLine.Color = useRainbow and rainbowColor or esp.Colors.Tracer
+            esp.tracerLine.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Tracer)
         end
         -- Name
         if esp.nameText then
             esp.nameText.Visible = ModelESP.GlobalSettings.ShowName and esp.Types.Name
             esp.nameText.Position = Vector2.new(centerX, startY)
             esp.nameText.Text = esp.NameContainerStart .. esp.Name .. esp.NameContainerEnd
-            esp.nameText.Color = useRainbow and rainbowColor or esp.Colors.Name
+            esp.nameText.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Name)
         end
         -- Distance
         if esp.distanceText then
             esp.distanceText.Visible = ModelESP.GlobalSettings.ShowDistance and esp.Types.Distance
             esp.distanceText.Position = Vector2.new(centerX, startY + nameSize)
             esp.distanceText.Text = esp.DistanceContainerStart .. string.format("%.1f", distance) .. esp.DistanceSuffix .. esp.DistanceContainerEnd
-            esp.distanceText.Color = useRainbow and rainbowColor or esp.Colors.Distance
+            esp.distanceText.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Distance)
         end
         -- Highlight
         if esp.highlight then
             local showFill = ModelESP.GlobalSettings.ShowHighlightFill and esp.Types.HighlightFill
             local showOutline = ModelESP.GlobalSettings.ShowHighlightOutline and esp.Types.HighlightOutline
             esp.highlight.Enabled = showFill or showOutline
-            esp.highlight.FillColor = useRainbow and rainbowColor or esp.Colors.Highlight.Filled
-            esp.highlight.OutlineColor = useRainbow and rainbowColor or esp.Colors.Highlight.Outline
+            esp.highlight.FillColor = useRainbow and rainbowColor or (currentColor or esp.Colors.Highlight.Filled)
+            esp.highlight.OutlineColor = useRainbow and rainbowColor or (currentColor or esp.Colors.Highlight.Outline)
             esp.highlight.FillTransparency = showFill and ModelESP.GlobalSettings.HighlightTransparency.Filled or 1
             esp.highlight.OutlineTransparency = showOutline and ModelESP.GlobalSettings.HighlightTransparency.Outline or 1
         end
