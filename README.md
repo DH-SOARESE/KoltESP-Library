@@ -30,7 +30,7 @@ Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente
 ## 🚀 Instalação
 
 ```lua
-local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 ```
 
 ## 📋 Sumário (Atalhos)
@@ -133,25 +133,25 @@ local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-S
 
 ```lua
 -- Carregar a biblioteca
-local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
 -- Definir nome da pasta de highlights (opcional, antes de adicionar ESPs)
-ModelESP:SetHighlightFolderName("MyESPHighlights")
+KoltESP:SetHighlightFolderName("MyESPHighlights")
 
 -- Ajustar transparências globais de highlights (opcional)
-ModelESP:SetGlobalHighlightTransparency({Filled = 0.6, Outline = 0.4})
+KoltESP:SetGlobalHighlightTransparency({Filled = 0.6, Outline = 0.4})
 
 -- Ajustar outline global de textos (opcional)
-ModelESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
+KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
 
 -- Ativar limite de FOV com círculo (opcional)
-ModelESP:FovEsp("Show Esp Fov", true, 90)
+KoltESP:FovEsp("Show Esp Fov", true, 90)
 
 -- Adicionar ESP básico
-ModelESP:Add(workspace.SomeModel)
+KoltESP:Add(workspace.SomeModel)
 
 -- Adicionar ESP com nome, cor única, Collision, customização de textos, DisplayOrder, tipos individuais, outline de texto e dependência de cor
-ModelESP:Add(workspace.SomeModel, {
+KoltESP:Add(workspace.SomeModel, {
     Name = "Alvo Especial",
     Color = Color3.fromRGB(255, 0, 0),
     Collision = true,
@@ -179,7 +179,7 @@ ModelESP:Add(workspace.SomeModel, {
 })
 
 -- Adicionar ESP com cores personalizadas por elemento, DisplayOrder alto e outline customizado
-ModelESP:Add(workspace.SomeModel, {
+KoltESP:Add(workspace.SomeModel, {
     Name = "Alvo Especial",
     Collision = true,
     NameContainer = {Start = "[", End = "]"},
@@ -211,7 +211,7 @@ ModelESP:Add(workspace.SomeModel, {
 
 ```lua
 -- Reajusta o ESP de um alvo antigo para um novo alvo com nova configuração
-ModelESP:Readjustment(workspace.NewModel, workspace.OldModel, {
+KoltESP:Readjustment(workspace.NewModel, workspace.OldModel, {
     Name = "Novo Alvo",
     Color = Color3.fromRGB(0, 255, 255),
     Collision = false,
@@ -236,7 +236,7 @@ ModelESP:Readjustment(workspace.NewModel, workspace.OldModel, {
 
 ```lua
 -- Atualiza configurações sem mudar o alvo
-ModelESP:UpdateConfig(workspace.SomeModel, {
+KoltESP:UpdateConfig(workspace.SomeModel, {
     Name = "Alvo Atualizado",
     Color = {
         Name = {255, 255, 0},
@@ -265,32 +265,32 @@ ModelESP:UpdateConfig(workspace.SomeModel, {
 
 ```lua
 -- Desabilitar ESP de um objeto sem removê-lo
-ModelESP:ToggleIndividual(workspace.SomeModel, false)
+KoltESP:ToggleIndividual(workspace.SomeModel, false)
 
 -- Alterar apenas a cor
-ModelESP:SetColor(workspace.SomeModel, Color3.fromRGB(0, 255, 0))
+KoltESP:SetColor(workspace.SomeModel, Color3.fromRGB(0, 255, 0))
 
 -- Alterar apenas o nome
-ModelESP:SetName(workspace.SomeModel, "Novo Nome")
+KoltESP:SetName(workspace.SomeModel, "Novo Nome")
 
 -- Alterar apenas o DisplayOrder
-ModelESP:SetDisplayOrder(workspace.SomeModel, 7)
+KoltESP:SetDisplayOrder(workspace.SomeModel, 7)
 
 -- Alterar propriedades de outline de texto
-ModelESP:SetTextOutline(workspace.SomeModel, true, Color3.fromRGB(0, 0, 0), 1)
+KoltESP:SetTextOutline(workspace.SomeModel, true, Color3.fromRGB(0, 0, 0), 1)
 ```
 
 ### Removendo ou Descarregando ESP
 
 ```lua
 -- Remover ESP de um objeto específico (restaura transparências e remove Humanoid)
-ModelESP:Remove(workspace.SomeModel)
+KoltESP:Remove(workspace.SomeModel)
 
 -- Limpar todos os ESPs
-ModelESP:Clear()
+KoltESP:Clear()
 
 -- Descarregar completamente a biblioteca
-ModelESP:Unload()
+KoltESP:Unload()
 ```
 
 ## 🎨 Configurações Globais
@@ -298,43 +298,43 @@ ModelESP:Unload()
 ### Habilitando/Desabilitando Componentes
 
 ```lua
-ModelESP:SetGlobalESPType("ShowTracer", true)
-ModelESP:SetGlobalESPType("ShowName", true)
-ModelESP:SetGlobalESPType("ShowDistance", true)
-ModelESP:SetGlobalESPType("ShowHighlightFill", true)
-ModelESP:SetGlobalESPType("ShowHighlightOutline", true)
+KoltESP:SetGlobalESPType("ShowTracer", true)
+KoltESP:SetGlobalESPType("ShowName", true)
+KoltESP:SetGlobalESPType("ShowDistance", true)
+KoltESP:SetGlobalESPType("ShowHighlightFill", true)
+KoltESP:SetGlobalESPType("ShowHighlightOutline", true)
 ```
 
 ### Personalizando Aparência
 
 ```lua
-ModelESP:SetGlobalTracerOrigin("Bottom") -- Top, Center, Bottom, Left, Right
-ModelESP:SetGlobalRainbow(true)
-ModelESP:SetGlobalOpacity(0.8)
-ModelESP:SetGlobalFontSize(16)
-ModelESP:SetGlobalLineThickness(2)
-ModelESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3}) -- Ajusta transparências de highlights
-ModelESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1) -- Ajusta outline global de textos
+KoltESP:SetGlobalTracerOrigin("Bottom") -- Top, Center, Bottom, Left, Right
+KoltESP:SetGlobalRainbow(true)
+KoltESP:SetGlobalOpacity(0.8)
+KoltESP:SetGlobalFontSize(16)
+KoltESP:SetGlobalLineThickness(2)
+KoltESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3}) -- Ajusta transparências de highlights
+KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1) -- Ajusta outline global de textos
 ```
 
 ### Controle de Distância e FOV
 
 ```lua
-ModelESP.GlobalSettings.MaxDistance = 1000
-ModelESP.GlobalSettings.MinDistance = 0
+KoltESP.GlobalSettings.MaxDistance = 1000
+KoltESP.GlobalSettings.MinDistance = 0
 
 -- Ativar FOV com círculo e definir valor
-ModelESP:FovEsp("Show Esp Fov", true, 120)
+KoltESP:FovEsp("Show Esp Fov", true, 120)
 ```
 
 ### Controle Global de Visibilidade
 
 ```lua
 -- Habilitar todos os ESPs
-ModelESP:EnableAll()
+KoltESP:EnableAll()
 
 -- Desabilitar todos os ESPs
-ModelESP:DisableAll()
+KoltESP:DisableAll()
 ```
 
 ## 📖 Exemplos Práticos
@@ -342,37 +342,37 @@ ModelESP:DisableAll()
 ### 🧑‍🤝‍🧑 ESP para Jogadores com Cores Personalizadas, Camadas, Tipos Individuais, Outline de Texto e Dependência de Cor
 
 ```lua
-local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
 -- Configura pasta e transparências
-ModelESP:SetHighlightFolderName("PlayerESPHighlights")
-ModelESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
+KoltESP:SetHighlightFolderName("PlayerESPHighlights")
+KoltESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
 
 -- Configura outline global
-ModelESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
+KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
 
 -- Ativar FOV
-ModelESP:FovEsp("Show Esp Fov", true, 90)
+KoltESP:FovEsp("Show Esp Fov", true, 90)
 
 -- Configurações globais
-ModelESP:SetGlobalTracerOrigin("Top")
-ModelESP:SetGlobalRainbow(false)  -- Desativado para usar dependência de cor
-ModelESP:SetGlobalOpacity(0.8)
-ModelESP:SetGlobalFontSize(16)
-ModelESP:SetGlobalLineThickness(2)
-ModelESP.GlobalSettings.MaxDistance = 500
-ModelESP.GlobalSettings.MinDistance = 10
-ModelESP.GlobalSettings.AutoRemoveInvalid = true
-ModelESP:SetGlobalESPType("ShowTracer", true)
-ModelESP:SetGlobalESPType("ShowName", true)
-ModelESP:SetGlobalESPType("ShowDistance", true)
-ModelESP:SetGlobalESPType("ShowHighlightFill", true)
-ModelESP:SetGlobalESPType("ShowHighlightOutline", true)
+KoltESP:SetGlobalTracerOrigin("Top")
+KoltESP:SetGlobalRainbow(false)  -- Desativado para usar dependência de cor
+KoltESP:SetGlobalOpacity(0.8)
+KoltESP:SetGlobalFontSize(16)
+KoltESP:SetGlobalLineThickness(2)
+KoltESP.GlobalSettings.MaxDistance = 500
+KoltESP.GlobalSettings.MinDistance = 10
+KoltESP.GlobalSettings.AutoRemoveInvalid = true
+KoltESP:SetGlobalESPType("ShowTracer", true)
+KoltESP:SetGlobalESPType("ShowName", true)
+KoltESP:SetGlobalESPType("ShowDistance", true)
+KoltESP:SetGlobalESPType("ShowHighlightFill", true)
+KoltESP:SetGlobalESPType("ShowHighlightOutline", true)
 
 -- Função para adicionar ESP a jogadores
 local function addPlayerESP(player)
     if player.Character then
-        ModelESP:Add(player.Character, {
+        KoltESP:Add(player.Character, {
             Name = player.Name,
             Collision = false,
             DistanceSuffix = ".m",
@@ -425,14 +425,14 @@ end)
 -- Remover ESP quando jogador sair
 game.Players.PlayerRemoving:Connect(function(player)
     if player.Character then
-        ModelESP:Remove(player.Character)
+        KoltESP:Remove(player.Character)
     end
 end)
 
 -- Exemplo de descarregamento
 game:GetService("UserInputService").InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F10 then
-        ModelESP:Unload()
+        KoltESP:Unload()
     end
 end)
 ```
@@ -440,23 +440,23 @@ end)
 ### 🎯 ESP para Objetos Específicos com Collision, Camadas, Tipos Individuais, Outline de Texto e FOV
 
 ```lua
-local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
 -- Configura pasta e transparências
-ModelESP:SetHighlightFolderName("ObjectESPHighlights")
-ModelESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3})
+KoltESP:SetHighlightFolderName("ObjectESPHighlights")
+KoltESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3})
 
 -- Configura outline global
-ModelESP:SetGlobalTextOutline(false, Color3.fromRGB(255, 255, 255), 2)
+KoltESP:SetGlobalTextOutline(false, Color3.fromRGB(255, 255, 255), 2)
 
 -- Ativar FOV sem círculo
-ModelESP:FovEsp("Show Esp Fov", true, 60)  -- Limita a 60 graus, mas sem mostrar o círculo (altere para true para mostrar)
+KoltESP:FovEsp("Show Esp Fov", true, 60)  -- Limita a 60 graus, mas sem mostrar o círculo (altere para true para mostrar)
 
 -- Função para adicionar ESP a partes por nome
 local function addPartESP(partName, espName, colorTable, collision, nameContainer, distanceSuffix, distanceContainer, displayOrder, types, textOutlineEnabled, textOutlineColor, textOutlineThickness, colorDependency)
     for _, part in pairs(workspace:GetDescendants()) do
         if part.Name == partName and (part:IsA("BasePart") or part:IsA("Model")) then
-            ModelESP:Add(part, {
+            KoltESP:Add(part, {
                 Name = espName or part.Name,
                 Collision = collision or false,
                 NameContainer = nameContainer or {Start = "[", End = "]"},
@@ -534,17 +534,17 @@ addPartESP("PowerUp", "⚡ Power-Up", {
 ### 🔍 ESP por Path Específico com Reajuste Dinâmico, Camadas, Tipos, Outline de Texto e Dependência de Cor
 
 ```lua
-local ModelESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
 -- Configura pasta e transparências
-ModelESP:SetHighlightFolderName("DynamicESPHighlights")
-ModelESP:SetGlobalHighlightTransparency({Filled = 0.4, Outline = 0.2})
+KoltESP:SetHighlightFolderName("DynamicESPHighlights")
+KoltESP:SetGlobalHighlightTransparency({Filled = 0.4, Outline = 0.2})
 
 -- Configura outline global
-ModelESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
+KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
 
 -- Ativar FOV
-ModelESP:FovEsp("Show Esp Fov", true, 90)
+KoltESP:FovEsp("Show Esp Fov", true, 90)
 
 -- Configuração de alvos
 local targets = {
@@ -612,7 +612,7 @@ for _, target in pairs(targets) do
     if obj then
         for _, child in pairs(obj:GetChildren()) do
             if child:IsA("Model") or child:IsA("BasePart") then
-                ModelESP:Add(child, {
+                KoltESP:Add(child, {
                     Name = target.name,
                     Collision = target.collision,
                     NameContainer = target.nameContainer,
@@ -636,7 +636,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
     local oldTarget = workspace.OldModel
     local newTarget = workspace.NewModel
     if newTarget and oldTarget then
-        ModelESP:Readjustment(newTarget, oldTarget, {
+        KoltESP:Readjustment(newTarget, oldTarget, {
             Name = "Novo Tesouro",
             Collision = true,
             DisplayOrder = 6,
@@ -736,12 +736,12 @@ Color = {
 
 ```lua
 -- Habilitar/desabilitar a biblioteca globalmente
-ModelESP:EnableAll()
-ModelESP:DisableAll()
+KoltESP:EnableAll()
+KoltESP:DisableAll()
 
 -- Verificar status
-print("ESP ativo:", ModelESP.Enabled)
-print("Objetos rastreados:", #ModelESP.Objects)
+print("ESP ativo:", KoltESP.Enabled)
+print("Objetos rastreados:", #KoltESP.Objects)
 ```
 
 **Desenvolvido por Kolt (DH_SOARES)** | Versão 1.6 | Última atualização: Outubro 2025
