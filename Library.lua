@@ -24,7 +24,7 @@ local function getHighlightFolder()
     return highlightFolder
 end
 
-local ModelESP = {
+local KoltESP = {
     Objects = {},
     Enabled = true,
     Theme = {
@@ -99,13 +99,13 @@ local fovCircle = createDrawing("Circle", {
     NumSides = 64,
     Filled = false,
     Thickness = 1.5,
-    Transparency = ModelESP.GlobalSettings.Opacity,
-    Color = ModelESP.Theme.SecondaryColor,
+    Transparency = KoltESP.GlobalSettings.Opacity,
+    Color = KoltESP.Theme.SecondaryColor,
     Visible = false
 })
 
 --// Função interna para obter ESP por target
-function ModelESP:GetESP(target)
+function KoltESP:GetESP(target)
     for _, esp in ipairs(self.Objects) do
         if esp.Target == target then return esp end
     end
@@ -113,7 +113,7 @@ function ModelESP:GetESP(target)
 end
 
 --// Configura o nome da pasta de highlights
-function ModelESP:SetHighlightFolderName(name)
+function KoltESP:SetHighlightFolderName(name)
     if typeof(name) == "string" and name ~= "" then
         HighlightFolderName = name
         -- Reseta a pasta para recriação com novo nome se necessário
@@ -122,7 +122,7 @@ function ModelESP:SetHighlightFolderName(name)
 end
 
 --// Define transparências globais de highlight
-function ModelESP:SetGlobalHighlightTransparency(trans)
+function KoltESP:SetGlobalHighlightTransparency(trans)
     if typeof(trans) == "table" then
         if trans.Filled and typeof(trans.Filled) == "number" then
             self.GlobalSettings.HighlightTransparency.Filled = math.clamp(trans.Filled, 0, 1)
@@ -134,7 +134,7 @@ function ModelESP:SetGlobalHighlightTransparency(trans)
 end
 
 --// Adiciona ESP
-function ModelESP:Add(target, config)
+function KoltESP:Add(target, config)
     if not target or not target:IsA("Instance") then return end
     if not (target:IsA("Model") or target:IsA("BasePart")) then return end
 
@@ -300,7 +300,7 @@ function ModelESP:Add(target, config)
 end
 
 --// Reajusta ESP para novo alvo com nova config
-function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
+function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
     if not newTarget or not newTarget:IsA("Instance") then return end
     if not (newTarget:IsA("Model") or newTarget:IsA("BasePart")) then return end
 
@@ -460,7 +460,7 @@ function ModelESP:Readjustment(newTarget, oldTarget, newConfig)
 end
 
 --// Atualiza config de um ESP existente sem mudar o target
-function ModelESP:UpdateConfig(target, newConfig)
+function KoltESP:UpdateConfig(target, newConfig)
     local esp = self:GetESP(target)
     if not esp then return end
 
@@ -599,7 +599,7 @@ function ModelESP:UpdateConfig(target, newConfig)
 end
 
 --// API útil: Alterna habilitado individual
-function ModelESP:ToggleIndividual(target, enabled)
+function KoltESP:ToggleIndividual(target, enabled)
     local esp = self:GetESP(target)
     if esp then
         esp.Enabled = enabled
@@ -607,7 +607,7 @@ function ModelESP:ToggleIndividual(target, enabled)
 end
 
 --// API útil: Define cor única para um ESP
-function ModelESP:SetColor(target, color)
+function KoltESP:SetColor(target, color)
     local esp = self:GetESP(target)
     if esp and typeof(color) == "Color3" then
         esp.Colors.Name = color
@@ -619,7 +619,7 @@ function ModelESP:SetColor(target, color)
 end
 
 --// API útil: Define nome para um ESP
-function ModelESP:SetName(target, newName)
+function KoltESP:SetName(target, newName)
     local esp = self:GetESP(target)
     if esp then
         esp.Name = newName
@@ -627,7 +627,7 @@ function ModelESP:SetName(target, newName)
 end
 
 --// API útil: Define DisplayOrder para um ESP
-function ModelESP:SetDisplayOrder(target, displayOrder)
+function KoltESP:SetDisplayOrder(target, displayOrder)
     local esp = self:GetESP(target)
     if esp then
         esp.DisplayOrder = displayOrder
@@ -638,7 +638,7 @@ function ModelESP:SetDisplayOrder(target, displayOrder)
 end
 
 --// API útil: Define propriedades de outline de texto para um ESP
-function ModelESP:SetTextOutline(target, enabled, color, thickness)
+function KoltESP:SetTextOutline(target, enabled, color, thickness)
     local esp = self:GetESP(target)
     if esp then
         if enabled ~= nil then
@@ -659,7 +659,7 @@ function ModelESP:SetTextOutline(target, enabled, color, thickness)
 end
 
 --// Remove ESP individual
-function ModelESP:Remove(target)
+function KoltESP:Remove(target)
     for i=#self.Objects,1,-1 do
         local obj = self.Objects[i]
         if obj.Target == target then
@@ -676,7 +676,7 @@ function ModelESP:Remove(target)
 end
 
 --//  Limpa todas ESP
-function ModelESP:Clear()
+function KoltESP:Clear()
     for _, obj in ipairs(self.Objects) do
         for _, draw in ipairs({obj.tracerLine,obj.nameText,obj.distanceText}) do if draw then pcall(draw.Remove,draw) end end
         if obj.highlight then pcall(obj.highlight.Destroy,obj.highlight) end
@@ -689,7 +689,7 @@ function ModelESP:Clear()
 end
 
 --// Função de descarregamento
-function ModelESP:Unload()
+function KoltESP:Unload()
     if self.connection then
         self.connection:Disconnect()
         self.connection = nil
@@ -708,16 +708,16 @@ function ModelESP:Unload()
 end
 
 --// Sistema de habilitar/desabilitar global
-function ModelESP:EnableAll()
+function KoltESP:EnableAll()
     self.Enabled = true
 end
 
-function ModelESP:DisableAll()
+function KoltESP:DisableAll()
     self.Enabled = false
 end
 
 --// Update GlobalSettings
-function ModelESP:UpdateGlobalSettings()
+function KoltESP:UpdateGlobalSettings()
     local showAnyHighlight = self.GlobalSettings.ShowHighlightFill or self.GlobalSettings.ShowHighlightOutline
     for _, esp in ipairs(self.Objects) do
         if esp.tracerLine then 
@@ -762,31 +762,31 @@ function ModelESP:UpdateGlobalSettings()
 end
 
 --// Configs Globais (APIs)
-function ModelESP:SetGlobalTracerOrigin(origin)
+function KoltESP:SetGlobalTracerOrigin(origin)
     if tracerOrigins[origin] then
         self.GlobalSettings.TracerOrigin = origin
     end
 end
-function ModelESP:SetGlobalESPType(typeName, enabled)
+function KoltESP:SetGlobalESPType(typeName, enabled)
     self.GlobalSettings[typeName] = enabled
     self:UpdateGlobalSettings()
 end
-function ModelESP:SetGlobalRainbow(enable)
+function KoltESP:SetGlobalRainbow(enable)
     self.GlobalSettings.RainbowMode = enable
 end
-function ModelESP:SetGlobalOpacity(value)
+function KoltESP:SetGlobalOpacity(value)
     self.GlobalSettings.Opacity = math.clamp(value,0,1)
     self:UpdateGlobalSettings()
 end
-function ModelESP:SetGlobalFontSize(size)
+function KoltESP:SetGlobalFontSize(size)
     self.GlobalSettings.FontSize = math.max(10,size)
     self:UpdateGlobalSettings()
 end
-function ModelESP:SetGlobalLineThickness(thick)
+function KoltESP:SetGlobalLineThickness(thick)
     self.GlobalSettings.LineThickness = math.max(1,thick)
     self:UpdateGlobalSettings()
 end
-function ModelESP:SetGlobalTextOutline(enabled, color, thickness)
+function KoltESP:SetGlobalTextOutline(enabled, color, thickness)
     if enabled ~= nil then self.GlobalSettings.TextOutlineEnabled = enabled end
     if color then self.GlobalSettings.TextOutlineColor = color end
     if thickness then self.GlobalSettings.TextOutlineThickness = thickness end
@@ -794,7 +794,7 @@ function ModelESP:SetGlobalTextOutline(enabled, color, thickness)
 end
 
 --// Novo: Configuração de FOV ESP
-function ModelESP:FovEsp(_, enabled, EspFov)
+function KoltESP:FovEsp(_, enabled, EspFov)
     self.GlobalSettings.FovEnabled = enabled
     self.GlobalSettings.FovCircleEnabled = enabled  -- Assumindo que "Show Esp Fov" implica mostrar o círculo quando ativado
     if EspFov then
@@ -805,7 +805,7 @@ end
 --// Suporte a players com respawn/reset
 local PlayerESPs = {}
 
-function ModelESP:AddToPlayer(player, config)
+function KoltESP:AddToPlayer(player, config)
     if not player:IsA("Player") then return end
 
     if PlayerESPs[player] then
@@ -838,7 +838,7 @@ function ModelESP:AddToPlayer(player, config)
     setupESP()
 end
 
-function ModelESP:RemoveFromPlayer(player)
+function KoltESP:RemoveFromPlayer(player)
     local entry = PlayerESPs[player]
     if not entry then return end
 
@@ -855,7 +855,7 @@ end
 
 --// Novo: Recriar drawings no respawn do jogador local
 local function recreateDrawings()
-    for _, esp in ipairs(ModelESP.Objects) do
+    for _, esp in ipairs(KoltESP.Objects) do
         if esp.tracerLine then
             local props = {
                 Thickness = esp.tracerLine.Thickness,
@@ -912,34 +912,34 @@ if localPlayer then
 end
 
 --// Atualização por frame
-ModelESP.connection = RunService.RenderStepped:Connect(function()
-    if not ModelESP.Enabled then return end
+KoltESP.connection = RunService.RenderStepped:Connect(function()
+    if not KoltESP.Enabled then return end
     local vs = camera.ViewportSize
     local time = tick()
-    local useRainbow = ModelESP.GlobalSettings.RainbowMode
+    local useRainbow = KoltESP.GlobalSettings.RainbowMode
     local rainbowColor = getRainbowColor(time)
 
     -- Atualizar círculo de FOV se ativado
-    if ModelESP.GlobalSettings.FovCircleEnabled then
-        local fovRad = math.rad(ModelESP.GlobalSettings.Fov / 2)
+    if KoltESP.GlobalSettings.FovCircleEnabled then
+        local fovRad = math.rad(KoltESP.GlobalSettings.Fov / 2)
         local camFovRad = math.rad(camera.FieldOfView / 2)
         local radius = math.tan(fovRad) / math.tan(camFovRad) * (vs.Y / 2)
         fovCircle.Position = vs / 2
         fovCircle.Radius = radius
-        fovCircle.Color = useRainbow and rainbowColor or ModelESP.Theme.SecondaryColor
-        fovCircle.Transparency = ModelESP.GlobalSettings.Opacity
-        fovCircle.Thickness = ModelESP.GlobalSettings.LineThickness
+        fovCircle.Color = useRainbow and rainbowColor or KoltESP.Theme.SecondaryColor
+        fovCircle.Transparency = KoltESP.GlobalSettings.Opacity
+        fovCircle.Thickness = KoltESP.GlobalSettings.LineThickness
         fovCircle.Visible = true
     else
         fovCircle.Visible = false
     end
 
-    for i=#ModelESP.Objects,1,-1 do
-        local esp = ModelESP.Objects[i]
+    for i=#KoltESP.Objects,1,-1 do
+        local esp = KoltESP.Objects[i]
         local target = esp.Target
         if not target or not target.Parent then
-            if ModelESP.GlobalSettings.AutoRemoveInvalid then
-                ModelESP:Remove(target)
+            if KoltESP.GlobalSettings.AutoRemoveInvalid then
+                KoltESP:Remove(target)
             end
             continue
         end
@@ -988,7 +988,7 @@ ModelESP.connection = RunService.RenderStepped:Connect(function()
         end
 
         local distance = (camera.CFrame.Position - pos3D).Magnitude
-        local visible = distance >= ModelESP.GlobalSettings.MinDistance and distance <= ModelESP.GlobalSettings.MaxDistance
+        local visible = distance >= KoltESP.GlobalSettings.MinDistance and distance <= KoltESP.GlobalSettings.MaxDistance
         if not visible then
             for _, draw in ipairs({esp.tracerLine,esp.nameText,esp.distanceText}) do if draw then draw.Visible=false end end
             if esp.highlight then esp.highlight.Enabled=false end
@@ -996,14 +996,14 @@ ModelESP.connection = RunService.RenderStepped:Connect(function()
         end
 
         -- Verificação de FOV
-        if ModelESP.GlobalSettings.FovEnabled then
+        if KoltESP.GlobalSettings.FovEnabled then
             local direction = (pos3D - camera.CFrame.Position).Unit
             local dot = camera.CFrame.LookVector:Dot(direction)
             if dot < 0 then
                 visible = false
             else
                 local angle = math.acos(dot)
-                if angle > math.rad(ModelESP.GlobalSettings.Fov / 2) then
+                if angle > math.rad(KoltESP.GlobalSettings.Fov / 2) then
                     visible = false
                 end
             end
@@ -1030,36 +1030,36 @@ ModelESP.connection = RunService.RenderStepped:Connect(function()
 
         -- Tracer
         if esp.tracerLine then
-            esp.tracerLine.Visible = ModelESP.GlobalSettings.ShowTracer and esp.Types.Tracer
-            esp.tracerLine.From = tracerOrigins[ModelESP.GlobalSettings.TracerOrigin](vs)
+            esp.tracerLine.Visible = KoltESP.GlobalSettings.ShowTracer and esp.Types.Tracer
+            esp.tracerLine.From = tracerOrigins[KoltESP.GlobalSettings.TracerOrigin](vs)
             esp.tracerLine.To = Vector2.new(pos2D.X, pos2D.Y)
             esp.tracerLine.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Tracer)
         end
         -- Name
         if esp.nameText then
-            esp.nameText.Visible = ModelESP.GlobalSettings.ShowName and esp.Types.Name
+            esp.nameText.Visible = KoltESP.GlobalSettings.ShowName and esp.Types.Name
             esp.nameText.Position = Vector2.new(centerX, startY)
             esp.nameText.Text = esp.NameContainerStart .. esp.Name .. esp.NameContainerEnd
             esp.nameText.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Name)
         end
         -- Distance
         if esp.distanceText then
-            esp.distanceText.Visible = ModelESP.GlobalSettings.ShowDistance and esp.Types.Distance
+            esp.distanceText.Visible = KoltESP.GlobalSettings.ShowDistance and esp.Types.Distance
             esp.distanceText.Position = Vector2.new(centerX, startY + nameSize)
             esp.distanceText.Text = esp.DistanceContainerStart .. string.format("%.1f", distance) .. esp.DistanceSuffix .. esp.DistanceContainerEnd
             esp.distanceText.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Distance)
         end
         -- Highlight
         if esp.highlight then
-            local showFill = ModelESP.GlobalSettings.ShowHighlightFill and esp.Types.HighlightFill
-            local showOutline = ModelESP.GlobalSettings.ShowHighlightOutline and esp.Types.HighlightOutline
+            local showFill = KoltESP.GlobalSettings.ShowHighlightFill and esp.Types.HighlightFill
+            local showOutline = KoltESP.GlobalSettings.ShowHighlightOutline and esp.Types.HighlightOutline
             esp.highlight.Enabled = showFill or showOutline
             esp.highlight.FillColor = useRainbow and rainbowColor or (currentColor or esp.Colors.Highlight.Filled)
             esp.highlight.OutlineColor = useRainbow and rainbowColor or (currentColor or esp.Colors.Highlight.Outline)
-            esp.highlight.FillTransparency = showFill and ModelESP.GlobalSettings.HighlightTransparency.Filled or 1
-            esp.highlight.OutlineTransparency = showOutline and ModelESP.GlobalSettings.HighlightTransparency.Outline or 1
+            esp.highlight.FillTransparency = showFill and KoltESP.GlobalSettings.HighlightTransparency.Filled or 1
+            esp.highlight.OutlineTransparency = showOutline and KoltESP.GlobalSettings.HighlightTransparency.Outline or 1
         end
     end
 end)
 
-return ModelESP
+return KoltESP
