@@ -1,4 +1,4 @@
---// 📦 Library Kolt V1.7
+--// 📦 Library Kolt V1.6
 --// 👤 Autor: Kolt
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
 --// Atualizações: Otimização de performance, correção de referência de câmera, refactoring de código duplicado
@@ -8,7 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 
-local HighlightFolderName = "KoltESPHighlights" 
+local HighlightFolderName = "Highlight Folder" 
 local highlightFolder = nil 
 
 local function getHighlightFolder()
@@ -212,10 +212,10 @@ end
 --// Função auxiliar para setup de collision
 local function setupCollision(esp, target, collision, allParts)
     if collision then
-        local humanoid = target:FindFirstChild("Kolt ESP")
+        local humanoid = target:FindFirstChild("Esp")
         if not humanoid then
             humanoid = Instance.new("Humanoid")
-            humanoid.Name = "Kolt ESP"
+            humanoid.Name = "Esp"
             humanoid.Parent = target
         end
         esp.humanoid = humanoid
