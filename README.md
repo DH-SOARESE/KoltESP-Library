@@ -1,132 +1,463 @@
+
 # 📦 Kolt ESP Library V1.6.5
 
-Biblioteca ESP minimalista e eficiente para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Foco em performance, customização e robustez, com suporte a tracers, nomes, distâncias, highlights e limitações por FOV. Atualizações incluem remoção de propriedades obsoletas, adição de prefixo/sufixo para distância, mais opções de personalização (fonte, opacidade, espessura de linha por ESP) e otimização geral.
+Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente customizável para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Projetada para oferecer um sistema de ESP robusto e responsivo, com foco em performance, facilidade de uso e gerenciamento otimizado de recursos. Esta versão introduz melhorias em performance, novas opções de personalização, suporte avançado a FOV, e maior controle sobre configurações individuais.
 
-## Características Principais
+## ✨ Características
 
-- Suporte completo a Tracer, Nome, Distância e Highlight (preenchimento/outline).
-- Modo arco-íris e dependência dinâmica de cores.
-- Customização avançada: cores por elemento, outline de texto, camadas (DisplayOrder).
-- Performance otimizada: auto-remoção de inválidos, armazenamento centralizado de highlights.
-- Collision opcional por ESP, com ajuste de transparência.
-- Limitação por FOV com círculo visual.
-- Suporte a respawn e gerenciamento global (enable/disable).
-- APIs para reajuste, atualização e controle individual.
+- 🎯 **ESP Completo**: Suporte a Tracer, Nome, Distância e Highlight (preenchimento e outline).
+- 🌈 **Modo Arco-íris**: Cores dinâmicas que mudam automaticamente.
+- 🎨 **Customização Avançada de Cores**: Suporte a cores individuais por elemento (Name, Distance, Tracer, Highlight) via tabela ou Color3.
+- ⚡ **Performance Otimizada**: Sistema de auto-remoção de objetos inválidos, verificação de duplicatas, atualizações eficientes por frame, e armazenamento centralizado de Highlights em uma pasta no ReplicatedStorage.
+- 📱 **Responsivo**: Adapta-se a diferentes resoluções, com posicionamento preciso mesmo em distâncias próximas (1-10 metros).
+- 🔧 **Fácil de Usar**: API intuitiva com métodos para gerenciamento avançado de ESPs.
+- 🆕 **ESP Collision (Opcional e Individual)**: Cria um Humanoid "Esp" no alvo e ajusta transparência de parts invisíveis para melhor detecção de colisões.
+- 🆕 **Customização de Distância**: Suporte a `DistancePrefix` e `DistanceSuffix` para personalizar a exibição da distância (ex: "Dist: 10.5m").
+- 🆕 **Transparências de Highlight Configuráveis**: Ajuste global para transparências de preenchimento e outline via `SetGlobalHighlightTransparency`.
+- 🆕 **Pasta Central para Highlights**: Armazena Highlights em uma pasta no ReplicatedStorage (nome configurável via `SetHighlightFolderName`), usando `Adornee` para vincular ao alvo.
+- 🆕 **Novos Métodos**: Inclui `Readjustment`, `ToggleIndividual`, `SetColor`, `SetName`, `SetDisplayOrder`, `SetTextOutline`, `UpdateConfig`, `SetGlobalHighlightTransparency`, `SetHighlightFolderName`, `Unload`, `EnableAll`, `DisableAll`, `SetGlobalTextOutline`, e `FovEsp`.
+- 🆕 **Sistema de Camadas para Drawings**: Cada ESP tem um `DisplayOrder` individual (ZIndex para Tracer, Name, Distance), permitindo sobreposição de elementos.
+- 🆕 **Otimização de Highlights**: Highlights são criados uma vez por ESP e atualizados eficientemente, evitando recriação constante.
+- 🆕 **Função de Descarregamento**: Método `Unload` limpa a biblioteca, desconecta eventos e remove recursos.
+- 🆕 **Controle Global de Visibilidade**: Funções `EnableAll` e `DisableAll` para habilitar/desabilitar todos os ESPs.
+- 🆕 **Tipos Individuais de ESP**: Cada ESP pode configurar tipos específicos (Tracer, Name, Distance, HighlightFill, HighlightOutline), respeitando configurações globais.
+- 🆕 **Fallback para Centro do Modelo**: Usa o centro do modelo como referência se não houver partes visíveis.
+- 🆕 **Propriedades de Outline para Textos**: Configurável global e individualmente (habilitado, cor, espessura).
+- 🆕 **Dependência de Cor Dinâmica**: Função personalizada para calcular cores com base em variáveis como distância ou posição.
+- 🆕 **Restart on Respawn**: Recria objetos Drawing automaticamente ao respawn do jogador local.
+- 🆕 **ESP FOV**: Limita a renderização a um campo de visão definido, com círculo visual (`Drawing Circle`) opcional.
+- 🆕 **Personalizações Individuais**: Suporte a `Font`, `Opacity`, `LineThickness`, `FontSize`, `MaxDistance`, e `MinDistance` por ESP.
+- 🐛 **Correções e Melhorias (V1.6.5)**:
+  - **Otimização de Performance**: Refactoring de código duplicado, melhorias no loop de renderização.
+  - **Correção de Referência de Câmera**: Garante consistência na obtenção da câmera atual.
+  - **Remoção de Containers para Nome e Distância**: Substituídos por `DistancePrefix` e `DistanceSuffix` apenas para distância.
+  - **FOV com Drawing Circle**: Implementação de círculo visual para FOV, configurável via `FovEsp`.
+  - **Novas Personalizações por ESP**: Adição de `Font`, `Opacity`, `LineThickness`, `FontSize`, `MaxDistance`, e `MinDistance`.
 
-## Instalação
+## 🚀 Instalação
 
 ```lua
 local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 ```
 
-## Uso Básico
+## 📋 Sumário (Atalhos)
 
-Exemplo simples de adição de ESP com customizações:
+- [Características](#-características)
+- [Instalação](#-instalação)
+- [Funcionalidades](#-funcionalidades)
+- [Uso Básico](#️-uso-básico)
+- [Gerenciamento Avançado](#-gerenciamento-avançado)
+- [Configurações Globais](#-configurações-globais)
+- [Exemplos Práticos](#-exemplos-práticos)
+- [Configurações Disponíveis](#️-configurações-disponíveis)
+- [Controles](#-controles)
+- [Licença](#-licença)
+
+## 📋 Funcionalidades
+
+### 🎯 Componentes ESP
+- **Tracer**: Linha do ponto de origem configurável até o centro do alvo.
+- **Nome**: Exibe o nome do objeto, centralizado, com outline configurável.
+- **Distância**: Mostra a distância em metros com formatação precisa (ex: "Dist: 10.5m"), com prefixo/sufixo customizáveis.
+- **Highlight**: Contorno e preenchimento colorido ao redor do objeto, com transparências ajustáveis globalmente.
+
+### 🎮 Origens do Tracer
+- `Top` - Topo da tela.
+- `Center` - Centro da tela.
+- `Bottom` - Parte inferior da tela (padrão).
+- `Left` - Lateral esquerda.
+- `Right` - Lateral direita.
+
+**Nota**: A origem do Tracer é global e não configurável individualmente.
+
+### 🆕 Opção de Collision
+- Ativada via `Collision = true` na configuração.
+- Cria um Humanoid chamado "Esp" no alvo.
+- Ajusta transparência de parts com valor 1 para 0.99.
+- Restaura transparências originais ao remover o ESP.
+
+### 🆕 Propriedades de Distância
+- **DistancePrefix**: Prefixo antes do valor da distância (ex: "Dist:").
+- **DistanceSuffix**: Sufixo após o valor da distância (ex: "m").
+- **TextOutlineEnabled**: Habilita/desabilita outline para textos.
+- **TextOutlineColor**: Cor do outline.
+- **TextOutlineThickness**: Espessura do outline (armazenada para uso futuro).
+
+### 🆕 Gerenciamento de Highlights
+- Highlights armazenados em uma pasta no ReplicatedStorage (padrão: "Highlight Folder").
+- Nome da pasta configurável via `SetHighlightFolderName`.
+- Transparências globais ajustáveis via `SetGlobalHighlightTransparency`.
+- Otimização: Highlights atualizados in-place, sem recriação.
+
+### 🆕 Sistema de Camadas (DisplayOrder)
+- Define o ZIndex para Tracer, Name e Distance.
+- Valores mais altos são renderizados sobre valores mais baixos.
+- Configurável via `DisplayOrder` ao adicionar/atualizar ESP.
+
+### 🆕 Sistema de Tipos Individuais
+- Configura tipos específicos (Tracer, Name, Distance, HighlightFill, HighlightOutline) por ESP.
+- Respeita configurações globais (ex: se `ShowTracer = false` globalmente, não aparece).
+
+### 🆕 Fallback para Centro do Modelo
+- Usa o centro do bounding box do modelo como referência se não houver partes visíveis.
+
+### 🆕 Dependência de Cor Dinâmica
+- Configurável via `ColorDependency = function(esp, distance, pos3D)`.
+- Calcula cores dinamicamente com base em distância ou posição.
+
+### 🆕 Restart on Respawn
+- Recria objetos Drawing ao respawn do jogador local.
+
+### 🆕 ESP FOV
+- Limita visibilidade a um ângulo de visão definido.
+- Suporte a círculo visual via `Drawing Circle`, configurável com `FovEsp`.
+
+### 🆕 Personalizações Individuais
+- Suporte a `Font`, `Opacity`, `LineThickness`, `FontSize`, `MaxDistance`, e `MinDistance` por ESP.
+
+## 🛠️ Uso Básico
+
+### Adicionando ESP a um Objeto
 
 ```lua
 local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
--- Configurações globais opcionais
+-- Configurações iniciais
+KoltESP:SetHighlightFolderName("MyESPHighlights")
 KoltESP:SetGlobalHighlightTransparency({Filled = 0.6, Outline = 0.4})
 KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
-KoltESP:FovEsp(true, 90)  -- Ativa FOV com círculo
+KoltESP:FovEsp(true, 90)
 
--- Adiciona ESP a um alvo com customizações
+-- Adicionar ESP básico
+KoltESP:Add(workspace.SomeModel)
+
+-- Adicionar ESP com configurações avançadas
 KoltESP:Add(workspace.SomeModel, {
-    Name = "Alvo",
+    Name = "Alvo Especial",
     Color = Color3.fromRGB(255, 0, 0),
     Collision = true,
-    DistancePrefix = "<",
-    DistanceSuffix = "m>",
+    DistancePrefix = "Dist: ",
+    DistanceSuffix = "m",
     DisplayOrder = 5,
-    Types = {Tracer = true, Name = true, Distance = true, HighlightFill = false, HighlightOutline = true},
-    TextOutlineEnabled = true,
-    TextOutlineColor = Color3.fromRGB(0, 0, 0),
+    Types = {
+        Tracer = true,
+        Name = true,
+        Distance = true,
+        HighlightFill = false,
+        HighlightOutline = true
+    },
+    Font = 3,  -- Monospace
     Opacity = 0.9,
     LineThickness = 2,
     FontSize = 16,
-    Font = 3,  -- Monospace
     MaxDistance = 500,
     MinDistance = 10,
-    ColorDependency = function(esp, distance) return distance < 50 and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 0) end
+    TextOutlineEnabled = true,
+    TextOutlineColor = Color3.fromRGB(0, 0, 0),
+    ColorDependency = function(esp, distance, pos3D)
+        return distance < 50 and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 0)
+    end
 })
-
--- Controle
-KoltESP:ToggleIndividual(workspace.SomeModel, false)  -- Desabilita
-KoltESP:Remove(workspace.SomeModel)  -- Remove
 ```
 
-## Propriedades Globais (GlobalSettings)
+## 🛠️ Gerenciamento Avançado
 
-Acessíveis via `KoltESP.GlobalSettings`:
+### Reajustando um ESP
 
-- `TracerOrigin`: Origem do tracer ("Bottom", "Top", "Center", "Left", "Right").
-- `ShowTracer`: Habilita tracers globalmente (true/false).
-- `ShowHighlightFill`: Habilita preenchimento de highlight (true/false).
-- `ShowHighlightOutline`: Habilita outline de highlight (true/false).
-- `ShowName`: Habilita nomes (true/false).
-- `ShowDistance`: Habilita distâncias (true/false).
-- `RainbowMode`: Modo arco-íris (true/false).
-- `MaxDistance`: Distância máxima para visibilidade (número).
-- `MinDistance`: Distância mínima (número).
-- `Opacity`: Opacidade global (0-1).
-- `LineThickness`: Espessura de linhas (número).
-- `FontSize`: Tamanho da fonte (número).
-- `Font`: Fonte (0: UI, 1: System, 2: Plex, 3: Monospace).
-- `AutoRemoveInvalid`: Remove ESPs inválidos automaticamente (true/false).
-- `HighlightTransparency`: {Filled: número (0-1), Outline: número (0-1)}.
-- `TextOutlineEnabled`: Outline de texto (true/false).
-- `TextOutlineColor`: Cor do outline (Color3).
-- `TextOutlineThickness`: Espessura do outline (número).
-- `FovEnabled`: Limite por FOV (true/false).
-- `Fov`: Valor do FOV em graus (número).
-- `FovCircleEnabled`: Mostra círculo de FOV (true/false).
+```lua
+KoltESP:Readjustment(workspace.NewModel, workspace.OldModel, {
+    Name = "Novo Alvo",
+    Color = Color3.fromRGB(0, 255, 255),
+    Collision = false,
+    DistancePrefix = "",
+    DistanceSuffix = "m",
+    DisplayOrder = 8,
+    Types = { Tracer = true, HighlightFill = false },
+    Font = 2,  -- Plex
+    Opacity = 0.7,
+    LineThickness = 1.5,
+    FontSize = 14,
+    MaxDistance = 1000,
+    MinDistance = 0,
+    TextOutlineEnabled = true,
+    TextOutlineColor = Color3.fromRGB(50, 50, 50),
+    ColorDependency = function(esp, distance, pos3D)
+        return Color3.fromHSV(distance / 1000, 1, 1)
+    end
+})
+```
 
-## Propriedades por ESP (Config ao Adicionar/Atualizar)
+### Atualizando Configurações
 
-Passadas como tabela em `Add` ou `UpdateConfig`:
+```lua
+KoltESP:UpdateConfig(workspace.SomeModel, {
+    Name = "Alvo Atualizado",
+    Color = {
+        Name = {255, 255, 0},
+        Distance = {255, 255, 0},
+        Tracer = {255, 215, 0},
+        Highlight = { Filled = {255, 200, 0}, Outline = {255, 255, 0} }
+    },
+    Collision = false,
+    DistancePrefix = "Dist: ",
+    DistanceSuffix = "m",
+    DisplayOrder = 3,
+    Types = { Distance = false, HighlightOutline = true },
+    Font = 3,
+    Opacity = 0.8,
+    LineThickness = 2,
+    FontSize = 15,
+    MaxDistance = 600,
+    MinDistance = 5,
+    TextOutlineEnabled = false,
+    TextOutlineColor = Color3.fromRGB(100, 100, 100)
+})
+```
 
-- `Name`: Nome exibido (string).
-- `Collision`: Ativa collision (true/false).
-- `DistancePrefix`: Prefixo para distância (string).
-- `DistanceSuffix`: Sufixo para distância (string).
-- `DisplayOrder`: Camada de renderização (número, ZIndex).
-- `Types`: {Tracer: true/false, Name: true/false, Distance: true/false, HighlightFill: true/false, HighlightOutline: true/false}.
-- `TextOutlineEnabled`: Outline de texto (true/false).
-- `TextOutlineColor`: Cor do outline (Color3).
-- `TextOutlineThickness`: Espessura do outline (número).
-- `ColorDependency`: Função(esp, distance, pos3D) retornando Color3.
-- `Color`: Color3 único ou tabela {Name: {R,G,B}, Distance: {R,G,B}, Tracer: {R,G,B}, Highlight: {Filled: {R,G,B}, Outline: {R,G,B}}}.
-- `Opacity`: Opacidade (0-1).
-- `LineThickness`: Espessura de linhas (número).
-- `FontSize`: Tamanho da fonte (número).
-- `Font`: Fonte (0-3).
-- `MaxDistance`: Distância máxima (número).
-- `MinDistance`: Distância mínima (número).
+### Controlando ESP Individualmente
 
-## Métodos Principais
+```lua
+KoltESP:ToggleIndividual(workspace.SomeModel, false)
+KoltESP:SetColor(workspace.SomeModel, Color3.fromRGB(0, 255, 0))
+KoltESP:SetName(workspace.SomeModel, "Novo Nome")
+KoltESP:SetDisplayOrder(workspace.SomeModel, 7)
+KoltESP:SetTextOutline(workspace.SomeModel, true, Color3.fromRGB(0, 0, 0), 1)
+```
 
-- `Add(target, config)`: Adiciona ESP.
-- `Remove(target)`: Remove ESP.
-- `Clear()`: Limpa todos.
-- `Unload()`: Descarrega biblioteca.
-- `EnableAll()` / `DisableAll()`: Habilita/desabilita global.
-- `ToggleIndividual(target, enabled)`: Habilita/desabilita individual.
-- `UpdateConfig(target, newConfig)`: Atualiza config.
-- `Readjustment(newTarget, oldTarget, newConfig)`: Reajusta para novo alvo.
-- `SetColor(target, color)`: Define cor.
-- `SetName(target, newName)`: Define nome.
-- `SetDisplayOrder(target, order)`: Define camada.
-- `SetTextOutline(target, enabled, color, thickness)`: Define outline de texto.
-- `SetGlobalESPType(type, enabled)`: Define tipo global.
-- `SetGlobalRainbow(enable)`: Ativa arco-íris.
-- `SetGlobalOpacity(value)`: Define opacidade.
-- `SetGlobalFontSize(size)`: Define tamanho de fonte.
-- `SetGlobalLineThickness(thick)`: Define espessura.
-- `SetGlobalFont(font)`: Define fonte.
-- `SetGlobalTextOutline(enabled, color, thickness)`: Define outline global.
-- `SetGlobalHighlightTransparency(trans)`: Define transparências de highlight.
-- `FovEsp(enabled, fov)`: Configura FOV.
-- `SetHighlightFolderName(name)`: Define pasta de highlights.
+### Removendo ou Descarregando
+
+```lua
+KoltESP:Remove(workspace.SomeModel)
+KoltESP:Clear()
+KoltESP:Unload()
+```
+
+## 🎨 Configurações Globais
+
+### Habilitando/Desabilitando Componentes
+
+```lua
+KoltESP:SetGlobalESPType("ShowTracer", true)
+KoltESP:SetGlobalESPType("ShowName", true)
+KoltESP:SetGlobalESPType("ShowDistance", true)
+KoltESP:SetGlobalESPType("ShowHighlightFill", true)
+KoltESP:SetGlobalESPType("ShowHighlightOutline", true)
+```
+
+### Personalizando Aparência
+
+```lua
+KoltESP:SetGlobalTracerOrigin("Bottom")
+KoltESP:SetGlobalRainbow(true)
+KoltESP:SetGlobalOpacity(0.8)
+KoltESP:SetGlobalFontSize(16)
+KoltESP:SetGlobalLineThickness(2)
+KoltESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3})
+KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
+KoltESP:SetGlobalFont(3)  -- Monospace
+```
+
+### Controle de Distância e FOV
+
+```lua
+KoltESP.GlobalSettings.MaxDistance = 1000
+KoltESP.GlobalSettings.MinDistance = 0
+KoltESP:FovEsp(true, 120)
+```
+
+### Controle Global de Visibilidade
+
+```lua
+KoltESP:EnableAll()
+KoltESP:DisableAll()
+```
+
+## 📖 Exemplos Práticos
+
+### 🧑‍🤝‍🧑 ESP para Jogadores
+
+```lua
+local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+
+KoltESP:SetHighlightFolderName("PlayerESPHighlights")
+KoltESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
+KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
+KoltESP:FovEsp(true, 90)
+KoltESP:SetGlobalTracerOrigin("Top")
+KoltESP:SetGlobalRainbow(false)
+KoltESP:SetGlobalOpacity(0.8)
+KoltESP:SetGlobalFontSize(16)
+KoltESP:SetGlobalLineThickness(2)
+KoltESP:SetGlobalFont(3)
+KoltESP.GlobalSettings.MaxDistance = 500
+KoltESP.GlobalSettings.MinDistance = 10
+
+local function addPlayerESP(player)
+    KoltESP:AddToPlayer(player, {
+        Name = player.Name,
+        Collision = false,
+        DistancePrefix = "Dist: ",
+        DistanceSuffix = "m",
+        DisplayOrder = 10,
+        Types = { Tracer = true, Name = true, Distance = true, HighlightFill = false, HighlightOutline = true },
+        Color = {
+            Name = {144, 0, 255},
+            Distance = {144, 0, 255},
+            Tracer = {144, 0, 255},
+            Highlight = { Filled = {144, 0, 255}, Outline = {200, 0, 255} }
+        },
+        Font = 3,
+        Opacity = 0.9,
+        LineThickness = 2,
+        FontSize = 16,
+        MaxDistance = 600,
+        MinDistance = 5,
+        TextOutlineEnabled = true,
+        TextOutlineColor = Color3.fromRGB(0, 0, 0),
+        ColorDependency = function(esp, distance, pos3D)
+            return distance > 100 and Color3.fromRGB(255, 165, 0) or nil
+        end
+    })
+end
+
+for _, player in pairs(game.Players:GetPlayers()) do
+    if player ~= game.Players.LocalPlayer then
+        addPlayerESP(player)
+    end
+end
+
+game.Players.PlayerAdded:Connect(addPlayerESP)
+game.Players.PlayerRemoving:Connect(function(player)
+    KoltESP:RemoveFromPlayer(player)
+end)
+
+game:GetService("UserInputService").InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.F10 then
+        KoltESP:Unload()
+    end
+end)
+```
+
+### 🎯 ESP para Objetos Específicos
+
+```lua
+local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+
+KoltESP:SetHighlightFolderName("ObjectESPHighlights")
+KoltESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3})
+KoltESP:SetGlobalTextOutline(false, Color3.fromRGB(255, 255, 255), 2)
+KoltESP:FovEsp(true, 60)
+
+local function addPartESP(partName, espName, colorTable, collision, prefix, suffix, displayOrder, types, font, opacity, lineThickness, fontSize, maxDistance, minDistance, textOutlineEnabled, textOutlineColor)
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part.Name == partName and (part:IsA("BasePart") or part:IsA("Model")) then
+            KoltESP:Add(part, {
+                Name = espName or part.Name,
+                Collision = collision or false,
+                DistancePrefix = prefix or "",
+                DistanceSuffix = suffix or "m",
+                DisplayOrder = displayOrder or 0,
+                Types = types or { Tracer = true, Name = true, Distance = true, HighlightFill = true, HighlightOutline = true },
+                Color = colorTable or {
+                    Name = {255, 255, 0},
+                    Distance = {255, 255, 0},
+                    Tracer = {255, 215, 0},
+                    Highlight = { Filled = {255, 215, 0}, Outline = {255, 255, 0} }
+                },
+                Font = font or 3,
+                Opacity = opacity or 0.8,
+                LineThickness = lineThickness or 1.5,
+                FontSize = fontSize or 14,
+                MaxDistance = maxDistance or math.huge,
+                MinDistance = minDistance or 0,
+                TextOutlineEnabled = textOutlineEnabled,
+                TextOutlineColor = textOutlineColor,
+                ColorDependency = function(esp, distance, pos3D)
+                    return Color3.fromRGB(255, 255 - distance * 2, 0)
+                end
+            })
+        end
+    end
+end
+
+addPartESP("Chest", "💰 Baú", nil, true, "Dist: ", ".m", 5, { Tracer = false, HighlightFill = true }, 3, 0.9, 2, 16, 500, 10, true, Color3.fromRGB(0, 0, 0))
+addPartESP("Enemy", "👹 Inimigo", { Tracer = {255, 0, 0}, Highlight = { Filled = {200, 0, 0}, Outline = {255, 0, 0} } }, false, "", "", 10, { Distance = false, HighlightOutline = true }, 2, 0.8, 1.5, 14, 1000, 0, false, Color3.fromRGB(255, 255, 255))
+addPartESP("PowerUp", "⚡ Power-Up", nil, true, "", " metros", 2, { Name = true, HighlightFill = false }, 3, 0.7, 1, 12, 300, 5, true, Color3.fromRGB(50, 50, 50))
+```
+
+## ⚙️ Configurações Disponíveis
+
+### GlobalSettings
+```lua
+{
+    TracerOrigin = "Bottom",
+    ShowTracer = true,
+    ShowHighlightFill = true,
+    ShowHighlightOutline = true,
+    ShowName = true,
+    ShowDistance = true,
+    RainbowMode = false,
+    MaxDistance = math.huge,
+    MinDistance = 0,
+    Opacity = 0.8,
+    LineThickness = 1.5,
+    FontSize = 14,
+    Font = 3,  -- Monospace
+    AutoRemoveInvalid = true,
+    HighlightTransparency = { Filled = 0.5, Outline = 0.3 },
+    TextOutlineEnabled = true,
+    TextOutlineColor = Color3.fromRGB(0, 0, 0),
+    TextOutlineThickness = 1,
+    FovEnabled = false,
+    Fov = 90,
+    FovCircleEnabled = false
+}
+```
+
+### Estrutura de Configuração
+```lua
+{
+    Name = "Nome Personalizado",
+    Collision = true/false,
+    DistancePrefix = "Dist: ",
+    DistanceSuffix = "m",
+    DisplayOrder = 0,
+    Types = { Tracer = true/false, Name = true/false, Distance = true/false, HighlightFill = true/false, HighlightOutline = true/false },
+    Font = 0/1/2/3,
+    Opacity = 0.8,
+    LineThickness = 1.5,
+    FontSize = 14,
+    MaxDistance = math.huge,
+    MinDistance = 0,
+    TextOutlineEnabled = true/false,
+    TextOutlineColor = Color3.fromRGB(0, 0, 0),
+    TextOutlineThickness = 1,
+    ColorDependency = function(esp, distance, pos3D) return Color3.new(...) end,
+    Color = { ... } -- Tabela de cores ou Color3 único
+}
+```
+
+### Estrutura de Cores
+```lua
+Color = {
+    Name = {255, 255, 255},
+    Distance = {255, 255, 255},
+    Tracer = {0, 255, 0},
+    Highlight = { Filled = {100, 144, 0}, Outline = {0, 255, 0} }
+}
+```
+
+## 🎮 Controles
+
+```lua
+KoltESP:EnableAll()
+KoltESP:DisableAll()
+print("ESP ativo:", KoltESP.Enabled)
+print("Objetos rastreados:", #KoltESP.Objects)
+```
 
 **Desenvolvido por Kolt (DH_SOARES)** | Versão 1.6.5 | Última atualização: Outubro 2025
+
+---
+
+Este README reflete as mudanças da versão 1.6.5, com ênfase nas novas personalizações, otimizações e correções. Se precisar de ajustes adicionais ou de um formato diferente (ex: Markdown para GitHub), é só avisar!
