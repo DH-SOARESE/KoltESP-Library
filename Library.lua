@@ -1,7 +1,7 @@
---// 📦 Library Kolt V1.6
+--// 📦 Library Kolt V1.6.5
 --// 👤 Autor: Kolt
 --// 🎨 Estilo: Minimalista, eficiente e responsivo
---// Atualizações: Otimização de performance, correção de referência de câmera, refactoring de código duplicado
+
 
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -44,6 +44,7 @@ local KoltESP = {
         Opacity = 0.8,
         LineThickness = 1.5,
         FontSize = 14,
+        Font = 3,  -- Monospace (0: UI, 1: System, 2: Plex, 3: Monospace)
         AutoRemoveInvalid = true,
         HighlightTransparency = {
             Filled = 0.5,
@@ -252,11 +253,8 @@ function KoltESP:Add(target, config)
         Enabled = true,
         Name = config and config.Name or target.Name,
         ModifiedParts = {},
-        NameContainerStart = (config and config.NameContainer and config.NameContainer.Start) or "",
-        NameContainerEnd = (config and config.NameContainer and config.NameContainer.End) or "",
+        DistancePrefix = (config and config.DistancePrefix) or "",
         DistanceSuffix = (config and config.DistanceSuffix) or "",
-        DistanceContainerStart = (config and config.DistanceContainer and config.DistanceContainer.Start) or "",
-        DistanceContainerEnd = (config and config.DistanceContainer and config.DistanceContainer.End) or "",
         DisplayOrder = config and config.DisplayOrder or 0,
         Types = {
             Tracer = config and config.Types and config.Types.Tracer == false and false or true,
@@ -268,7 +266,13 @@ function KoltESP:Add(target, config)
         TextOutlineEnabled = config and config.TextOutlineEnabled or self.GlobalSettings.TextOutlineEnabled,
         TextOutlineColor = config and config.TextOutlineColor or self.GlobalSettings.TextOutlineColor,
         TextOutlineThickness = config and config.TextOutlineThickness or self.GlobalSettings.TextOutlineThickness,
-        ColorDependency = config and config.ColorDependency or nil
+        ColorDependency = config and config.ColorDependency or nil,
+        Opacity = config and config.Opacity or self.GlobalSettings.Opacity,
+        LineThickness = config and config.LineThickness or self.GlobalSettings.LineThickness,
+        FontSize = config and config.FontSize or self.GlobalSettings.FontSize,
+        Font = config and config.Font or self.GlobalSettings.Font,
+        MaxDistance = config and config.MaxDistance or self.GlobalSettings.MaxDistance,
+        MinDistance = config and config.MinDistance or self.GlobalSettings.MinDistance
     }
 
     applyColors(cfg, config)
@@ -277,32 +281,32 @@ function KoltESP:Add(target, config)
     setupCollision(cfg, target, config and config.Collision, allParts)
 
     cfg.tracerLine = createDrawing("Line", {
-        Thickness = self.GlobalSettings.LineThickness,
-        Transparency = self.GlobalSettings.Opacity,
+        Thickness = cfg.LineThickness,
+        Transparency = cfg.Opacity,
         Visible = false,
         ZIndex = cfg.DisplayOrder
     })
 
     cfg.nameText = createDrawing("Text", {
         Text = cfg.Name,
-        Size = self.GlobalSettings.FontSize,
+        Size = cfg.FontSize,
         Center = true,
         Outline = cfg.TextOutlineEnabled,
         OutlineColor = cfg.TextOutlineColor,
-        Font = Drawing.Fonts.Monospace,
-        Transparency = self.GlobalSettings.Opacity,
+        Font = cfg.Font,
+        Transparency = cfg.Opacity,
         Visible = false,
         ZIndex = cfg.DisplayOrder
     })
 
     cfg.distanceText = createDrawing("Text", {
         Text = "",
-        Size = self.GlobalSettings.FontSize - 2,
+        Size = cfg.FontSize - 2,
         Center = true,
         Outline = cfg.TextOutlineEnabled,
         OutlineColor = cfg.TextOutlineColor,
-        Font = Drawing.Fonts.Monospace,
-        Transparency = self.GlobalSettings.Opacity,
+        Font = cfg.Font,
+        Transparency = cfg.Opacity,
         Visible = false,
         ZIndex = cfg.DisplayOrder
     })
@@ -335,16 +339,19 @@ function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
     -- Atualiza target e config
     esp.Target = newTarget
     esp.Name = newConfig and newConfig.Name or newTarget.Name
-    esp.NameContainerStart = (newConfig and newConfig.NameContainer and newConfig.NameContainer.Start) or ""
-    esp.NameContainerEnd = (newConfig and newConfig.NameContainer and newConfig.NameContainer.End) or ""
+    esp.DistancePrefix = (newConfig and newConfig.DistancePrefix) or ""
     esp.DistanceSuffix = (newConfig and newConfig.DistanceSuffix) or ""
-    esp.DistanceContainerStart = (newConfig and newConfig.DistanceContainer and newConfig.DistanceContainer.Start) or ""
-    esp.DistanceContainerEnd = (newConfig and newConfig.DistanceContainer and newConfig.DistanceContainer.End) or ""
     esp.DisplayOrder = newConfig and newConfig.DisplayOrder or 0
     esp.TextOutlineEnabled = newConfig and newConfig.TextOutlineEnabled or self.GlobalSettings.TextOutlineEnabled
     esp.TextOutlineColor = newConfig and newConfig.TextOutlineColor or self.GlobalSettings.TextOutlineColor
     esp.TextOutlineThickness = newConfig and newConfig.TextOutlineThickness or self.GlobalSettings.TextOutlineThickness
     esp.ColorDependency = newConfig and newConfig.ColorDependency or nil
+    esp.Opacity = newConfig and newConfig.Opacity or self.GlobalSettings.Opacity
+    esp.LineThickness = newConfig and newConfig.LineThickness or self.GlobalSettings.LineThickness
+    esp.FontSize = newConfig and newConfig.FontSize or self.GlobalSettings.FontSize
+    esp.Font = newConfig and newConfig.Font or self.GlobalSettings.Font
+    esp.MaxDistance = newConfig and newConfig.MaxDistance or self.GlobalSettings.MaxDistance
+    esp.MinDistance = newConfig and newConfig.MinDistance or self.GlobalSettings.MinDistance
 
     applyColors(esp, newConfig)
 
@@ -369,6 +376,14 @@ function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.distanceText.ZIndex = esp.DisplayOrder
     esp.distanceText.Outline = esp.TextOutlineEnabled
     esp.distanceText.OutlineColor = esp.TextOutlineColor
+    esp.tracerLine.Thickness = esp.LineThickness
+    esp.tracerLine.Transparency = esp.Opacity
+    esp.nameText.Size = esp.FontSize
+    esp.nameText.Transparency = esp.Opacity
+    esp.nameText.Font = esp.Font
+    esp.distanceText.Size = esp.FontSize - 2
+    esp.distanceText.Transparency = esp.Opacity
+    esp.distanceText.Font = esp.Font
 end
 
 --// Atualiza config de um ESP existente sem mudar o target
@@ -377,15 +392,8 @@ function KoltESP:UpdateConfig(target, newConfig)
     if not esp then return end
 
     if newConfig.Name then esp.Name = newConfig.Name end
-    if newConfig.NameContainer then
-        esp.NameContainerStart = newConfig.NameContainer.Start or ""
-        esp.NameContainerEnd = newConfig.NameContainer.End or ""
-    end
+    if newConfig.DistancePrefix then esp.DistancePrefix = newConfig.DistancePrefix end
     if newConfig.DistanceSuffix then esp.DistanceSuffix = newConfig.DistanceSuffix end
-    if newConfig.DistanceContainer then
-        esp.DistanceContainerStart = newConfig.DistanceContainer.Start or ""
-        esp.DistanceContainerEnd = newConfig.DistanceContainer.End or ""
-    end
     if newConfig.DisplayOrder ~= nil then 
         esp.DisplayOrder = newConfig.DisplayOrder
         esp.tracerLine.ZIndex = esp.DisplayOrder
@@ -408,6 +416,28 @@ function KoltESP:UpdateConfig(target, newConfig)
     if newConfig.ColorDependency then 
         esp.ColorDependency = newConfig.ColorDependency
     end
+    if newConfig.Opacity ~= nil then 
+        esp.Opacity = newConfig.Opacity
+        esp.tracerLine.Transparency = esp.Opacity
+        esp.nameText.Transparency = esp.Opacity
+        esp.distanceText.Transparency = esp.Opacity
+    end
+    if newConfig.LineThickness ~= nil then 
+        esp.LineThickness = newConfig.LineThickness
+        esp.tracerLine.Thickness = esp.LineThickness
+    end
+    if newConfig.FontSize ~= nil then 
+        esp.FontSize = newConfig.FontSize
+        esp.nameText.Size = esp.FontSize
+        esp.distanceText.Size = esp.FontSize - 2
+    end
+    if newConfig.Font ~= nil then 
+        esp.Font = newConfig.Font
+        esp.nameText.Font = esp.Font
+        esp.distanceText.Font = esp.Font
+    end
+    if newConfig.MaxDistance ~= nil then esp.MaxDistance = newConfig.MaxDistance end
+    if newConfig.MinDistance ~= nil then esp.MinDistance = newConfig.MinDistance end
 
     if newConfig.Color then
         applyColors(esp, newConfig)
@@ -577,10 +607,12 @@ function KoltESP:UpdateGlobalSettings()
         esp.nameText.Transparency = self.GlobalSettings.Opacity
         esp.nameText.Outline = self.GlobalSettings.TextOutlineEnabled
         esp.nameText.OutlineColor = self.GlobalSettings.TextOutlineColor
+        esp.nameText.Font = self.GlobalSettings.Font
         esp.distanceText.Size = self.GlobalSettings.FontSize - 2
         esp.distanceText.Transparency = self.GlobalSettings.Opacity
         esp.distanceText.Outline = self.GlobalSettings.TextOutlineEnabled
         esp.distanceText.OutlineColor = self.GlobalSettings.TextOutlineColor
+        esp.distanceText.Font = self.GlobalSettings.Font
         setupHighlight(esp, esp.Target)
     end
 end
@@ -621,6 +653,13 @@ function KoltESP:SetGlobalTextOutline(enabled, color, thickness)
     if color then self.GlobalSettings.TextOutlineColor = color end
     if thickness then self.GlobalSettings.TextOutlineThickness = thickness end
     self:UpdateGlobalSettings()
+end
+
+function KoltESP:SetGlobalFont(font)
+    if typeof(font) == "number" and font >= 0 and font <= 3 then
+        self.GlobalSettings.Font = font
+        self:UpdateGlobalSettings()
+    end
 end
 
 --// Configuração de FOV ESP
@@ -818,7 +857,7 @@ KoltESP.connection = RunService.RenderStepped:Connect(function()
         end
 
         local distance = (camera.CFrame.Position - pos3D).Magnitude
-        local visible = distance >= KoltESP.GlobalSettings.MinDistance and distance <= KoltESP.GlobalSettings.MaxDistance
+        local visible = distance >= esp.MinDistance and distance <= esp.MaxDistance
         if not visible then
             esp.tracerLine.Visible = false
             esp.nameText.Visible = false
@@ -866,13 +905,13 @@ KoltESP.connection = RunService.RenderStepped:Connect(function()
         -- Name
         esp.nameText.Visible = KoltESP.GlobalSettings.ShowName and esp.Types.Name
         esp.nameText.Position = Vector2.new(centerX, startY)
-        esp.nameText.Text = esp.NameContainerStart .. esp.Name .. esp.NameContainerEnd
+        esp.nameText.Text = esp.Name
         esp.nameText.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Name)
 
         -- Distance
         esp.distanceText.Visible = KoltESP.GlobalSettings.ShowDistance and esp.Types.Distance
         esp.distanceText.Position = Vector2.new(centerX, startY + nameSize)
-        esp.distanceText.Text = esp.DistanceContainerStart .. string.format("%.1f", distance) .. esp.DistanceSuffix .. esp.DistanceContainerEnd
+        esp.distanceText.Text = esp.DistancePrefix .. string.format("%.1f", distance) .. esp.DistanceSuffix
         esp.distanceText.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Distance)
 
         -- Highlight
