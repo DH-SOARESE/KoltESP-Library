@@ -596,6 +596,7 @@ end
 
 function KoltESP:DisableAll()
     self.Enabled = false
+    self:Clear()
 end
 
 --// Update GlobalSettings
@@ -719,60 +720,6 @@ function KoltESP:RemoveFromPlayer(player)
     end
 
     PlayerESPs[player] = nil
-end
-
---// Recriar drawings no respawn do jogador local
-local function recreateDrawings()
-    for _, esp in ipairs(KoltESP.Objects) do
-        local tracerProps = {
-            Thickness = esp.tracerLine.Thickness,
-            Transparency = esp.tracerLine.Transparency,
-            Color = esp.tracerLine.Color,
-            Visible = esp.tracerLine.Visible,
-            ZIndex = esp.tracerLine.ZIndex
-        }
-        esp.tracerLine:Remove()
-        esp.tracerLine = createDrawing("Line", tracerProps)
-
-        local nameProps = {
-            Text = esp.nameText.Text,
-            Size = esp.nameText.Size,
-            Center = esp.nameText.Center,
-            Outline = esp.nameText.Outline,
-            OutlineColor = esp.nameText.OutlineColor,
-            Font = esp.nameText.Font,
-            Color = esp.nameText.Color,
-            Transparency = esp.nameText.Transparency,
-            Visible = esp.nameText.Visible,
-            Position = esp.nameText.Position,
-            ZIndex = esp.nameText.ZIndex
-        }
-        esp.nameText:Remove()
-        esp.nameText = createDrawing("Text", nameProps)
-
-        local distProps = {
-            Text = esp.distanceText.Text,
-            Size = esp.distanceText.Size,
-            Center = esp.distanceText.Center,
-            Outline = esp.distanceText.Outline,
-            OutlineColor = esp.distanceText.OutlineColor,
-            Font = esp.distanceText.Font,
-            Color = esp.distanceText.Color,
-            Transparency = esp.distanceText.Transparency,
-            Visible = esp.distanceText.Visible,
-            Position = esp.distanceText.Position,
-            ZIndex = esp.distanceText.ZIndex
-        }
-        esp.distanceText:Remove()
-        esp.distanceText = createDrawing("Text", distProps)
-    end
-end
-
-if localPlayer then
-    localPlayer.CharacterAdded:Connect(function()
-        task.wait()
-        recreateDrawings()
-    end)
 end
 
 --// Atualização por frame
