@@ -1,46 +1,44 @@
-# 📦 Kolt ESP Library V1.7
 
-Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente customizável para Roblox, desenvolvida por **Kolt**. Projetada para oferecer um sistema de ESP robusto e responsivo, com foco em performance, facilidade de uso e gerenciamento otimizado de recursos. Esta versão introduz melhorias em organização, correções em APIs, otimizações de performance, remoção de Humanoid desnecessário para collision, suporte aprimorado para collision e adição de mais opções de configuração.
+# 📦 Kolt ESP Library V1.6.5
+
+Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente customizável para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Projetada para oferecer um sistema de ESP robusto e responsivo, com foco em performance, facilidade de uso e gerenciamento otimizado de recursos. Esta versão introduz melhorias em performance, novas opções de personalização, suporte avançado a FOV, e maior controle sobre configurações individuais.
 
 ## ✨ Características
 
 - 🎯 **ESP Completo**: Suporte a Tracer, Nome, Distância e Highlight (preenchimento e outline).
-- 🌈 **Modo Rainbow**: Cores dinâmicas que mudam automaticamente.
+- 🌈 **Modo Arco-íris**: Cores dinâmicas que mudam automaticamente.
 - 🎨 **Customização Avançada de Cores**: Suporte a cores individuais por elemento (Name, Distance, Tracer, Highlight) via tabela ou Color3.
-- ⚡ **Performance Otimizada**: Sistema de auto-remoção de objetos inválidos, verificação de duplicatas, atualizações eficientes por frame, e armazenamento centralizado de Highlights em uma pasta no ReplicatedStorage. Otimizações adicionais no loop de renderização e cálculo de posições.
+- ⚡ **Performance Otimizada**: Sistema de auto-remoção de objetos inválidos, verificação de duplicatas, atualizações eficientes por frame, e armazenamento centralizado de Highlights em uma pasta no ReplicatedStorage.
 - 📱 **Responsivo**: Adapta-se a diferentes resoluções, com posicionamento preciso mesmo em distâncias próximas (1-10 metros).
 - 🔧 **Fácil de Usar**: API intuitiva com métodos para gerenciamento avançado de ESPs.
-- 🆕 **ESP Collision (Opcional e Individual)**: Ajusta transparência de parts invisíveis para melhor detecção de colisões, sem necessidade de Humanoid.
-- 🆕 **Customização de Distância**: Suporte a `DistancePrefix` e `DistanceSuffix` para personalizar a exibição da distância (ex: "Dist: 10m").
+- 🆕 **ESP Collision (Opcional e Individual)**: Cria um Humanoid "Esp" no alvo e ajusta transparência de parts invisíveis para melhor detecção de colisões.
+- 🆕 **Customização de Distância**: Suporte a `DistancePrefix` e `DistanceSuffix` para personalizar a exibição da distância (ex: "Dist: 10.5m").
 - 🆕 **Transparências de Highlight Configuráveis**: Ajuste global para transparências de preenchimento e outline via `SetGlobalHighlightTransparency`.
 - 🆕 **Pasta Central para Highlights**: Armazena Highlights em uma pasta no ReplicatedStorage (nome configurável via `SetHighlightFolderName`), usando `Adornee` para vincular ao alvo.
-- 🆕 **Novos Métodos**: Inclui `Readjustment`, `ToggleIndividual`, `SetColor`, `SetName`, `SetDisplayOrder`, `SetTextOutline`, `UpdateConfig`, `SetGlobalHighlightTransparency`, `SetHighlightFolderName`, `Unload`, `EnableAll`, `DisableAll`, `SetGlobalTextOutline`, `SetFov` e melhorias em `FovEsp`.
+- 🆕 **Novos Métodos**: Inclui `Readjustment`, `ToggleIndividual`, `SetColor`, `SetName`, `SetDisplayOrder`, `SetTextOutline`, `UpdateConfig`, `SetGlobalHighlightTransparency`, `SetHighlightFolderName`, `Unload`, `EnableAll`, `DisableAll`, `SetGlobalTextOutline`, e `FovEsp`.
 - 🆕 **Sistema de Camadas para Drawings**: Cada ESP tem um `DisplayOrder` individual (ZIndex para Tracer, Name, Distance), permitindo sobreposição de elementos.
 - 🆕 **Otimização de Highlights**: Highlights são criados uma vez por ESP e atualizados eficientemente, evitando recriação constante.
 - 🆕 **Função de Descarregamento**: Método `Unload` limpa a biblioteca, desconecta eventos e remove recursos.
 - 🆕 **Controle Global de Visibilidade**: Funções `EnableAll` e `DisableAll` para habilitar/desabilitar todos os ESPs.
 - 🆕 **Tipos Individuais de ESP**: Cada ESP pode configurar tipos específicos (Tracer, Name, Distance, HighlightFill, HighlightOutline), respeitando configurações globais.
-- 🆕 **Fallback para Centro do Modelo**: Usa o centro do modelo como referência se não houver partes visíveis, com cálculo otimizado usando Magnitude.
+- 🆕 **Fallback para Centro do Modelo**: Usa o centro do modelo como referência se não houver partes visíveis.
 - 🆕 **Propriedades de Outline para Textos**: Configurável global e individualmente (habilitado, cor, espessura).
 - 🆕 **Dependência de Cor Dinâmica**: Função personalizada para calcular cores com base em variáveis como distância ou posição.
 - 🆕 **Restart on Respawn**: Recria objetos Drawing automaticamente ao respawn do jogador local.
-- 🆕 **ESP FOV**: Limita a renderização a um campo de visão definido, com círculo visual (`Drawing Circle`) opcional e configurações aprimoradas.
-- 🆕 **Personalizações Individuais**: Suporte a `Font`, `Opacity`, `LineThickness`, `FontSize`, `MaxDistance` e `MinDistance` por ESP.
-- 🐛 **Correções e Melhorias (V1.7)**:
-  - **Organização Melhorada**: Refatoração de funções auxiliares e APIs para maior clareza e manutenção.
-  - **Correções em APIs**: Ajustes em `ToggleIndividual` para toggle opcional, `SetName` atualiza texto imediatamente, e correções em colisões.
-  - **Otimizações de Performance**: Remoção de Humanoid desnecessário, uso dinâmico de partes visíveis, cálculos mais eficientes no loop de renderização.
-  - **Suporte Aprimorado para Collision**: Ajuste de transparência para 0.98 em parts >=0.99, com restauração precisa.
-  - **Adição de Opções**: Novos clamps em configurações globais (ex: FontSize 8-36, LineThickness 0.5-5), método `SetFov` para controle detalhado.
-  - **Outras Correções**: Formatação de distância para inteiro (`math.floor`), delay em `AddToPlayer` para carregamento, e melhorias em FOV.
+- 🆕 **ESP FOV**: Limita a renderização a um campo de visão definido, com círculo visual (`Drawing Circle`) opcional.
+- 🆕 **Personalizações Individuais**: Suporte a `Font`, `Opacity`, `LineThickness`, `FontSize`, `MaxDistance`, e `MinDistance` por ESP.
+- 🐛 **Correções e Melhorias (V1.6.5)**:
+  - **Otimização de Performance**: Refactoring de código duplicado, melhorias no loop de renderização.
+  - **Correção de Referência de Câmera**: Garante consistência na obtenção da câmera atual.
+  - **Remoção de Containers para Nome e Distância**: Substituídos por `DistancePrefix` e `DistanceSuffix` apenas para distância.
+  - **FOV com Drawing Circle**: Implementação de círculo visual para FOV, configurável via `FovEsp`.
+  - **Novas Personalizações por ESP**: Adição de `Font`, `Opacity`, `LineThickness`, `FontSize`, `MaxDistance`, e `MinDistance`.
 
 ## 🚀 Instalação
 
 ```lua
-local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARES/KoltESP-Library/refs/heads/main/Library.lua"))()
+local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 ```
-
-**Nota**: Corrigido o nome do repositório para DH-SOARES (anteriormente DH-SOARESE).
 
 ## 📋 Sumário (Atalhos)
 
@@ -60,7 +58,7 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 ### 🎯 Componentes ESP
 - **Tracer**: Linha do ponto de origem configurável até o centro do alvo.
 - **Nome**: Exibe o nome do objeto, centralizado, com outline configurável.
-- **Distância**: Mostra a distância em metros com formatação precisa (ex: "Dist: 10m"), com prefixo/sufixo customizáveis.
+- **Distância**: Mostra a distância em metros com formatação precisa (ex: "Dist: 10.5m"), com prefixo/sufixo customizáveis.
 - **Highlight**: Contorno e preenchimento colorido ao redor do objeto, com transparências ajustáveis globalmente.
 
 ### 🎮 Origens do Tracer
@@ -74,14 +72,16 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 
 ### 🆕 Opção de Collision
 - Ativada via `Collision = true` na configuração.
-- Deixa as collision do alvo visíveis. 
+- Cria um Humanoid chamado "Esp" no alvo.
+- Ajusta transparência de parts com valor 1 para 0.99.
+- Restaura transparências originais ao remover o ESP.
 
 ### 🆕 Propriedades de Distância
 - **DistancePrefix**: Prefixo antes do valor da distância (ex: "Dist:").
 - **DistanceSuffix**: Sufixo após o valor da distância (ex: "m").
 - **TextOutlineEnabled**: Habilita/desabilita outline para textos.
 - **TextOutlineColor**: Cor do outline.
-- **TextOutlineThickness**: Espessura do outline (armazenada para uso futuro, clamp 1-3 globalmente).
+- **TextOutlineThickness**: Espessura do outline (armazenada para uso futuro).
 
 ### 🆕 Gerenciamento de Highlights
 - Highlights armazenados em uma pasta no ReplicatedStorage (padrão: "Highlight Folder").
@@ -99,7 +99,7 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 - Respeita configurações globais (ex: se `ShowTracer = false` globalmente, não aparece).
 
 ### 🆕 Fallback para Centro do Modelo
-- Usa o centro do bounding box do modelo como referência se não houver partes visíveis, com cálculo otimizado.
+- Usa o centro do bounding box do modelo como referência se não houver partes visíveis.
 
 ### 🆕 Dependência de Cor Dinâmica
 - Configurável via `ColorDependency = function(esp, distance, pos3D)`.
@@ -110,23 +110,23 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 
 ### 🆕 ESP FOV
 - Limita visibilidade a um ângulo de visão definido.
-- Suporte a círculo visual via `Drawing Circle`, configurável com `SetFov`.
+- Suporte a círculo visual via `Drawing Circle`, configurável com `FovEsp`.
 
 ### 🆕 Personalizações Individuais
-- Suporte a `Font`, `Opacity`, `LineThickness`, `FontSize`, `MaxDistance` e `MinDistance` por ESP.
+- Suporte a `Font`, `Opacity`, `LineThickness`, `FontSize`, `MaxDistance`, e `MinDistance` por ESP.
 
 ## 🛠️ Uso Básico
 
 ### Adicionando ESP a um Objeto
 
 ```lua
-local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARES/KoltESP-Library/refs/heads/main/Library.lua"))()
+local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
 -- Configurações iniciais
 KoltESP:SetHighlightFolderName("MyESPHighlights")
 KoltESP:SetGlobalHighlightTransparency({Filled = 0.6, Outline = 0.4})
 KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
-KoltESP:SetFov(true, 90, true)
+KoltESP:FovEsp(true, 90)
 
 -- Adicionar ESP básico
 KoltESP:Add(workspace.SomeModel)
@@ -217,7 +217,7 @@ KoltESP:UpdateConfig(workspace.SomeModel, {
 ### Controlando ESP Individualmente
 
 ```lua
-KoltESP:ToggleIndividual(workspace.SomeModel)  -- Toggle (sem argumento)
+KoltESP:ToggleIndividual(workspace.SomeModel, false)
 KoltESP:SetColor(workspace.SomeModel, Color3.fromRGB(0, 255, 0))
 KoltESP:SetName(workspace.SomeModel, "Novo Nome")
 KoltESP:SetDisplayOrder(workspace.SomeModel, 7)
@@ -262,7 +262,7 @@ KoltESP:SetGlobalFont(3)  -- Monospace
 ```lua
 KoltESP.GlobalSettings.MaxDistance = 1000
 KoltESP.GlobalSettings.MinDistance = 0
-KoltESP:SetFov(true, 120, true)  -- Habilitado, FOV 120, círculo visível
+KoltESP:FovEsp(true, 120)
 ```
 
 ### Controle Global de Visibilidade
@@ -277,12 +277,12 @@ KoltESP:DisableAll()
 ### 🧑‍🤝‍🧑 ESP para Jogadores
 
 ```lua
-local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARES/KoltESP-Library/refs/heads/main/Library.lua"))()
+local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
 KoltESP:SetHighlightFolderName("PlayerESPHighlights")
 KoltESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
 KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
-KoltESP:SetFov(true, 90, true)
+KoltESP:FovEsp(true, 90)
 KoltESP:SetGlobalTracerOrigin("Top")
 KoltESP:SetGlobalRainbow(false)
 KoltESP:SetGlobalOpacity(0.8)
@@ -341,12 +341,12 @@ end)
 ### 🎯 ESP para Objetos Específicos
 
 ```lua
-local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARES/KoltESP-Library/refs/heads/main/Library.lua"))()
+local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
 KoltESP:SetHighlightFolderName("ObjectESPHighlights")
 KoltESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3})
 KoltESP:SetGlobalTextOutline(false, Color3.fromRGB(255, 255, 255), 2)
-KoltESP:SetFov(true, 60, false)
+KoltESP:FovEsp(true, 60)
 
 local function addPartESP(partName, espName, colorTable, collision, prefix, suffix, displayOrder, types, font, opacity, lineThickness, fontSize, maxDistance, minDistance, textOutlineEnabled, textOutlineColor)
     for _, part in pairs(workspace:GetDescendants()) do
@@ -380,7 +380,7 @@ local function addPartESP(partName, espName, colorTable, collision, prefix, suff
     end
 end
 
-addPartESP("Chest", "💰 Baú", nil, true, "Dist: ", "m", 5, { Tracer = false, HighlightFill = true }, 3, 0.9, 2, 16, 500, 10, true, Color3.fromRGB(0, 0, 0))
+addPartESP("Chest", "💰 Baú", nil, true, "Dist: ", ".m", 5, { Tracer = false, HighlightFill = true }, 3, 0.9, 2, 16, 500, 10, true, Color3.fromRGB(0, 0, 0))
 addPartESP("Enemy", "👹 Inimigo", { Tracer = {255, 0, 0}, Highlight = { Filled = {200, 0, 0}, Outline = {255, 0, 0} } }, false, "", "", 10, { Distance = false, HighlightOutline = true }, 2, 0.8, 1.5, 14, 1000, 0, false, Color3.fromRGB(255, 255, 255))
 addPartESP("PowerUp", "⚡ Power-Up", nil, true, "", " metros", 2, { Name = true, HighlightFill = false }, 3, 0.7, 1, 12, 300, 5, true, Color3.fromRGB(50, 50, 50))
 ```
@@ -402,7 +402,7 @@ addPartESP("PowerUp", "⚡ Power-Up", nil, true, "", " metros", 2, { Name = true
     Opacity = 0.8,
     LineThickness = 1.5,
     FontSize = 14,
-    Font = 3,  -- 0: UI, 1: System, 2: Plex, 3: Monospace
+    Font = 3,  -- Monospace
     AutoRemoveInvalid = true,
     HighlightTransparency = { Filled = 0.5, Outline = 0.3 },
     TextOutlineEnabled = true,
@@ -456,8 +456,8 @@ print("ESP ativo:", KoltESP.Enabled)
 print("Objetos rastreados:", #KoltESP.Objects)
 ```
 
-**Desenvolvido por Kolt (DH_SOARES)** | Versão 1.7 | Última atualização: Outubro 2025
+**Desenvolvido por Kolt (DH_SOARES)** | Versão 1.6.5 | Última atualização: Outubro 2025
 
 ---
 
-Este README foi atualizado e organizado para a versão 1.7, com seções mais claras, correções de typos (como no URL do repositório) e reflexo das mudanças no código. Se precisar de mais ajustes, é só avisar!
+Este README reflete as mudanças da versão 1.6.5, com ênfase nas novas personalizações, otimizações e correções. Se precisar de ajustes adicionais ou de um formato diferente (ex: Markdown para GitHub), é só avisar!
