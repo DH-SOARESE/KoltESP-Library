@@ -1,11 +1,11 @@
 # 📦 Kolt ESP Library V1.7
 
-Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente customizável para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Projetada para oferecer um sistema de ESP robusto e responsivo, com foco em performance, facilidade de uso e gerenciamento otimizado de recursos. Esta versão introduz melhorias em organização, correções em APIs, otimizações de performance, remoção de Humanoid desnecessário para collision, suporte aprimorado para collision e adição de mais opções de configuração.
+Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente customizável para Roblox, desenvolvida por **Kolt**. Projetada para oferecer um sistema de ESP robusto e responsivo, com foco em performance, facilidade de uso e gerenciamento otimizado de recursos. Esta versão introduz melhorias em organização, correções em APIs, otimizações de performance, remoção de Humanoid desnecessário para collision, suporte aprimorado para collision e adição de mais opções de configuração.
 
 ## ✨ Características
 
 - 🎯 **ESP Completo**: Suporte a Tracer, Nome, Distância e Highlight (preenchimento e outline).
-- 🌈 **Modo Arco-íris**: Cores dinâmicas que mudam automaticamente.
+- 🌈 **Modo Rainbow**: Cores dinâmicas que mudam automaticamente.
 - 🎨 **Customização Avançada de Cores**: Suporte a cores individuais por elemento (Name, Distance, Tracer, Highlight) via tabela ou Color3.
 - ⚡ **Performance Otimizada**: Sistema de auto-remoção de objetos inválidos, verificação de duplicatas, atualizações eficientes por frame, e armazenamento centralizado de Highlights em uma pasta no ReplicatedStorage. Otimizações adicionais no loop de renderização e cálculo de posições.
 - 📱 **Responsivo**: Adapta-se a diferentes resoluções, com posicionamento preciso mesmo em distâncias próximas (1-10 metros).
@@ -74,8 +74,7 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 
 ### 🆕 Opção de Collision
 - Ativada via `Collision = true` na configuração.
-- Ajusta transparência de parts com valor >=0.99 para 0.98.
-- Restaura transparências originais ao remover o ESP.
+- Deixa as collision do alvo visíveis. 
 
 ### 🆕 Propriedades de Distância
 - **DistancePrefix**: Prefixo antes do valor da distância (ex: "Dist:").
