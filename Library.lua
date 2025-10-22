@@ -552,37 +552,21 @@ end
 --// Função de descarregamento
 function KoltESP:Unload()
     if self.Unloaded then return end
-    self.Unloaded = true
-
-    --// Desconecta eventos
     if self.connection then
         self.connection:Disconnect()
         self.connection = nil
     end
-
-    --// Desativa a ESP
     self.Enabled = false
-
-    --// Remove ESPs associadas aos jogadores
     for player in pairs(PlayerESPs) do
         self:RemoveFromPlayer(player)
     end
-
-    --// Limpa objetos ESP existentes
-    for _, esp in ipairs(self.Objects) do
-        CleanupESP(esp)
-    end
-
-    --// Limpa referências internas
     self:Clear()
-
-    --// Remove a pasta de Highlights, se existir
     local folder = ReplicatedStorage:FindFirstChild(HighlightFolderName)
     if folder then
         folder:Destroy()
     end
-
     highlightFolder = nil
+    self.Unloaded = true
 end
 
 --// Sistema de habilitar/desabilitar global
@@ -844,7 +828,7 @@ KoltESP.connection = RunService.RenderStepped:Connect(function()
         if esp.DistanceFloat then
             distStr = string.format("%.1f", distance)
         else
-            distStr = tostring(math.floor(distance))
+            distStr = tostring(math.floor(distance + 0.5))
         end
         esp.distanceText.Text = esp.DistancePrefix .. distStr .. esp.DistanceSuffix
         esp.distanceText.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Distance)
