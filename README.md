@@ -55,7 +55,9 @@ KoltESP:Add(workspace.SomeModel, {
     Collision = true,
     DistancePrefix = "Dist: ",
     DistanceSuffix = "m",
+    DistanceFloat = false
     DisplayOrder = 5,
+
     Types = {
         Tracer = true,
         Name = true,
@@ -258,7 +260,10 @@ Origens: `Top`, `Center`, `Bottom`, `Left`, `Right`
 ```lua
 KoltESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3})
 ```
-
+#### SetDistance Float 
+```lua
+KoltESP:SetGlobalDistanceFloat(true)
+```
 #### SetHighlightFolderName
 ```lua
 KoltESP:SetHighlightFolderName(name)
