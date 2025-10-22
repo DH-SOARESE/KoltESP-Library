@@ -41,6 +41,7 @@ local KoltESP = {
         RainbowMode = false,
         MaxDistance = math.huge,
         MinDistance = 0,
+        DistanceFloat = true,
         Opacity = 0.8,
         LineThickness = 1.5,
         FontSize = 14,
@@ -230,13 +231,23 @@ end
 --// Função auxiliar para limpar drawings e setups de um ESP
 local function CleanupESP(esp)
     for _, draw in ipairs({esp.tracerLine, esp.nameText, esp.distanceText}) do
-        if draw then pcall(draw.Remove, draw) end
+        if draw then
+            draw.Visible = false
+            pcall(draw.Remove, draw)
+        end
     end
     esp.tracerLine = nil
     esp.nameText = nil
     esp.distanceText = nil
-    if esp.highlight then pcall(esp.highlight.Destroy, esp.highlight) esp.highlight = nil end
-    if esp.humanoid then pcall(esp.humanoid.Destroy, esp.humanoid) esp.humanoid = nil end
+    if esp.highlight then
+        esp.highlight.Enabled = false
+        pcall(esp.highlight.Destroy, esp.highlight)
+        esp.highlight = nil
+    end
+    if esp.humanoid then
+        pcall(esp.humanoid.Destroy, esp.humanoid)
+        esp.humanoid = nil
+    end
     for _, mod in ipairs(esp.ModifiedParts) do
         if mod.Part and mod.Part.Parent then
             mod.Part.Transparency = mod.OriginalTransparency
@@ -323,7 +334,7 @@ function KoltESP:Add(target, config)
         MaxDistance = config and config.MaxDistance or self.GlobalSettings.MaxDistance,
         MinDistance = config and config.MinDistance or self.GlobalSettings.MinDistance,
         Collision = config and config.Collision or false,
-        DistanceFloat = config and config.DistanceFloat ~= nil and config.DistanceFloat or true
+        DistanceFloat = config and config.DistanceFloat ~= nil and config.DistanceFloat or self.GlobalSettings.DistanceFloat
     }
 
     applyColors(cfg, config)
@@ -367,7 +378,7 @@ function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.MaxDistance = newConfig and newConfig.MaxDistance or self.GlobalSettings.MaxDistance
     esp.MinDistance = newConfig and newConfig.MinDistance or self.GlobalSettings.MinDistance
     esp.Collision = newConfig and newConfig.Collision or false
-    esp.DistanceFloat = newConfig and newConfig.DistanceFloat ~= nil and newConfig.DistanceFloat or true
+    esp.DistanceFloat = newConfig and newConfig.DistanceFloat ~= nil and newConfig.DistanceFloat or self.GlobalSettings.DistanceFloat
 
     applyColors(esp, newConfig)
 
@@ -665,6 +676,11 @@ function KoltESP:SetGlobalFont(font)
         self.GlobalSettings.Font = font
         self:UpdateGlobalSettings()
     end
+end
+
+function KoltESP:SetGlobalDistanceFloat(enabled)
+    if self.Unloaded then return end
+    self.GlobalSettings.DistanceFloat = enabled
 end
 
 --// Suporte a players com respawn/reset
