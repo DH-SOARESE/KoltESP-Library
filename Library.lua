@@ -53,7 +53,6 @@ local KoltESP = {
         TextOutlineEnabled = true,
         TextOutlineColor = Color3.fromRGB(0, 0, 0),
         TextOutlineThickness = 1,
-        DistanceFloat = true,
     }
 }
 
@@ -324,7 +323,7 @@ function KoltESP:Add(target, config)
         MaxDistance = config and config.MaxDistance or self.GlobalSettings.MaxDistance,
         MinDistance = config and config.MinDistance or self.GlobalSettings.MinDistance,
         Collision = config and config.Collision or false,
-        DistanceFloat = config and config.DistanceFloat ~= nil and config.DistanceFloat or self.GlobalSettings.DistanceFloat
+        DistanceFloat = config and config.DistanceFloat ~= nil and config.DistanceFloat or true
     }
 
     applyColors(cfg, config)
@@ -368,7 +367,7 @@ function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.MaxDistance = newConfig and newConfig.MaxDistance or self.GlobalSettings.MaxDistance
     esp.MinDistance = newConfig and newConfig.MinDistance or self.GlobalSettings.MinDistance
     esp.Collision = newConfig and newConfig.Collision or false
-    esp.DistanceFloat = newConfig and newConfig.DistanceFloat ~= nil and newConfig.DistanceFloat or self.GlobalSettings.DistanceFloat
+    esp.DistanceFloat = newConfig and newConfig.DistanceFloat ~= nil and newConfig.DistanceFloat or true
 
     applyColors(esp, newConfig)
 
@@ -553,21 +552,37 @@ end
 --// Função de descarregamento
 function KoltESP:Unload()
     if self.Unloaded then return end
+    self.Unloaded = true
+
+    --// Desconecta eventos
     if self.connection then
         self.connection:Disconnect()
         self.connection = nil
     end
+
+    --// Desativa a ESP
     self.Enabled = false
+
+    --// Remove ESPs associadas aos jogadores
     for player in pairs(PlayerESPs) do
         self:RemoveFromPlayer(player)
     end
+
+    --// Limpa objetos ESP existentes
+    for _, esp in ipairs(self.Objects) do
+        CleanupESP(esp)
+    end
+
+    --// Limpa referências internas
     self:Clear()
+
+    --// Remove a pasta de Highlights, se existir
     local folder = ReplicatedStorage:FindFirstChild(HighlightFolderName)
     if folder then
         folder:Destroy()
     end
+
     highlightFolder = nil
-    self.Unloaded = true
 end
 
 --// Sistema de habilitar/desabilitar global
