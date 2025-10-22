@@ -53,7 +53,6 @@ local KoltESP = {
         TextOutlineEnabled = true,
         TextOutlineColor = Color3.fromRGB(0, 0, 0),
         TextOutlineThickness = 1,
-        DistanceFloat = true,
     }
 }
 
@@ -324,7 +323,7 @@ function KoltESP:Add(target, config)
         MaxDistance = config and config.MaxDistance or self.GlobalSettings.MaxDistance,
         MinDistance = config and config.MinDistance or self.GlobalSettings.MinDistance,
         Collision = config and config.Collision or false,
-        DistanceFloat = config and config.DistanceFloat ~= nil and config.DistanceFloat or self.GlobalSettings.DistanceFloat
+        DistanceFloat = config and config.DistanceFloat ~= nil and config.DistanceFloat or true
     }
 
     applyColors(cfg, config)
@@ -368,7 +367,7 @@ function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.MaxDistance = newConfig and newConfig.MaxDistance or self.GlobalSettings.MaxDistance
     esp.MinDistance = newConfig and newConfig.MinDistance or self.GlobalSettings.MinDistance
     esp.Collision = newConfig and newConfig.Collision or false
-    esp.DistanceFloat = newConfig and newConfig.DistanceFloat ~= nil and newConfig.DistanceFloat or self.GlobalSettings.DistanceFloat
+    esp.DistanceFloat = newConfig and newConfig.DistanceFloat ~= nil and newConfig.DistanceFloat or true
 
     applyColors(esp, newConfig)
 
@@ -568,10 +567,6 @@ function KoltESP:Unload()
         folder:Destroy()
     end
     highlightFolder = nil
-    if self.TracerDot then
-        self.TracerDot:Remove()
-        self.TracerDot = nil
-    end
 end
 
 --// Sistema de habilitar/desabilitar global
@@ -672,11 +667,6 @@ function KoltESP:SetGlobalFont(font)
     end
 end
 
-function KoltESP:SetGlobalDistanceFloat(enabled)
-    if self.Unloaded then return end
-    self.GlobalSettings.DistanceFloat = enabled
-end
-
 --// Suporte a players com respawn/reset
 local PlayerESPs = {}
 
@@ -729,16 +719,6 @@ function KoltESP:RemoveFromPlayer(player)
     PlayerESPs[player] = nil
 end
 
---// Cria o dot global para tracer origin
-KoltESP.TracerDot = createDrawing("Circle", {
-    Radius = 3,
-    Thickness = 1,
-    Filled = true,
-    Transparency = 1,
-    Visible = false,
-    ZIndex = 1000  -- Alto para ficar sobre as linhas
-})
-
 --// Atualização por frame
 KoltESP.connection = RunService.RenderStepped:Connect(function()
     if not KoltESP.Enabled then return end
@@ -748,16 +728,6 @@ KoltESP.connection = RunService.RenderStepped:Connect(function()
     local time = tick()
     local useRainbow = KoltESP.GlobalSettings.RainbowMode
     local rainbowColor = getRainbowColor(time)
-
-    local originPos = tracerOrigins[KoltESP.GlobalSettings.TracerOrigin](vs)
-    local showTracerDot = KoltESP.GlobalSettings.ShowTracer
-    if showTracerDot then
-        KoltESP.TracerDot.Position = originPos
-        KoltESP.TracerDot.Color = useRainbow and rainbowColor or KoltESP.Theme.SecondaryColor
-        KoltESP.TracerDot.Visible = true
-    else
-        KoltESP.TracerDot.Visible = false
-    end
 
     for i = #KoltESP.Objects, 1, -1 do
         local esp = KoltESP.Objects[i]
@@ -841,7 +811,7 @@ KoltESP.connection = RunService.RenderStepped:Connect(function()
 
         -- Tracer
         esp.tracerLine.Visible = KoltESP.GlobalSettings.ShowTracer and esp.Types.Tracer
-        esp.tracerLine.From = originPos
+        esp.tracerLine.From = tracerOrigins[KoltESP.GlobalSettings.TracerOrigin](vs)
         esp.tracerLine.To = Vector2.new(pos2D.X, pos2D.Y)
         esp.tracerLine.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Tracer)
 
@@ -854,7 +824,12 @@ KoltESP.connection = RunService.RenderStepped:Connect(function()
         -- Distance
         esp.distanceText.Visible = KoltESP.GlobalSettings.ShowDistance and esp.Types.Distance
         esp.distanceText.Position = Vector2.new(centerX, startY + nameSize)
-        local distStr = esp.DistanceFloat and string.format("%.1f", distance) or tostring(math.floor(distance))
+        local distStr
+        if esp.DistanceFloat then
+            distStr = string.format("%.1f", distance)
+        else
+            distStr = tostring(math.floor(distance))
+        end
         esp.distanceText.Text = esp.DistancePrefix .. distStr .. esp.DistanceSuffix
         esp.distanceText.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Distance)
 
