@@ -1,6 +1,6 @@
 # Kolt ESP Library V1.6.5
 
-Biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e responsiva para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Projetada para alto desempenho, com gerenciamento otimizado de recursos, customizações avançadas e suporte a destaques visuais robustos.
+Biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e responsiva para Roblox, desenvolvida por **Kolt Hub**. Projetada para alto desempenho, com gerenciamento otimizado de recursos, customizações avançadas e suporte a destaques visuais robustos.
 
 ## Características Principais
 
@@ -21,7 +21,7 @@ Biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e responsiva pa
 Carregue a biblioteca diretamente via HTTP:
 
 ```lua
-local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+local LibraryESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 ```
 
 ## Documentação
@@ -44,10 +44,10 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 
 ```lua
 -- ESP básico com configurações padrão
-KoltESP:Add(workspace.SomeModel)
+LibraryESP:Add(workspace.SomeModel)
 
 -- ESP com nome personalizado e distância em float
-KoltESP:Add(workspace.SomeModel, {
+LibraryESP:Add(workspace.SomeModel, {
     Name = "Alvo Especial",
     DistanceFloat = true  -- Exibe distância como decimal (ex: 12.5)
 })
@@ -56,7 +56,7 @@ KoltESP:Add(workspace.SomeModel, {
 ### Adicionando ESP Completo
 
 ```lua
-KoltESP:Add(workspace.SomeModel, {
+LibraryESP:Add(workspace.SomeModel, {
     Name = "Alvo Especial",
     Color = Color3.fromRGB(255, 0, 0),
     Collision = true,
@@ -88,50 +88,50 @@ KoltESP:Add(workspace.SomeModel, {
 
 ```lua
 -- Habilitar/desabilitar componentes globalmente
-KoltESP:SetGlobalESPType("ShowTracer", true)
-KoltESP:SetGlobalESPType("ShowName", true)
-KoltESP:SetGlobalESPType("ShowDistance", true)
-KoltESP:SetGlobalESPType("ShowHighlightFill", true)
-KoltESP:SetGlobalESPType("ShowHighlightOutline", true)
+LibraryESP:SetGlobalESPType("ShowTracer", true)
+LibraryESP:SetGlobalESPType("ShowName", true)
+LibraryESP:SetGlobalESPType("ShowDistance", true)
+LibraryESP:SetGlobalESPType("ShowHighlightFill", true)
+LibraryESP:SetGlobalESPType("ShowHighlightOutline", true)
 ```
 
 ### Aparência
 
 ```lua
 -- Origem do tracer (ponto inicial para todas as linhas)
-KoltESP:SetGlobalTracerOrigin("Bottom") -- Opções: Top, Center, Bottom, Left, Right
+LibraryESP:SetGlobalTracerOrigin("Bottom") -- Opções: Top, Center, Bottom, Left, Right
 
 -- Estilo visual
-KoltESP:SetGlobalRainbow(true)  -- Ativa modo rainbow para cores dinâmicas
-KoltESP:SetGlobalOpacity(0.8)
-KoltESP:SetGlobalFontSize(16)
-KoltESP:SetGlobalLineThickness(2)
-KoltESP:SetGlobalFont(3) -- 0: UI, 1: System, 2: Plex, 3: Monospace
+LibraryESP:SetGlobalRainbow(true)  -- Ativa modo rainbow para cores dinâmicas
+LibraryESP:SetGlobalOpacity(0.8)
+LibraryESP:SetGlobalFontSize(16)
+LibraryESP:SetGlobalLineThickness(2)
+LibraryESP:SetGlobalFont(3) -- 0: UI, 1: System, 2: Plex, 3: Monospace
 
 -- Transparência dos highlights
-KoltESP:SetGlobalHighlightTransparency({
+LibraryESP:SetGlobalHighlightTransparency({
     Filled = 0.5,
     Outline = 0.3
 })
 
 -- Contorno de texto
-KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
+LibraryESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
 ```
 
 ### Distância
 
 ```lua
-KoltESP.GlobalSettings.MaxDistance = 1000
-KoltESP.GlobalSettings.MinDistance = 0
+LibraryESP.GlobalSettings.MaxDistance = 1000
+LibraryESP.GlobalSettings.MinDistance = 0
 ```
 
 ### Controle Geral
 
 ```lua
-KoltESP:EnableAll()  -- Ativa todos os ESPs e recria drawings
-KoltESP:DisableAll() -- Desativa todos os ESPs e limpa drawings
-KoltESP:Clear()      -- Remove todos os ESPs ativos
-KoltESP:Unload()     -- Descarrega a biblioteca, desconecta eventos e limpa todos os recursos (incluindo pasta de highlights)
+LibraryESP:EnableAll()  -- Ativa todos os ESPs e recria drawings
+LibraryESP:DisableAll() -- Desativa todos os ESPs e limpa drawings
+LibraryESP:Clear()      -- Remove todos os ESPs ativos
+LibraryESP:Unload()     -- Descarrega a biblioteca, desconecta eventos e limpa todos os recursos (incluindo pasta de highlights)
 ```
 
 ---
@@ -141,7 +141,7 @@ KoltESP:Unload()     -- Descarrega a biblioteca, desconecta eventos e limpa todo
 ### Reajustar ESP
 
 ```lua
-KoltESP:Readjustment(workspace.NewModel, workspace.OldModel, {
+LibraryESP:Readjustment(workspace.NewModel, workspace.OldModel, {
     Name = "Novo Alvo",
     Color = Color3.fromRGB(0, 255, 255),
     DisplayOrder = 8,
@@ -152,7 +152,7 @@ KoltESP:Readjustment(workspace.NewModel, workspace.OldModel, {
 ### Atualizar Configurações
 
 ```lua
-KoltESP:UpdateConfig(workspace.SomeModel, {
+LibraryESP:UpdateConfig(workspace.SomeModel, {
     Name = "Alvo Atualizado",
     Color = {
         Name = {255, 255, 0},
@@ -176,16 +176,16 @@ KoltESP:UpdateConfig(workspace.SomeModel, {
 
 ```lua
 -- Alternar visibilidade
-KoltESP:ToggleIndividual(workspace.SomeModel, false)
+LibraryESP:ToggleIndividual(workspace.SomeModel, false)
 
 -- Alterar propriedades
-KoltESP:SetColor(workspace.SomeModel, Color3.fromRGB(0, 255, 0))
-KoltESP:SetName(workspace.SomeModel, "Novo Nome")
-KoltESP:SetDisplayOrder(workspace.SomeModel, 7)
-KoltESP:SetTextOutline(workspace.SomeModel, true, Color3.fromRGB(0, 0, 0), 1)
+LibraryESP:SetColor(workspace.SomeModel, Color3.fromRGB(0, 255, 0))
+LibraryESP:SetName(workspace.SomeModel, "Novo Nome")
+LibraryESP:SetDisplayOrder(workspace.SomeModel, 7)
+LibraryESP:SetTextOutline(workspace.SomeModel, true, Color3.fromRGB(0, 0, 0), 1)
 
 -- Remover
-KoltESP:Remove(workspace.SomeModel)
+LibraryESP:Remove(workspace.SomeModel)
 ```
 
 ---
@@ -226,18 +226,18 @@ KoltESP:Remove(workspace.SomeModel)
 ### ESP para Jogadores
 
 ```lua
-local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+local LibraryESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
 -- Configuração inicial global
-KoltESP:SetHighlightFolderName("PlayerESPHighlights")
-KoltESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
-KoltESP:SetGlobalTracerOrigin("Top")
-KoltESP.GlobalSettings.MaxDistance = 500
+LibraryESP:SetHighlightFolderName("PlayerESPHighlights")
+LibraryESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
+LibraryESP:SetGlobalTracerOrigin("Top")
+LibraryESP.GlobalSettings.MaxDistance = 500
 
 local function addPlayerESP(player)
     if player == game.Players.LocalPlayer then return end
     
-    KoltESP:AddToPlayer(player, {
+    LibraryESP:AddToPlayer(player, {
         Name = player.Name,
         DistancePrefix = "Dist: ",
         DistanceSuffix = "m",
@@ -266,13 +266,13 @@ end
 -- Eventos para novos jogadores
 game.Players.PlayerAdded:Connect(addPlayerESP)
 game.Players.PlayerRemoving:Connect(function(player)
-    KoltESP:RemoveFromPlayer(player)
+    LibraryESP:RemoveFromPlayer(player)
 end)
 
 -- Tecla para descarregar a biblioteca
 game:GetService("UserInputService").InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F10 then
-        KoltESP:Unload()
+        LibraryESP:Unload()
     end
 end)
 ```
@@ -280,12 +280,12 @@ end)
 ### ESP para Objetos Específicos
 
 ```lua
-local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+local LibraryESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
 local function addPartESP(partName, config)
     for _, part in pairs(workspace:GetDescendants()) do
         if part.Name == partName and (part:IsA("BasePart") or part:IsA("Model")) then
-            KoltESP:Add(part, config)
+            LibraryESP:Add(part, config)
         end
     end
 end
