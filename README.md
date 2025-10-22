@@ -1,38 +1,38 @@
-
 # 📦 Kolt ESP Library V1.6.5
 
-Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente customizável para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Projetada para oferecer um sistema de ESP robusto e responsivo, com foco em performance, facilidade de uso e gerenciamento otimizado de recursos. Esta versão introduz melhorias em performance, novas opções de personalização, suporte avançado a FOV, e maior controle sobre configurações individuais.
+Uma biblioteca ESP (Extra Sensory Perception) minimalista, eficiente e altamente customizável para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Projetada para oferecer um sistema de ESP robusto e responsivo, com foco em performance, facilidade de uso e gerenciamento otimizado de recursos. Esta versão introduz melhorias em performance em gerenciamento de recursos, limpeza de ESPs ao pausar a biblioteca e recriação ao retomar, e prevenção de uso após descarregamento.
 
 ## ✨ Características
 
 - 🎯 **ESP Completo**: Suporte a Tracer, Nome, Distância e Highlight (preenchimento e outline).
-- 🌈 **Modo Arco-íris**: Cores dinâmicas que mudam automaticamente.
+- 🌈 **Modo Rainbow**: Cores dinâmicas que mudam automaticamente.
 - 🎨 **Customização Avançada de Cores**: Suporte a cores individuais por elemento (Name, Distance, Tracer, Highlight) via tabela ou Color3.
 - ⚡ **Performance Otimizada**: Sistema de auto-remoção de objetos inválidos, verificação de duplicatas, atualizações eficientes por frame, e armazenamento centralizado de Highlights em uma pasta no ReplicatedStorage.
 - 📱 **Responsivo**: Adapta-se a diferentes resoluções, com posicionamento preciso mesmo em distâncias próximas (1-10 metros).
 - 🔧 **Fácil de Usar**: API intuitiva com métodos para gerenciamento avançado de ESPs.
-- 🆕 **ESP Collision (Opcional e Individual)**: Cria um Humanoid "Esp" no alvo e ajusta transparência de parts invisíveis para melhor detecção de colisões.
+- 🆕 **ESP Collision (Opcional e Individual)**: Destaca todas Collision do alvo.
 - 🆕 **Customização de Distância**: Suporte a `DistancePrefix` e `DistanceSuffix` para personalizar a exibição da distância (ex: "Dist: 10.5m").
 - 🆕 **Transparências de Highlight Configuráveis**: Ajuste global para transparências de preenchimento e outline via `SetGlobalHighlightTransparency`.
 - 🆕 **Pasta Central para Highlights**: Armazena Highlights em uma pasta no ReplicatedStorage (nome configurável via `SetHighlightFolderName`), usando `Adornee` para vincular ao alvo.
-- 🆕 **Novos Métodos**: Inclui `Readjustment`, `ToggleIndividual`, `SetColor`, `SetName`, `SetDisplayOrder`, `SetTextOutline`, `UpdateConfig`, `SetGlobalHighlightTransparency`, `SetHighlightFolderName`, `Unload`, `EnableAll`, `DisableAll`, `SetGlobalTextOutline`, e `FovEsp`.
+- 🆕 **Novos Métodos**: Inclui `Readjustment`, `ToggleIndividual`, `SetColor`, `SetName`, `SetDisplayOrder`, `SetTextOutline`, `UpdateConfig`, `SetGlobalHighlightTransparency`, `SetHighlightFolderName`, `Unload`, `EnableAll`, `DisableAll`, `SetGlobalTextOutline`.
 - 🆕 **Sistema de Camadas para Drawings**: Cada ESP tem um `DisplayOrder` individual (ZIndex para Tracer, Name, Distance), permitindo sobreposição de elementos.
 - 🆕 **Otimização de Highlights**: Highlights são criados uma vez por ESP e atualizados eficientemente, evitando recriação constante.
-- 🆕 **Função de Descarregamento**: Método `Unload` limpa a biblioteca, desconecta eventos e remove recursos.
-- 🆕 **Controle Global de Visibilidade**: Funções `EnableAll` e `DisableAll` para habilitar/desabilitar todos os ESPs.
+- 🆕 **Função de Descarregamento**: Método `Unload` limpa a biblioteca, desconecta eventos, remove recursos e impede uso posterior.
+- 🆕 **Controle Global de Visibilidade**: Funções `EnableAll` e `DisableAll` para habilitar/desabilitar todos os ESPs, com remoção e recriação de drawings.
 - 🆕 **Tipos Individuais de ESP**: Cada ESP pode configurar tipos específicos (Tracer, Name, Distance, HighlightFill, HighlightOutline), respeitando configurações globais.
 - 🆕 **Fallback para Centro do Modelo**: Usa o centro do modelo como referência se não houver partes visíveis.
 - 🆕 **Propriedades de Outline para Textos**: Configurável global e individualmente (habilitado, cor, espessura).
 - 🆕 **Dependência de Cor Dinâmica**: Função personalizada para calcular cores com base em variáveis como distância ou posição.
 - 🆕 **Restart on Respawn**: Recria objetos Drawing automaticamente ao respawn do jogador local.
-- 🆕 **ESP FOV**: Limita a renderização a um campo de visão definido, com círculo visual (`Drawing Circle`) opcional.
 - 🆕 **Personalizações Individuais**: Suporte a `Font`, `Opacity`, `LineThickness`, `FontSize`, `MaxDistance`, e `MinDistance` por ESP.
+- 🆕 **Gestão de Recursos**: Ao pausar (`DisableAll`), remove todos os drawings e setups; ao retomar (`EnableAll`), recria-os.
 - 🐛 **Correções e Melhorias (V1.6.5)**:
   - **Otimização de Performance**: Refactoring de código duplicado, melhorias no loop de renderização.
   - **Correção de Referência de Câmera**: Garante consistência na obtenção da câmera atual.
   - **Remoção de Containers para Nome e Distância**: Substituídos por `DistancePrefix` e `DistanceSuffix` apenas para distância.
-  - **FOV com Drawing Circle**: Implementação de círculo visual para FOV, configurável via `FovEsp`.
   - **Novas Personalizações por ESP**: Adição de `Font`, `Opacity`, `LineThickness`, `FontSize`, `MaxDistance`, e `MinDistance`.
+  - **Unload Seguro**: Limpa todos os ESPs e impede uso futuro da biblioteca.
+  - **Pause/Resume Otimizado**: Remove ESPs ao pausar e recria ao resumir.
 
 ## 🚀 Instalação
 
@@ -108,10 +108,6 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 ### 🆕 Restart on Respawn
 - Recria objetos Drawing ao respawn do jogador local.
 
-### 🆕 ESP FOV
-- Limita visibilidade a um ângulo de visão definido.
-- Suporte a círculo visual via `Drawing Circle`, configurável com `FovEsp`.
-
 ### 🆕 Personalizações Individuais
 - Suporte a `Font`, `Opacity`, `LineThickness`, `FontSize`, `MaxDistance`, e `MinDistance` por ESP.
 
@@ -126,7 +122,6 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 KoltESP:SetHighlightFolderName("MyESPHighlights")
 KoltESP:SetGlobalHighlightTransparency({Filled = 0.6, Outline = 0.4})
 KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
-KoltESP:FovEsp(true, 90)
 
 -- Adicionar ESP básico
 KoltESP:Add(workspace.SomeModel)
@@ -257,12 +252,11 @@ KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
 KoltESP:SetGlobalFont(3)  -- Monospace
 ```
 
-### Controle de Distância e FOV
+### Controle de Distância
 
 ```lua
 KoltESP.GlobalSettings.MaxDistance = 1000
 KoltESP.GlobalSettings.MinDistance = 0
-KoltESP:FovEsp(true, 120)
 ```
 
 ### Controle Global de Visibilidade
@@ -282,7 +276,6 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 KoltESP:SetHighlightFolderName("PlayerESPHighlights")
 KoltESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
 KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
-KoltESP:FovEsp(true, 90)
 KoltESP:SetGlobalTracerOrigin("Top")
 KoltESP:SetGlobalRainbow(false)
 KoltESP:SetGlobalOpacity(0.8)
@@ -346,7 +339,6 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 KoltESP:SetHighlightFolderName("ObjectESPHighlights")
 KoltESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3})
 KoltESP:SetGlobalTextOutline(false, Color3.fromRGB(255, 255, 255), 2)
-KoltESP:FovEsp(true, 60)
 
 local function addPartESP(partName, espName, colorTable, collision, prefix, suffix, displayOrder, types, font, opacity, lineThickness, fontSize, maxDistance, minDistance, textOutlineEnabled, textOutlineColor)
     for _, part in pairs(workspace:GetDescendants()) do
@@ -407,10 +399,7 @@ addPartESP("PowerUp", "⚡ Power-Up", nil, true, "", " metros", 2, { Name = true
     HighlightTransparency = { Filled = 0.5, Outline = 0.3 },
     TextOutlineEnabled = true,
     TextOutlineColor = Color3.fromRGB(0, 0, 0),
-    TextOutlineThickness = 1,
-    FovEnabled = false,
-    Fov = 90,
-    FovCircleEnabled = false
+    TextOutlineThickness = 1
 }
 ```
 
