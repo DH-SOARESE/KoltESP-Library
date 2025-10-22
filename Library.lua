@@ -41,7 +41,6 @@ local KoltESP = {
         RainbowMode = false,
         MaxDistance = math.huge,
         MinDistance = 0,
-        DistanceFloat = true,
         Opacity = 0.8,
         LineThickness = 1.5,
         FontSize = 14,
@@ -54,6 +53,7 @@ local KoltESP = {
         TextOutlineEnabled = true,
         TextOutlineColor = Color3.fromRGB(0, 0, 0),
         TextOutlineThickness = 1,
+        DistanceFloat = true,
     }
 }
 
@@ -231,23 +231,13 @@ end
 --// Função auxiliar para limpar drawings e setups de um ESP
 local function CleanupESP(esp)
     for _, draw in ipairs({esp.tracerLine, esp.nameText, esp.distanceText}) do
-        if draw then
-            draw.Visible = false
-            pcall(draw.Remove, draw)
-        end
+        if draw then pcall(draw.Remove, draw) end
     end
     esp.tracerLine = nil
     esp.nameText = nil
     esp.distanceText = nil
-    if esp.highlight then
-        esp.highlight.Enabled = false
-        pcall(esp.highlight.Destroy, esp.highlight)
-        esp.highlight = nil
-    end
-    if esp.humanoid then
-        pcall(esp.humanoid.Destroy, esp.humanoid)
-        esp.humanoid = nil
-    end
+    if esp.highlight then pcall(esp.highlight.Destroy, esp.highlight) esp.highlight = nil end
+    if esp.humanoid then pcall(esp.humanoid.Destroy, esp.humanoid) esp.humanoid = nil end
     for _, mod in ipairs(esp.ModifiedParts) do
         if mod.Part and mod.Part.Parent then
             mod.Part.Transparency = mod.OriginalTransparency
@@ -563,7 +553,6 @@ end
 --// Função de descarregamento
 function KoltESP:Unload()
     if self.Unloaded then return end
-    self.Unloaded = true
     if self.connection then
         self.connection:Disconnect()
         self.connection = nil
@@ -578,6 +567,7 @@ function KoltESP:Unload()
         folder:Destroy()
     end
     highlightFolder = nil
+    self.Unloaded = true
 end
 
 --// Sistema de habilitar/desabilitar global
@@ -676,11 +666,6 @@ function KoltESP:SetGlobalFont(font)
         self.GlobalSettings.Font = font
         self:UpdateGlobalSettings()
     end
-end
-
-function KoltESP:SetGlobalDistanceFloat(enabled)
-    if self.Unloaded then return end
-    self.GlobalSettings.DistanceFloat = enabled
 end
 
 --// Suporte a players com respawn/reset
