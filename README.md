@@ -1,4 +1,4 @@
-# Kolt ESP Library V1.6.5
+# Kolt ESP Library V1.7
 
 Biblioteca ESP (Extra Sensory Perception) minimalista e eficiente para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Sistema robusto focado em performance, facilidade de uso e gerenciamento otimizado de recursos.
 
@@ -8,11 +8,11 @@ Biblioteca ESP (Extra Sensory Perception) minimalista e eficiente para Roblox, d
 - **Performance Otimizada**: Auto-remoção de objetos inválidos, verificação de duplicatas, atualizações eficientes
 - **Customização Avançada**: Cores individuais por elemento, fontes, opacidades, espessuras
 - **Sistema de Camadas**: DisplayOrder individual para controle de sobreposição
-- **Gerenciamento de Recursos**: Limpeza automática ao pausar, recriação ao retomar
 - **Highlights Centralizados**: Armazenamento em pasta do ReplicatedStorage com Adornee
 - **Modo Rainbow**: Cores dinâmicas automáticas
-- **Collision Opcional**: Destaque de todas as partes do alvo
+- **Collision Opcional**: Destaque de todas as partes do alvo, incluindo invisíveis
 - **Dependência de Cor Dinâmica**: Cálculo de cores baseado em distância ou posição
+- **Suporte a Modelos e Partes**: Adição direta a qualquer Model ou BasePart no workspace
 
 ## Instalação
 
@@ -79,7 +79,7 @@ KoltESP:Add(workspace.SomeModel, {
 ### Componentes Visuais
 
 ```lua
--- Habilitar/desabilitar componentes
+-- Habilitar/desabilitar componentes globalmente
 KoltESP:SetGlobalESPType("ShowTracer", true)
 KoltESP:SetGlobalESPType("ShowName", true)
 KoltESP:SetGlobalESPType("ShowDistance", true)
@@ -120,10 +120,7 @@ KoltESP.GlobalSettings.MinDistance = 0
 ### Controle Geral
 
 ```lua
-KoltESP:EnableAll()  -- Ativa todos os ESPs
-KoltESP:DisableAll() -- Desativa todos os ESPs
-KoltESP:Clear()      -- Remove todos os ESPs
-KoltESP:Unload()     -- Descarrega a biblioteca completamente
+KoltESP:Clear()  -- Remove todos os ESPs
 ```
 
 ---
@@ -165,9 +162,6 @@ KoltESP:UpdateConfig(workspace.SomeModel, {
 ### Controle Individual
 
 ```lua
--- Alternar visibilidade
-KoltESP:ToggleIndividual(workspace.SomeModel, false)
-
 -- Alterar propriedades
 KoltESP:SetColor(workspace.SomeModel, Color3.fromRGB(0, 255, 0))
 KoltESP:SetName(workspace.SomeModel, "Novo Nome")
@@ -188,37 +182,25 @@ KoltESP:Remove(workspace.SomeModel)
 ```lua
 KoltESP:Add(object, config)
 ```
-Adiciona ESP a um objeto. Retorna `true` se bem-sucedido.
+Adiciona ESP a um objeto (Model ou BasePart). Verifica duplicatas e configura automaticamente.
 
 #### Remove
 ```lua
 KoltESP:Remove(object)
 ```
-Remove ESP de um objeto.
+Remove ESP de um objeto, limpando todos os recursos associados.
 
 #### Clear
 ```lua
 KoltESP:Clear()
 ```
-Remove todos os ESPs.
+Remove todos os ESPs ativos.
 
-#### Unload
+#### GetESP
 ```lua
-KoltESP:Unload()
+local esp = KoltESP:GetESP(object)
 ```
-Descarrega completamente a biblioteca, limpando todos os recursos.
-
-#### AddToPlayer
-```lua
-KoltESP:AddToPlayer(player, config)
-```
-Adiciona ESP ao character de um jogador.
-
-#### RemoveFromPlayer
-```lua
-KoltESP:RemoveFromPlayer(player)
-```
-Remove ESP do character de um jogador.
+Retorna a tabela de configuração do ESP para um objeto.
 
 ### Métodos de Atualização
 
@@ -226,19 +208,37 @@ Remove ESP do character de um jogador.
 ```lua
 KoltESP:UpdateConfig(object, config)
 ```
-Atualiza configurações de um ESP existente.
+Atualiza configurações de um ESP existente sem recriar do zero.
 
 #### Readjustment
 ```lua
 KoltESP:Readjustment(newObject, oldObject, config)
 ```
-Move ESP de um objeto para outro.
+Transfere ESP de um objeto antigo para um novo, com configurações atualizadas.
 
-#### ToggleIndividual
+#### SetColor
 ```lua
-KoltESP:ToggleIndividual(object, enabled)
+KoltESP:SetColor(object, color)
 ```
-Ativa/desativa ESP individual.
+Define uma cor única para todos os elementos do ESP.
+
+#### SetName
+```lua
+KoltESP:SetName(object, newName)
+```
+Atualiza o nome exibido no ESP.
+
+#### SetDisplayOrder
+```lua
+KoltESP:SetDisplayOrder(object, displayOrder)
+```
+Define a ordem de exibição (ZIndex) para o ESP.
+
+#### SetTextOutline
+```lua
+KoltESP:SetTextOutline(object, enabled, color, thickness)
+```
+Configura o contorno do texto para um ESP individual.
 
 ### Métodos de Configuração Global
 
@@ -265,11 +265,47 @@ KoltESP:SetHighlightFolderName(name)
 ```
 Define nome da pasta de highlights no ReplicatedStorage.
 
+#### SetGlobalRainbow
+```lua
+KoltESP:SetGlobalRainbow(enable)
+```
+Ativa/desativa modo rainbow global.
+
+#### SetGlobalOpacity
+```lua
+KoltESP:SetGlobalOpacity(value)
+```
+Define opacidade global (0-1).
+
+#### SetGlobalFontSize
+```lua
+KoltESP:SetGlobalFontSize(size)
+```
+Define tamanho da fonte global.
+
+#### SetGlobalLineThickness
+```lua
+KoltESP:SetGlobalLineThickness(thick)
+```
+Define espessura da linha do tracer global.
+
+#### SetGlobalTextOutline
+```lua
+KoltESP:SetGlobalTextOutline(enabled, color, thickness)
+```
+Configura contorno de texto global.
+
+#### SetGlobalFont
+```lua
+KoltESP:SetGlobalFont(font)
+```
+Define fonte global (0-3).
+
 ---
 
 ## Exemplos Práticos
 
-### ESP para Jogadores
+### ESP para Jogadores (Gerenciamento Manual)
 
 ```lua
 local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -280,27 +316,44 @@ KoltESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
 KoltESP:SetGlobalTracerOrigin("Top")
 KoltESP.GlobalSettings.MaxDistance = 500
 
+local playerConnections = {}
+
 local function addPlayerESP(player)
     if player == game.Players.LocalPlayer then return end
     
-    KoltESP:AddToPlayer(player, {
-        Name = player.Name,
-        DistancePrefix = "Dist: ",
-        DistanceSuffix = "m",
-        DisplayOrder = 10,
-        Color = {
-            Name = {144, 0, 255},
-            Distance = {144, 0, 255},
-            Tracer = {144, 0, 255},
-            Highlight = {
-                Filled = {144, 0, 255},
-                Outline = {200, 0, 255}
-            }
-        },
-        ColorDependency = function(esp, distance, pos3D)
-            return distance > 100 and Color3.fromRGB(255, 165, 0) or nil
-        end
-    })
+    local function setupChar(char)
+        if not char then return end
+        task.wait()
+        KoltESP:Add(char, {
+            Name = player.Name,
+            DistancePrefix = "Dist: ",
+            DistanceSuffix = "m",
+            DisplayOrder = 10,
+            Color = {
+                Name = {144, 0, 255},
+                Distance = {144, 0, 255},
+                Tracer = {144, 0, 255},
+                Highlight = {
+                    Filled = {144, 0, 255},
+                    Outline = {200, 0, 255}
+                }
+            },
+            ColorDependency = function(esp, distance, pos3D)
+                return distance > 100 and Color3.fromRGB(255, 165, 0) or nil
+            end
+        })
+    end
+    
+    if player.Character then
+        setupChar(player.Character)
+    end
+    
+    local charAdded = player.CharacterAdded:Connect(setupChar)
+    local charRemoving = player.CharacterRemoving:Connect(function(oldChar)
+        KoltESP:Remove(oldChar)
+    end)
+    
+    playerConnections[player] = {charAdded, charRemoving}
 end
 
 -- Adicionar para jogadores existentes
@@ -311,13 +364,14 @@ end
 -- Eventos
 game.Players.PlayerAdded:Connect(addPlayerESP)
 game.Players.PlayerRemoving:Connect(function(player)
-    KoltESP:RemoveFromPlayer(player)
-end)
-
--- Tecla para descarregar
-game:GetService("UserInputService").InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.F10 then
-        KoltESP:Unload()
+    if playerConnections[player] then
+        for _, conn in pairs(playerConnections[player]) do
+            conn:Disconnect()
+        end
+        playerConnections[player] = nil
+    end
+    if player.Character then
+        KoltESP:Remove(player.Character)
     end
 end)
 ```
@@ -441,6 +495,13 @@ Color = {
 
 ## Notas de Versão
 
+### V1.7
+- Remoção de funções de pause/resume (EnableAll/DisableAll) para simplificação
+- Remoção de Unload para foco em uso contínuo
+- Remoção de suporte automático a jogadores (AddToPlayer); agora gerencie manualmente via eventos
+- Otimização adicional no loop de renderização
+- Melhoria na documentação e exemplos
+
 ### V1.6.5
 - Otimização de performance no loop de renderização
 - Correção de referência de câmera
@@ -451,4 +512,4 @@ Color = {
 
 ---
 
-**Desenvolvido por Kolt (DH_SOARES)** | Versão 1.6.5 | Outubro 2025
+**Desenvolvido por Kolt (DH_SOARES)** | Versão 1.7 | Novembro 2025
