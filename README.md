@@ -1,20 +1,18 @@
-# Kolt ESP Library V1.8
+# Kolt ESP Library V1.6.5
 
 Biblioteca ESP (Extra Sensory Perception) minimalista e eficiente para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Sistema robusto focado em performance, facilidade de uso e gerenciamento otimizado de recursos.
 
 ## Características Principais
 
-- **Acesso Direto por Nome**: Agora suporta `Kolt.ESP.NomeDoESP.Propriedade = valor` para atualizações em tempo real (ex: `Kolt.ESP.Banana.Name = "Novo Nome"`)
 - **ESP Completo**: Tracer, Nome, Distância e Highlight (preenchimento e outline)
 - **Performance Otimizada**: Auto-remoção de objetos inválidos, verificação de duplicatas, atualizações eficientes
-- **Customização Avançada**: Cores individuais por elemento, fontes, opacidades, espessuras — todas atualizam em tempo real
+- **Customização Avançada**: Cores individuais por elemento, fontes, opacidades, espessuras
 - **Sistema de Camadas**: DisplayOrder individual para controle de sobreposição
+- **Gerenciamento de Recursos**: Limpeza automática ao pausar, recriação ao retomar
 - **Highlights Centralizados**: Armazenamento em pasta do ReplicatedStorage com Adornee
 - **Modo Rainbow**: Cores dinâmicas automáticas
-- **Collision Opcional**: Destaque de todas as partes do alvo, incluindo invisíveis (atualiza dinamicamente)
+- **Collision Opcional**: Destaque de todas as partes do alvo
 - **Dependência de Cor Dinâmica**: Cálculo de cores baseado em distância ou posição
-- **Suporte a Modelos e Partes**: Adição direta a qualquer Model ou BasePart no workspace
-- **Compatibilidade Total**: Funciona com códigos da v1.7; globals sobrescrevem individuais ao mudar
 
 ## Instalação
 
@@ -27,11 +25,10 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 ### Índice
 
 1. [Uso Básico](#uso-básico)
-2. [Acesso Direto por Nome](#acesso-direto-por-nome)
-3. [Configurações Globais](#configurações-globais)
-4. [Gerenciamento Avançado](#gerenciamento-avançado)
-5. [Referência de API](#referência-de-api)
-6. [Exemplos Práticos](#exemplos-práticos)
+2. [Configurações Globais](#configurações-globais)
+3. [Gerenciamento Avançado](#gerenciamento-avançado)
+4. [Referência de API](#referência-de-api)
+5. [Exemplos Práticos](#exemplos-práticos)
 
 ---
 
@@ -77,40 +74,12 @@ KoltESP:Add(workspace.SomeModel, {
 
 ---
 
-## Acesso Direto por Nome
-
-Nova feature da v1.8: Adicione com uma chave (string) para acesso direto via `Kolt.ESP` ou `ESP`.
-
-```lua
--- Adicionar com chave
-KoltESP:Add("Banana", workspace.SomeModel, {
-    Name = "Alvo Especial",
-    Color = Color3.fromRGB(255, 0, 0),
-    Collision = true,
-    -- ...
-})
-
--- Atualizar em tempo real
-Kolt.ESP.Banana.Name = "Novo Nome"
-Kolt.ESP.Banana.DistancePrefix = "In"
-Kolt.ESP.Banana.Opacity = 0.5
-Kolt.ESP.Banana.FontSize = 20
-Kolt.ESP.Banana.Collision = false  -- Atualiza dinamicamente sem recriar
-```
-
-- Todas as propriedades visuais (Opacity, FontSize, etc.) atualizam instantaneamente.
-- Compatível com `getgenv().Kolt.ESP` e `getgenv().ESP`.
-
----
-
 ## Configurações Globais
-
-Globals agora sobrescrevem as configurações individuais ao serem alteradas.
 
 ### Componentes Visuais
 
 ```lua
--- Habilitar/desabilitar componentes globalmente
+-- Habilitar/desabilitar componentes
 KoltESP:SetGlobalESPType("ShowTracer", true)
 KoltESP:SetGlobalESPType("ShowName", true)
 KoltESP:SetGlobalESPType("ShowDistance", true)
@@ -126,10 +95,10 @@ KoltESP:SetGlobalTracerOrigin("Bottom") -- Top, Center, Bottom, Left, Right
 
 -- Estilo visual
 KoltESP:SetGlobalRainbow(true)
-KoltESP:SetGlobalOpacity(0.8)  -- Sobrescreve todos os ESPs
-KoltESP:SetGlobalFontSize(16)  -- Sobrescreve todos os ESPs
-KoltESP:SetGlobalLineThickness(2)  -- Sobrescreve todos os ESPs
-KoltESP:SetGlobalFont(3) -- 0: UI, 1: System, 2: Plex, 3: Monospace (sobrescreve todos)
+KoltESP:SetGlobalOpacity(0.8)
+KoltESP:SetGlobalFontSize(16)
+KoltESP:SetGlobalLineThickness(2)
+KoltESP:SetGlobalFont(3) -- 0: UI, 1: System, 2: Plex, 3: Monospace
 
 -- Transparência dos highlights
 KoltESP:SetGlobalHighlightTransparency({
@@ -138,20 +107,23 @@ KoltESP:SetGlobalHighlightTransparency({
 })
 
 -- Contorno de texto
-KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0))  -- Sobrescreve todos os ESPs
+KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
 ```
 
 ### Distância
 
 ```lua
-KoltESP.GlobalSettings.MaxDistance = 1000
-KoltESP.GlobalSettings.MinDistance = 0
+KoltESP.EspSettings .MaxDistance = 1000
+KoltESP.EspSettings .MinDistance = 0
 ```
 
 ### Controle Geral
 
 ```lua
-KoltESP:Clear()  -- Remove todos os ESPs
+KoltESP:EnableAll()  -- Ativa todos os ESPs
+KoltESP:DisableAll() -- Desativa todos os ESPs
+KoltESP:Clear()      -- Remove todos os ESPs
+KoltESP:Unload()     -- Descarrega a biblioteca completamente
 ```
 
 ---
@@ -193,6 +165,9 @@ KoltESP:UpdateConfig(workspace.SomeModel, {
 ### Controle Individual
 
 ```lua
+-- Alternar visibilidade
+KoltESP:ToggleIndividual(workspace.SomeModel, false)
+
 -- Alterar propriedades
 KoltESP:SetColor(workspace.SomeModel, Color3.fromRGB(0, 255, 0))
 KoltESP:SetName(workspace.SomeModel, "Novo Nome")
@@ -211,27 +186,39 @@ KoltESP:Remove(workspace.SomeModel)
 
 #### Add
 ```lua
-KoltESP:Add(key, object, config)  -- key opcional (string para acesso direto)
+KoltESP:Add(object, config)
 ```
-Adiciona ESP a um objeto (Model ou BasePart). Verifica duplicatas e configura automaticamente.
+Adiciona ESP a um objeto. Retorna `true` se bem-sucedido.
 
 #### Remove
 ```lua
-KoltESP:Remove(identifier)  -- Pode ser object ou key (string)
+KoltESP:Remove(object)
 ```
-Remove ESP de um objeto ou por chave, limpando todos os recursos associados.
+Remove ESP de um objeto.
 
 #### Clear
 ```lua
 KoltESP:Clear()
 ```
-Remove todos os ESPs ativos.
+Remove todos os ESPs.
 
-#### GetESP
+#### Unload
 ```lua
-local esp = KoltESP:GetESP(object)
+KoltESP:Unload()
 ```
-Retorna a tabela de configuração do ESP para um objeto.
+Descarrega completamente a biblioteca, limpando todos os recursos.
+
+#### AddToPlayer
+```lua
+KoltESP:AddToPlayer(player, config)
+```
+Adiciona ESP ao character de um jogador.
+
+#### RemoveFromPlayer
+```lua
+KoltESP:RemoveFromPlayer(player)
+```
+Remove ESP do character de um jogador.
 
 ### Métodos de Atualização
 
@@ -239,37 +226,19 @@ Retorna a tabela de configuração do ESP para um objeto.
 ```lua
 KoltESP:UpdateConfig(object, config)
 ```
-Atualiza configurações de um ESP existente sem recriar do zero.
+Atualiza configurações de um ESP existente.
 
 #### Readjustment
 ```lua
 KoltESP:Readjustment(newObject, oldObject, config)
 ```
-Transfere ESP de um objeto antigo para um novo, com configurações atualizadas.
+Move ESP de um objeto para outro.
 
-#### SetColor
+#### ToggleIndividual
 ```lua
-KoltESP:SetColor(object, color)
+KoltESP:ToggleIndividual(object, enabled)
 ```
-Define uma cor única para todos os elementos do ESP.
-
-#### SetName
-```lua
-KoltESP:SetName(object, newName)
-```
-Atualiza o nome exibido no ESP.
-
-#### SetDisplayOrder
-```lua
-KoltESP:SetDisplayOrder(object, displayOrder)
-```
-Define a ordem de exibição (ZIndex) para o ESP.
-
-#### SetTextOutline
-```lua
-KoltESP:SetTextOutline(object, enabled, color, thickness)
-```
-Configura o contorno do texto para um ESP individual.
+Ativa/desativa ESP individual.
 
 ### Métodos de Configuração Global
 
@@ -296,47 +265,11 @@ KoltESP:SetHighlightFolderName(name)
 ```
 Define nome da pasta de highlights no ReplicatedStorage.
 
-#### SetGlobalRainbow
-```lua
-KoltESP:SetGlobalRainbow(enable)
-```
-Ativa/desativa modo rainbow global.
-
-#### SetGlobalOpacity
-```lua
-KoltESP:SetGlobalOpacity(value)
-```
-Define opacidade global (0-1) e sobrescreve individuais.
-
-#### SetGlobalFontSize
-```lua
-KoltESP:SetGlobalFontSize(size)
-```
-Define tamanho da fonte global e sobrescreve individuais.
-
-#### SetGlobalLineThickness
-```lua
-KoltESP:SetGlobalLineThickness(thick)
-```
-Define espessura da linha do tracer global e sobrescreve individuais.
-
-#### SetGlobalTextOutline
-```lua
-KoltESP:SetGlobalTextOutline(enabled, color)
-```
-Configura contorno de texto global e sobrescreve individuais.
-
-#### SetGlobalFont
-```lua
-KoltESP:SetGlobalFont(font)
-```
-Define fonte global (0-3) e sobrescreve individuais.
-
 ---
 
 ## Exemplos Práticos
 
-### ESP para Jogadores (Gerenciamento Manual com Acesso Direto)
+### ESP para Jogadores
 
 ```lua
 local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
@@ -345,46 +278,29 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 KoltESP:SetHighlightFolderName("PlayerESPHighlights")
 KoltESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
 KoltESP:SetGlobalTracerOrigin("Top")
-KoltESP.GlobalSettings.MaxDistance = 500
-
-local playerConnections = {}
+KoltESP.EspSettings .MaxDistance = 500
 
 local function addPlayerESP(player)
     if player == game.Players.LocalPlayer then return end
     
-    local function setupChar(char)
-        if not char then return end
-        task.wait()
-        KoltESP:Add(player.Name, char, {
-            Name = player.Name,
-            DistancePrefix = "Dist: ",
-            DistanceSuffix = "m",
-            DisplayOrder = 10,
-            Color = {
-                Name = {144, 0, 255},
-                Distance = {144, 0, 255},
-                Tracer = {144, 0, 255},
-                Highlight = {
-                    Filled = {144, 0, 255},
-                    Outline = {200, 0, 255}
-                }
-            },
-            ColorDependency = function(esp, distance, pos3D)
-                return distance > 100 and Color3.fromRGB(255, 165, 0) or nil
-            end
-        })
-    end
-    
-    if player.Character then
-        setupChar(player.Character)
-    end
-    
-    local charAdded = player.CharacterAdded:Connect(setupChar)
-    local charRemoving = player.CharacterRemoving:Connect(function(oldChar)
-        KoltESP:Remove(player.Name)
-    end)
-    
-    playerConnections[player] = {charAdded, charRemoving}
+    KoltESP:AddToPlayer(player, {
+        Name = player.Name,
+        DistancePrefix = "Dist: ",
+        DistanceSuffix = "m",
+        DisplayOrder = 10,
+        Color = {
+            Name = {144, 0, 255},
+            Distance = {144, 0, 255},
+            Tracer = {144, 0, 255},
+            Highlight = {
+                Filled = {144, 0, 255},
+                Outline = {200, 0, 255}
+            }
+        },
+        ColorDependency = function(esp, distance, pos3D)
+            return distance > 100 and Color3.fromRGB(255, 165, 0) or nil
+        end
+    })
 end
 
 -- Adicionar para jogadores existentes
@@ -395,18 +311,15 @@ end
 -- Eventos
 game.Players.PlayerAdded:Connect(addPlayerESP)
 game.Players.PlayerRemoving:Connect(function(player)
-    if playerConnections[player] then
-        for _, conn in pairs(playerConnections[player]) do
-            conn:Disconnect()
-        end
-        playerConnections[player] = nil
-    end
-    KoltESP:Remove(player.Name)
+    KoltESP:RemoveFromPlayer(player)
 end)
 
--- Exemplo de atualização direta
-Kolt.ESP.PlayerName.Opacity = 1  -- Atualiza em tempo real
-Kolt.ESP.PlayerName.Collision = true
+-- Tecla para descarregar
+game:GetService("UserInputService").InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.F10 then
+        KoltESP:Unload()
+    end
+end)
 ```
 
 ### ESP para Objetos Específicos
@@ -417,7 +330,7 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 local function addPartESP(partName, config)
     for _, part in pairs(workspace:GetDescendants()) do
         if part.Name == partName and (part:IsA("BasePart") or part:IsA("Model")) then
-            KoltESP:Add(partName .. "_" .. tostring(part), part, config)  -- Usa chave única
+            KoltESP:Add(part, config)
         end
     end
 end
@@ -500,6 +413,7 @@ addPartESP("Enemy", {
     -- Outline de texto
     TextOutlineEnabled = true,
     TextOutlineColor = Color3.fromRGB(0, 0, 0),
+    TextOutlineThickness = 1,
     
     -- Recursos especiais
     Collision = false,
@@ -527,22 +441,6 @@ Color = {
 
 ## Notas de Versão
 
-### V1.8
-- Suporte a acesso direto por nome via `Kolt.ESP.NomeDoESP` ou `ESP.NomeDoESP`
-- Atualizações em tempo real para todas as propriedades visuais sem recriar Drawings
-- Globals agora sobrescrevem configurações individuais ao mudar
-- Adição com chave opcional: `KoltESP:Add("Chave", target, config)`
-- Remoção de `cloneref` (código morto)
-- Melhoria na compatibilidade e limpeza do código
-- Atualização da documentação com exemplos de acesso direto
-
-### V1.7
-- Remoção de funções de pause/resume (EnableAll/DisableAll) para simplificação
-- Remoção de Unload para foco em uso contínuo
-- Remoção de suporte automático a jogadores (AddToPlayer); agora gerencie manualmente via eventos
-- Otimização adicional no loop de renderização
-- Melhoria na documentação e exemplos
-
 ### V1.6.5
 - Otimização de performance no loop de renderização
 - Correção de referência de câmera
@@ -553,4 +451,4 @@ Color = {
 
 ---
 
-**Desenvolvido por Kolt (DH_SOARES)** | Versão 1.8 | Novembro 2025
+**Desenvolvido por Kolt (DH_SOARES)** | Versão 1.6.5 | Outubro 2025
