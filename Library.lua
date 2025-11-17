@@ -32,7 +32,7 @@ local KoltESP = {
         SecondaryColor = Color3.fromRGB(255, 255, 255),
         OutlineColor = Color3.fromRGB(0, 0, 0),
     },
-    EspSettings  = {
+    EspSettings = {
         TracerOrigin = "Bottom",
         ShowTracer = true,
         ShowHighlightFill = true,
@@ -113,10 +113,10 @@ end
 function KoltESP:SetGlobalHighlightTransparency(trans)
     if typeof(trans) == "table" then
         if trans.Filled and typeof(trans.Filled) == "number" then
-            self.EspSettings .HighlightTransparency.Filled = math.clamp(trans.Filled, 0, 1)
+            self.EspSettings.HighlightTransparency.Filled = math.clamp(trans.Filled, 0, 1)
         end
         if trans.Outline and typeof(trans.Outline) == "number" then
-            self.EspSettings .HighlightTransparency.Outline = math.clamp(trans.Outline, 0, 1)
+            self.EspSettings.HighlightTransparency.Outline = math.clamp(trans.Outline, 0, 1)
         end
     end
 end
@@ -137,7 +137,7 @@ end
 
 -- Função auxiliar para criar ou atualizar highlight
 local function setupHighlight(esp, target)
-    if KoltESP.EspSettings .ShowHighlightFill or KoltESP.EspSettings .ShowHighlightOutline then
+    if KoltESP.EspSettings.ShowHighlightFill or KoltESP.EspSettings.ShowHighlightOutline then
         if not esp.highlight then
             esp.highlight = Instance.new("Highlight")
             esp.highlight.Name = "ESPHighlight"
@@ -145,9 +145,9 @@ local function setupHighlight(esp, target)
             esp.highlight.Parent = getHighlightFolder()
         end
         esp.highlight.Adornee = target
-        esp.highlight.FillTransparency = KoltESP.EspSettings .ShowHighlightFill and KoltESP.EspSettings .HighlightTransparency.Filled or 1
-        esp.highlight.OutlineTransparency = KoltESP.EspSettings .ShowHighlightOutline and KoltESP.EspSettings .HighlightTransparency.Outline or 1
-        local useRainbow = KoltESP.EspSettings .RainbowMode
+        esp.highlight.FillTransparency = KoltESP.EspSettings.ShowHighlightFill and KoltESP.EspSettings.HighlightTransparency.Filled or 1
+        esp.highlight.OutlineTransparency = KoltESP.EspSettings.ShowHighlightOutline and KoltESP.EspSettings.HighlightTransparency.Outline or 1
+        local useRainbow = KoltESP.EspSettings.RainbowMode
         local initColor = useRainbow and getRainbowColor(tick()) or esp.Colors.Highlight.Filled
         esp.highlight.FillColor = initColor
         esp.highlight.OutlineColor = useRainbow and initColor or esp.Colors.Highlight.Outline
@@ -309,16 +309,16 @@ function KoltESP:Add(target, config)
             HighlightFill = config and config.Types and config.Types.HighlightFill == false and false or true,
             HighlightOutline = config and config.Types and config.Types.HighlightOutline == false and false or true,
         },
-        TextOutlineEnabled = config and config.TextOutlineEnabled or self.EspSettings .TextOutlineEnabled,
-        TextOutlineColor = config and config.TextOutlineColor or self.EspSettings .TextOutlineColor,
-        TextOutlineThickness = config and config.TextOutlineThickness or self.EspSettings .TextOutlineThickness,
+        TextOutlineEnabled = config and config.TextOutlineEnabled or self.EspSettings.TextOutlineEnabled,
+        TextOutlineColor = config and config.TextOutlineColor or self.EspSettings.TextOutlineColor,
+        TextOutlineThickness = config and config.TextOutlineThickness or self.EspSettings.TextOutlineThickness,
         ColorDependency = config and config.ColorDependency or nil,
-        Opacity = config and config.Opacity or self.EspSettings .Opacity,
-        LineThickness = config and config.LineThickness or self.EspSettings .LineThickness,
-        FontSize = config and config.FontSize or self.EspSettings .FontSize,
-        Font = config and config.Font or self.EspSettings .Font,
-        MaxDistance = config and config.MaxDistance or self.EspSettings .MaxDistance,
-        MinDistance = config and config.MinDistance or self.EspSettings .MinDistance,
+        Opacity = config and config.Opacity or self.EspSettings.Opacity,
+        LineThickness = config and config.LineThickness or self.EspSettings.LineThickness,
+        FontSize = config and config.FontSize or self.EspSettings.FontSize,
+        Font = config and config.Font or self.EspSettings.Font,
+        MaxDistance = config and config.MaxDistance or self.EspSettings.MaxDistance,
+        MinDistance = config and config.MinDistance or self.EspSettings.MinDistance,
         Collision = config and config.Collision or false
     }
 
@@ -345,16 +345,16 @@ function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.DistancePrefix = (newConfig and newConfig.DistancePrefix) or ""
     esp.DistanceSuffix = (newConfig and newConfig.DistanceSuffix) or ""
     esp.DisplayOrder = newConfig and newConfig.DisplayOrder or 0
-    esp.TextOutlineEnabled = newConfig and newConfig.TextOutlineEnabled or self.EspSettings .TextOutlineEnabled
-    esp.TextOutlineColor = newConfig and newConfig.TextOutlineColor or self.EspSettings .TextOutlineColor
-    esp.TextOutlineThickness = newConfig and newConfig.TextOutlineThickness or self.EspSettings .TextOutlineThickness
+    esp.TextOutlineEnabled = newConfig and newConfig.TextOutlineEnabled or self.EspSettings.TextOutlineEnabled
+    esp.TextOutlineColor = newConfig and newConfig.TextOutlineColor or self.EspSettings.TextOutlineColor
+    esp.TextOutlineThickness = newConfig and newConfig.TextOutlineThickness or self.EspSettings.TextOutlineThickness
     esp.ColorDependency = newConfig and newConfig.ColorDependency or nil
-    esp.Opacity = newConfig and newConfig.Opacity or self.EspSettings .Opacity
-    esp.LineThickness = newConfig and newConfig.LineThickness or self.EspSettings .LineThickness
-    esp.FontSize = newConfig and newConfig.FontSize or self.EspSettings .FontSize
-    esp.Font = newConfig and newConfig.Font or self.EspSettings .Font
-    esp.MaxDistance = newConfig and newConfig.MaxDistance or self.EspSettings .MaxDistance
-    esp.MinDistance = newConfig and newConfig.MinDistance or self.EspSettings .MinDistance
+    esp.Opacity = newConfig and newConfig.Opacity or self.EspSettings.Opacity
+    esp.LineThickness = newConfig and newConfig.LineThickness or self.EspSettings.LineThickness
+    esp.FontSize = newConfig and newConfig.FontSize or self.EspSettings.FontSize
+    esp.Font = newConfig and newConfig.Font or self.EspSettings.Font
+    esp.MaxDistance = newConfig and newConfig.MaxDistance or self.EspSettings.MaxDistance
+    esp.MinDistance = newConfig and newConfig.MinDistance or self.EspSettings.MinDistance
     esp.Collision = newConfig and newConfig.Collision or false
 
     applyColors(esp, newConfig)
@@ -513,26 +513,26 @@ function KoltESP:Clear()
     end
 end
 
--- Update EspSettings 
+-- Update EspSettings
 function KoltESP:UpdateGlobalSettings()
     for _, esp in ipairs(self.Objects) do
         if esp.tracerLine then
-            esp.tracerLine.Thickness = self.EspSettings .LineThickness
-            esp.tracerLine.Transparency = self.EspSettings .Opacity
+            esp.tracerLine.Thickness = self.EspSettings.LineThickness
+            esp.tracerLine.Transparency = self.EspSettings.Opacity
         end
         if esp.nameText then
-            esp.nameText.Size = self.EspSettings .FontSize
-            esp.nameText.Transparency = self.EspSettings .Opacity
-            esp.nameText.Outline = self.EspSettings .TextOutlineEnabled
-            esp.nameText.OutlineColor = self.EspSettings .TextOutlineColor
-            esp.nameText.Font = self.EspSettings .Font
+            esp.nameText.Size = self.EspSettings.FontSize
+            esp.nameText.Transparency = self.EspSettings.Opacity
+            esp.nameText.Outline = self.EspSettings.TextOutlineEnabled
+            esp.nameText.OutlineColor = self.EspSettings.TextOutlineColor
+            esp.nameText.Font = self.EspSettings.Font
         end
         if esp.distanceText then
-            esp.distanceText.Size = self.EspSettings .FontSize - 2
-            esp.distanceText.Transparency = self.EspSettings .Opacity
-            esp.distanceText.Outline = self.EspSettings .TextOutlineEnabled
-            esp.distanceText.OutlineColor = self.EspSettings .TextOutlineColor
-            esp.distanceText.Font = self.EspSettings .Font
+            esp.distanceText.Size = self.EspSettings.FontSize - 2
+            esp.distanceText.Transparency = self.EspSettings.Opacity
+            esp.distanceText.Outline = self.EspSettings.TextOutlineEnabled
+            esp.distanceText.OutlineColor = self.EspSettings.TextOutlineColor
+            esp.distanceText.Font = self.EspSettings.Font
         end
         setupHighlight(esp, esp.Target)
     end
@@ -541,44 +541,44 @@ end
 -- Configs Globais (APIs)
 function KoltESP:SetGlobalTracerOrigin(origin)
     if tracerOrigins[origin] then
-        self.EspSettings .TracerOrigin = origin
+        self.EspSettings.TracerOrigin = origin
     end
 end
 
 function KoltESP:SetGlobalESPType(typeName, enabled)
-    self.EspSettings [typeName] = enabled
+    self.EspSettings[typeName] = enabled
     self:UpdateGlobalSettings()
 end
 
 function KoltESP:SetGlobalRainbow(enable)
-    self.EspSettings .RainbowMode = enable
+    self.EspSettings.RainbowMode = enable
 end
 
 function KoltESP:SetGlobalOpacity(value)
-    self.EspSettings .Opacity = math.clamp(value, 0, 1)
+    self.EspSettings.Opacity = math.clamp(value, 0, 1)
     self:UpdateGlobalSettings()
 end
 
 function KoltESP:SetGlobalFontSize(size)
-    self.EspSettings .FontSize = math.max(10, size)
+    self.EspSettings.FontSize = math.max(10, size)
     self:UpdateGlobalSettings()
 end
 
 function KoltESP:SetGlobalLineThickness(thick)
-    self.EspSettings .LineThickness = math.max(1, thick)
+    self.EspSettings.LineThickness = math.max(1, thick)
     self:UpdateGlobalSettings()
 end
 
 function KoltESP:SetGlobalTextOutline(enabled, color, thickness)
-    if enabled ~= nil then self.EspSettings .TextOutlineEnabled = enabled end
-    if color then self.EspSettings .TextOutlineColor = color end
-    if thickness then self.EspSettings .TextOutlineThickness = thickness end
+    if enabled ~= nil then self.EspSettings.TextOutlineEnabled = enabled end
+    if color then self.EspSettings.TextOutlineColor = color end
+    if thickness then self.EspSettings.TextOutlineThickness = thickness end
     self:UpdateGlobalSettings()
 end
 
 function KoltESP:SetGlobalFont(font)
     if typeof(font) == "number" and font >= 0 and font <= 3 then
-        self.EspSettings .Font = font
+        self.EspSettings.Font = font
         self:UpdateGlobalSettings()
     end
 end
@@ -639,14 +639,14 @@ KoltESP.connection = RunService.RenderStepped:Connect(function()
     local camera = workspace.CurrentCamera
     local vs = camera.ViewportSize
     local time = tick()
-    local useRainbow = KoltESP.EspSettings .RainbowMode
+    local useRainbow = KoltESP.EspSettings.RainbowMode
     local rainbowColor = getRainbowColor(time)
 
     for i = #KoltESP.Objects, 1, -1 do
         local esp = KoltESP.Objects[i]
         local target = esp.Target
         if not target or not target.Parent then
-            if KoltESP.EspSettings .AutoRemoveInvalid then
+            if KoltESP.EspSettings.AutoRemoveInvalid then
                 KoltESP:Remove(target)
             end
             continue
@@ -715,32 +715,32 @@ KoltESP.connection = RunService.RenderStepped:Connect(function()
         local startY = centerY - totalHeight / 2
 
         -- Tracer
-        esp.tracerLine.Visible = KoltESP.EspSettings .ShowTracer and esp.Types.Tracer
-        esp.tracerLine.From = tracerOrigins[KoltESP.EspSettings .TracerOrigin](vs)
+        esp.tracerLine.Visible = KoltESP.EspSettings.ShowTracer and esp.Types.Tracer
+        esp.tracerLine.From = tracerOrigins[KoltESP.EspSettings.TracerOrigin](vs)
         esp.tracerLine.To = Vector2.new(pos2D.X, pos2D.Y)
         esp.tracerLine.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Tracer)
 
         -- Name
-        esp.nameText.Visible = KoltESP.EspSettings .ShowName and esp.Types.Name
+        esp.nameText.Visible = KoltESP.EspSettings.ShowName and esp.Types.Name
         esp.nameText.Position = Vector2.new(centerX, startY)
         esp.nameText.Text = esp.Name
         esp.nameText.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Name)
 
         -- Distance
-        esp.distanceText.Visible = KoltESP.EspSettings .ShowDistance and esp.Types.Distance
+        esp.distanceText.Visible = KoltESP.EspSettings.ShowDistance and esp.Types.Distance
         esp.distanceText.Position = Vector2.new(centerX, startY + nameSize)
         esp.distanceText.Text = esp.DistancePrefix .. string.format("%.1f", distance) .. esp.DistanceSuffix
         esp.distanceText.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Distance)
 
         -- Highlight
         if esp.highlight then
-            local showFill = KoltESP.EspSettings .ShowHighlightFill and esp.Types.HighlightFill
-            local showOutline = KoltESP.EspSettings .ShowHighlightOutline and esp.Types.HighlightOutline
+            local showFill = KoltESP.EspSettings.ShowHighlightFill and esp.Types.HighlightFill
+            local showOutline = KoltESP.EspSettings.ShowHighlightOutline and esp.Types.HighlightOutline
             esp.highlight.Enabled = showFill or showOutline
             esp.highlight.FillColor = useRainbow and rainbowColor or (currentColor or esp.Colors.Highlight.Filled)
             esp.highlight.OutlineColor = useRainbow and rainbowColor or (currentColor or esp.Colors.Highlight.Outline)
-            esp.highlight.FillTransparency = showFill and KoltESP.EspSettings .HighlightTransparency.Filled or 1
-            esp.highlight.OutlineTransparency = showOutline and KoltESP.EspSettings .HighlightTransparency.Outline or 1
+            esp.highlight.FillTransparency = showFill and KoltESP.EspSettings.HighlightTransparency.Filled or 1
+            esp.highlight.OutlineTransparency = showOutline and KoltESP.EspSettings.HighlightTransparency.Outline or 1
         end
     end
 end)
