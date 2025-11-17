@@ -1,10 +1,3 @@
---[[  
-    KoltESP Library v1.7
-    • Biblioteca de ESP voltada para endereços de objetos (Model e BasePart).  
-    • Oferece diversas APIs úteis para seus projetos, incluindo a visualização de todas as colisões de um alvo.  
-    • O ponto central do alvo é definido com base na parte mais visível — se houver colisões invisíveis, a prioridade será dada à parte com maior visibilidade, e não ao centro exato do modelo.
-]]
-   
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -25,8 +18,13 @@ local function getHighlightFolder()
     return highlightFolder
 end
 
+getgenv().ESP = ESP
+getgenv().Kolt = getgenv().Kolt or {}
+getgenv().Kolt.ESP = ESP
+
 local KoltESP = {
     Objects = {},
+    Named = ESP,
     Theme = {
         PrimaryColor = Color3.fromRGB(130, 200, 255),
         SecondaryColor = Color3.fromRGB(255, 255, 255),
@@ -40,20 +38,16 @@ local KoltESP = {
         ShowName = true,
         ShowDistance = true,
         RainbowMode = false,
-        MaxDistance = math.huge,
-        MinDistance = 0,
         Opacity = 0.8,
         LineThickness = 1.5,
         FontSize = 14,
         Font = 3,
-        AutoRemoveInvalid = true,
         HighlightTransparency = {
             Filled = 0.5,
             Outline = 0.3
         },
         TextOutlineEnabled = true,
         TextOutlineColor = Color3.fromRGB(0, 0, 0),
-        TextOutlineThickness = 1,
     }
 }
 
@@ -67,7 +61,6 @@ local function getRainbowColor(t)
     )
 end
 
---Tracer Origins
 local tracerOrigins = {
     Top = function(vs) return Vector2.new(vs.X/2, 0) end,
     Center = function(vs) return Vector2.new(vs.X/2, vs.Y/2) end,
@@ -76,7 +69,6 @@ local tracerOrigins = {
     Right = function(vs) return Vector2.new(vs.X, vs.Y/2) end,
 }
 
---<< Get Bounding Box
 local function getBoundingBox(target)
     if target:IsA("Model") then
         return target:GetBoundingBox()
@@ -86,14 +78,12 @@ local function getBoundingBox(target)
     return nil, nil
 end
 
--- Cria Drawing
 local function createDrawing(class, props)
     local obj = Drawing.new(class)
-    for k,v in pairs(props) do obj[k]=v end
+    for k, v in pairs(props) do obj[k] = v end
     return obj
 end
 
--- Função interna para obter ESP por target
 function KoltESP:GetESP(target)
     for _, esp in ipairs(self.Objects) do
         if esp.Target == target then return esp end
@@ -101,15 +91,13 @@ function KoltESP:GetESP(target)
     return nil
 end
 
--- Configura o nome da pasta de highlights
 function KoltESP:SetHighlightFolderName(name)
     if typeof(name) == "string" and name ~= "" then
         HighlightFolderName = name
-        highlightFolder = nil  -- Reseta para recriação
+        highlightFolder = nil
     end
 end
 
--- Define transparências globais de highlight
 function KoltESP:SetGlobalHighlightTransparency(trans)
     if typeof(trans) == "table" then
         if trans.Filled and typeof(trans.Filled) == "number" then
@@ -121,7 +109,6 @@ function KoltESP:SetGlobalHighlightTransparency(trans)
     end
 end
 
--- Função auxiliar para coletar BaseParts
 local function collectBaseParts(target)
     local allParts = {}
     for _, desc in ipairs(target:GetDescendants()) do
@@ -135,29 +122,25 @@ local function collectBaseParts(target)
     return allParts
 end
 
--- Função auxiliar para criar ou atualizar highlight
 local function setupHighlight(esp, target)
-    if KoltESP.GlobalSettings.ShowHighlightFill or KoltESP.GlobalSettings.ShowHighlightOutline then
-        if not esp.highlight then
-            esp.highlight = Instance.new("Highlight")
-            esp.highlight.Name = "ESPHighlight"
-            esp.highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            esp.highlight.Parent = getHighlightFolder()
+    if not (KoltESP.GlobalSettings.ShowHighlightFill or KoltESP.GlobalSettings.ShowHighlightOutline) then
+        if esp.highlight then
+            esp.highlight:Destroy()
+            esp.highlight = nil
         end
-        esp.highlight.Adornee = target
-        esp.highlight.FillTransparency = KoltESP.GlobalSettings.ShowHighlightFill and KoltESP.GlobalSettings.HighlightTransparency.Filled or 1
-        esp.highlight.OutlineTransparency = KoltESP.GlobalSettings.ShowHighlightOutline and KoltESP.GlobalSettings.HighlightTransparency.Outline or 1
-        local useRainbow = KoltESP.GlobalSettings.RainbowMode
-        local initColor = useRainbow and getRainbowColor(tick()) or esp.Colors.Highlight.Filled
-        esp.highlight.FillColor = initColor
-        esp.highlight.OutlineColor = useRainbow and initColor or esp.Colors.Highlight.Outline
-    elseif esp.highlight then
-        esp.highlight:Destroy()
-        esp.highlight = nil
+        return
     end
+
+    if not esp.highlight then
+        esp.highlight = Instance.new("Highlight")
+        esp.highlight.Name = "ESPHighlight"
+        esp.highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        esp.highlight.Parent = getHighlightFolder()
+    end
+
+    esp.highlight.Adornee = target
 end
 
--- Função auxiliar para aplicar cores de config
 local function applyColors(cfg, config)
     local defaultColors = {
         Name = KoltESP.Theme.PrimaryColor,
@@ -178,28 +161,17 @@ local function applyColors(cfg, config)
             cfg.Colors.Highlight.Filled = config.Color
             cfg.Colors.Highlight.Outline = config.Color
         elseif typeof(config.Color) == "table" then
-            if config.Color.Name and typeof(config.Color.Name) == "table" and #config.Color.Name == 3 then
-                cfg.Colors.Name = Color3.fromRGB(unpack(config.Color.Name))
-            end
-            if config.Color.Distance and typeof(config.Color.Distance) == "table" and #config.Color.Distance == 3 then
-                cfg.Colors.Distance = Color3.fromRGB(unpack(config.Color.Distance))
-            end
-            if config.Color.Tracer and typeof(config.Color.Tracer) == "table" and #config.Color.Tracer == 3 then
-                cfg.Colors.Tracer = Color3.fromRGB(unpack(config.Color.Tracer))
-            end
-            if config.Color.Highlight and typeof(config.Color.Highlight) == "table" then
-                if config.Color.Highlight.Filled and typeof(config.Color.Highlight.Filled) == "table" and #config.Color.Highlight.Filled == 3 then
-                    cfg.Colors.Highlight.Filled = Color3.fromRGB(unpack(config.Color.Highlight.Filled))
-                end
-                if config.Color.Highlight.Outline and typeof(config.Color.Highlight.Outline) == "table" and #config.Color.Highlight.Outline == 3 then
-                    cfg.Colors.Highlight.Outline = Color3.fromRGB(unpack(config.Color.Highlight.Outline))
-                end
+            if config.Color.Name then cfg.Colors.Name = Color3.fromRGB(unpack(config.Color.Name)) end
+            if config.Color.Distance then cfg.Colors.Distance = Color3.fromRGB(unpack(config.Color.Distance)) end
+            if config.Color.Tracer then cfg.Colors.Tracer = Color3.fromRGB(unpack(config.Color.Tracer)) end
+            if config.Color.Highlight then
+                if config.Color.Highlight.Filled then cfg.Colors.Highlight.Filled = Color3.fromRGB(unpack(config.Color.Highlight.Filled)) end
+                if config.Color.Highlight.Outline then cfg.Colors.Highlight.Outline = Color3.fromRGB(unpack(config.Color.Highlight.Outline)) end
             end
         end
     end
 end
 
--- Função auxiliar para setup de collision
 local function setupCollision(esp, target, collision, allParts)
     if collision then
         local humanoid = target:FindFirstChild("Esp")
@@ -212,7 +184,7 @@ local function setupCollision(esp, target, collision, allParts)
 
         for _, part in ipairs(allParts) do
             if part.Transparency == 1 then
-                table.insert(esp.ModifiedParts, {Part = part, OriginalTransparency = part.Transparency})
+                table.insert(esp.ModifiedParts, {Part = part, OriginalTransparency = 1})
                 part.Transparency = 0.99
             end
         end
@@ -226,16 +198,13 @@ local function setupCollision(esp, target, collision, allParts)
     end
 end
 
--- Função auxiliar para limpar drawings e setups de um ESP
 local function CleanupESP(esp)
-    for _, draw in ipairs({esp.tracerLine, esp.nameText, esp.distanceText}) do
-        if draw then pcall(draw.Remove, draw) end
-    end
-    esp.tracerLine = nil
-    esp.nameText = nil
-    esp.distanceText = nil
-    if esp.highlight then pcall(esp.highlight.Destroy, esp.highlight) esp.highlight = nil end
-    if esp.humanoid then pcall(esp.humanoid.Destroy, esp.humanoid) esp.humanoid = nil end
+    if esp.tracerLine then pcall(esp.tracerLine.Remove, esp.tracerLine) end
+    if esp.nameText then pcall(esp.nameText.Remove, esp.nameText) end
+    if esp.distanceText then pcall(esp.distanceText.Remove, esp.distanceText) end
+    if esp.highlight then esp.highlight:Destroy() end
+    if esp.humanoid then esp.humanoid:Destroy() end
+
     for _, mod in ipairs(esp.ModifiedParts) do
         if mod.Part and mod.Part.Parent then
             mod.Part.Transparency = mod.OriginalTransparency
@@ -245,7 +214,6 @@ local function CleanupESP(esp)
     esp.visibleParts = nil
 end
 
--- Função auxiliar para criar drawings e setups de um ESP
 local function CreateDrawings(esp)
     local allParts = collectBaseParts(esp.Target)
     setupCollision(esp, esp.Target, esp.Collision, allParts)
@@ -284,8 +252,45 @@ local function CreateDrawings(esp)
     setupHighlight(esp, esp.Target)
 end
 
--- Adiciona ESP
-function KoltESP:Add(target, config)
+local esp_mt = {
+    __newindex = function(t, k, v)
+        local old = rawget(t, k)
+        if k == "Collision" and v ~= old then
+            rawset(t, "Collision", v)
+            
+            for _, mod in ipairs(t.ModifiedParts) do
+                if mod.Part and mod.Part.Parent then
+                    mod.Part.Transparency = mod.OriginalTransparency
+                end
+            end
+            t.ModifiedParts = {}
+
+            if t.humanoid then
+                t.humanoid:Destroy()
+                t.humanoid = nil
+            end
+
+            local allParts = collectBaseParts(t.Target)
+            setupCollision(t, t.Target, v, allParts)
+            return
+        end
+        rawset(t, k, v)
+    end
+}
+
+function KoltESP:Add(a1, a2, a3)
+    local key, target, config
+
+    if typeof(a1) == "string" then
+        key = a1
+        target = a2
+        config = a3 or {}
+    else
+        key = nil
+        target = a1
+        config = a2 or {}
+    end
+
     if not target or not target:IsA("Instance") or not (target:IsA("Model") or target:IsA("BasePart")) then return end
 
     local existing = self:GetESP(target)
@@ -297,295 +302,124 @@ function KoltESP:Add(target, config)
 
     local cfg = {
         Target = target,
-        Name = config and config.Name or target.Name,
+        Name = config.Name or target.Name,
         ModifiedParts = {},
-        DistancePrefix = (config and config.DistancePrefix) or "",
-        DistanceSuffix = (config and config.DistanceSuffix) or "",
-        DisplayOrder = config and config.DisplayOrder or 0,
+        DistancePrefix = config.DistancePrefix or "",
+        DistanceSuffix = config.DistanceSuffix or "",
+        DisplayOrder = config.DisplayOrder or 0,
         Types = {
-            Tracer = config and config.Types and config.Types.Tracer == false and false or true,
-            Name = config and config.Types and config.Types.Name == false and false or true,
-            Distance = config and config.Types and config.Types.Distance == false and false or true,
-            HighlightFill = config and config.Types and config.Types.HighlightFill == false and false or true,
-            HighlightOutline = config and config.Types and config.Types.HighlightOutline == false and false or true,
+            Tracer = (config.Types and config.Types.Tracer ~= false) and true or false,
+            Name = (config.Types and config.Types.Name ~= false) and true or false,
+            Distance = (config.Types and config.Types.Distance ~= false) and true or false,
+            HighlightFill = (config.Types and config.Types.HighlightFill ~= false) and true or false,
+            HighlightOutline = (config.Types and config.Types.HighlightOutline ~= false) and true or false,
         },
-        TextOutlineEnabled = config and config.TextOutlineEnabled or self.GlobalSettings.TextOutlineEnabled,
-        TextOutlineColor = config and config.TextOutlineColor or self.GlobalSettings.TextOutlineColor,
-        TextOutlineThickness = config and config.TextOutlineThickness or self.GlobalSettings.TextOutlineThickness,
-        ColorDependency = config and config.ColorDependency or nil,
-        Opacity = config and config.Opacity or self.GlobalSettings.Opacity,
-        LineThickness = config and config.LineThickness or self.GlobalSettings.LineThickness,
-        FontSize = config and config.FontSize or self.GlobalSettings.FontSize,
-        Font = config and config.Font or self.GlobalSettings.Font,
-        MaxDistance = config and config.MaxDistance or self.GlobalSettings.MaxDistance,
-        MinDistance = config and config.MinDistance or self.GlobalSettings.MinDistance,
-        Collision = config and config.Collision or false
+        TextOutlineEnabled = config.TextOutlineEnabled ~= nil and config.TextOutlineEnabled or self.GlobalSettings.TextOutlineEnabled,
+        TextOutlineColor = config.TextOutlineColor or self.GlobalSettings.TextOutlineColor,
+        Opacity = config.Opacity or self.GlobalSettings.Opacity,
+        LineThickness = config.LineThickness or self.GlobalSettings.LineThickness,
+        FontSize = config.FontSize or self.GlobalSettings.FontSize,
+        Font = config.Font or self.GlobalSettings.Font,
+        MaxDistance = config.MaxDistance or self.GlobalSettings.MaxDistance,
+        MinDistance = config.MinDistance or self.GlobalSettings.MinDistance,
+        Collision = config.Collision or false,
+        Identifier = key,
     }
 
     applyColors(cfg, config)
 
     CreateDrawings(cfg)
 
+    setmetatable(cfg, esp_mt)
+
     table.insert(self.Objects, cfg)
-end
 
--- Reajusta ESP para novo alvo com nova config
-function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
-    if not newTarget or not newTarget:IsA("Instance") or not (newTarget:IsA("Model") or newTarget:IsA("BasePart")) then return end
-
-    local esp = self:GetESP(oldTarget)
-    if not esp then return end
-
-    -- Limpa setups antigos
-    CleanupESP(esp)
-
-    -- Atualiza target e config
-    esp.Target = newTarget
-    esp.Name = newConfig and newConfig.Name or newTarget.Name
-    esp.DistancePrefix = (newConfig and newConfig.DistancePrefix) or ""
-    esp.DistanceSuffix = (newConfig and newConfig.DistanceSuffix) or ""
-    esp.DisplayOrder = newConfig and newConfig.DisplayOrder or 0
-    esp.TextOutlineEnabled = newConfig and newConfig.TextOutlineEnabled or self.GlobalSettings.TextOutlineEnabled
-    esp.TextOutlineColor = newConfig and newConfig.TextOutlineColor or self.GlobalSettings.TextOutlineColor
-    esp.TextOutlineThickness = newConfig and newConfig.TextOutlineThickness or self.GlobalSettings.TextOutlineThickness
-    esp.ColorDependency = newConfig and newConfig.ColorDependency or nil
-    esp.Opacity = newConfig and newConfig.Opacity or self.GlobalSettings.Opacity
-    esp.LineThickness = newConfig and newConfig.LineThickness or self.GlobalSettings.LineThickness
-    esp.FontSize = newConfig and newConfig.FontSize or self.GlobalSettings.FontSize
-    esp.Font = newConfig and newConfig.Font or self.GlobalSettings.Font
-    esp.MaxDistance = newConfig and newConfig.MaxDistance or self.GlobalSettings.MaxDistance
-    esp.MinDistance = newConfig and newConfig.MinDistance or self.GlobalSettings.MinDistance
-    esp.Collision = newConfig and newConfig.Collision or false
-
-    applyColors(esp, newConfig)
-
-    esp.Types = {
-        Tracer = newConfig and newConfig.Types and newConfig.Types.Tracer == false and false or true,
-        Name = newConfig and newConfig.Types and newConfig.Types.Name == false and false or true,
-        Distance = newConfig and newConfig.Types and newConfig.Types.Distance == false and false or true,
-        HighlightFill = newConfig and newConfig.Types and newConfig.Types.HighlightFill == false and false or true,
-        HighlightOutline = newConfig and newConfig.Types and newConfig.Types.HighlightOutline == false and false or true,
-    }
-
-    CreateDrawings(esp)
-end
-
--- Atualiza config de um ESP existente sem mudar o target
-function KoltESP:UpdateConfig(target, newConfig)
-    local esp = self:GetESP(target)
-    if not esp then return end
-
-    local needsRecreate = false
-
-    if newConfig.Name then esp.Name = newConfig.Name end
-    if newConfig.DistancePrefix then esp.DistancePrefix = newConfig.DistancePrefix end
-    if newConfig.DistanceSuffix then esp.DistanceSuffix = newConfig.DistanceSuffix end
-    if newConfig.DisplayOrder ~= nil then 
-        esp.DisplayOrder = newConfig.DisplayOrder
-        needsRecreate = true
-    end
-    if newConfig.TextOutlineEnabled ~= nil then 
-        esp.TextOutlineEnabled = newConfig.TextOutlineEnabled
-        needsRecreate = true
-    end
-    if newConfig.TextOutlineColor then 
-        esp.TextOutlineColor = newConfig.TextOutlineColor
-        needsRecreate = true
-    end
-    if newConfig.TextOutlineThickness then 
-        esp.TextOutlineThickness = newConfig.TextOutlineThickness
-    end
-    if newConfig.ColorDependency then 
-        esp.ColorDependency = newConfig.ColorDependency
-    end
-    if newConfig.Opacity ~= nil then 
-        esp.Opacity = newConfig.Opacity
-        needsRecreate = true
-    end
-    if newConfig.LineThickness ~= nil then 
-        esp.LineThickness = newConfig.LineThickness
-        needsRecreate = true
-    end
-    if newConfig.FontSize ~= nil then 
-        esp.FontSize = newConfig.FontSize
-        needsRecreate = true
-    end
-    if newConfig.Font ~= nil then 
-        esp.Font = newConfig.Font
-        needsRecreate = true
-    end
-    if newConfig.MaxDistance ~= nil then esp.MaxDistance = newConfig.MaxDistance end
-    if newConfig.MinDistance ~= nil then esp.MinDistance = newConfig.MinDistance end
-
-    if newConfig.Color then
-        applyColors(esp, newConfig)
-    end
-
-    if newConfig.Types then
-        if newConfig.Types.Tracer ~= nil then esp.Types.Tracer = newConfig.Types.Tracer end
-        if newConfig.Types.Name ~= nil then esp.Types.Name = newConfig.Types.Name end
-        if newConfig.Types.Distance ~= nil then esp.Types.Distance = newConfig.Types.Distance end
-        if newConfig.Types.HighlightFill ~= nil then esp.Types.HighlightFill = newConfig.Types.HighlightFill end
-        if newConfig.Types.HighlightOutline ~= nil then esp.Types.HighlightOutline = newConfig.Types.HighlightOutline end
-    end
-
-    local newCollision = newConfig.Collision
-    if newCollision ~= nil and newCollision ~= esp.Collision then
-        CleanupESP(esp)
-        esp.Collision = newCollision
-        needsRecreate = true
-    end
-
-    if needsRecreate then
-        CreateDrawings(esp)
-    end
-end
-
--- API útil: Define cor única para um ESP
-function KoltESP:SetColor(target, color)
-    local esp = self:GetESP(target)
-    if esp and typeof(color) == "Color3" then
-        esp.Colors.Name = color
-        esp.Colors.Distance = color
-        esp.Colors.Tracer = color
-        esp.Colors.Highlight.Filled = color
-        esp.Colors.Highlight.Outline = color
-    end
-end
-
--- API útil: Define nome para um ESP
-function KoltESP:SetName(target, newName)
-    local esp = self:GetESP(target)
-    if esp then
-        esp.Name = newName
-    end
-end
-
--- API útil: Define DisplayOrder para um ESP
-function KoltESP:SetDisplayOrder(target, displayOrder)
-    local esp = self:GetESP(target)
-    if esp then
-        esp.DisplayOrder = displayOrder
-        if esp.tracerLine then esp.tracerLine.ZIndex = displayOrder end
-        if esp.nameText then esp.nameText.ZIndex = displayOrder end
-        if esp.distanceText then esp.distanceText.ZIndex = displayOrder end
-    end
-end
-
--- API útil: Define propriedades de outline de texto para um ESP
-function KoltESP:SetTextOutline(target, enabled, color, thickness)
-    local esp = self:GetESP(target)
-    if esp then
-        if enabled ~= nil then
-            esp.TextOutlineEnabled = enabled
-            if esp.nameText then esp.nameText.Outline = enabled end
-            if esp.distanceText then esp.distanceText.Outline = enabled end
+    if key then
+        if ESP[key] then
+            self:Remove(ESP[key].Target)
         end
-        if color then
-            esp.TextOutlineColor = color
-            if esp.nameText then esp.nameText.OutlineColor = color end
-            if esp.distanceText then esp.distanceText.OutlineColor = color end
-        end
-        if thickness then
-            esp.TextOutlineThickness = thickness
-        end
+        ESP[key] = cfg
     end
+
+    return cfg
 end
 
--- Remove ESP individual
-function KoltESP:Remove(target)
+function KoltESP:Remove(identifier)
+    local target = identifier
+    if typeof(identifier) == "string" then
+        local esp = ESP[identifier]
+        if not esp then return end
+        target = esp.Target
+    end
+
     for i = #self.Objects, 1, -1 do
         local obj = self.Objects[i]
         if obj.Target == target then
             CleanupESP(obj)
+            if obj.Identifier then
+                ESP[obj.Identifier] = nil
+            end
             table.remove(self.Objects, i)
             break
         end
-    end
 end
 
--- Limpa todas ESP
 function KoltESP:Clear()
     for i = #self.Objects, 1, -1 do
-        local obj = self.Objects[i]
-        CleanupESP(obj)
+        CleanupESP(self.Objects[i])
+        if self.Objects[i].Identifier then
+            ESP[self.Objects[i].Identifier] = nil
+        end
         table.remove(self.Objects, i)
     end
 end
 
--- Update GlobalSettings
-function KoltESP:UpdateGlobalSettings()
-    for _, esp in ipairs(self.Objects) do
-        if esp.tracerLine then
-            esp.tracerLine.Thickness = self.GlobalSettings.LineThickness
-            esp.tracerLine.Transparency = self.GlobalSettings.Opacity
-        end
-        if esp.nameText then
-            esp.nameText.Size = self.GlobalSettings.FontSize
-            esp.nameText.Transparency = self.GlobalSettings.Opacity
-            esp.nameText.Outline = self.GlobalSettings.TextOutlineEnabled
-            esp.nameText.OutlineColor = self.GlobalSettings.TextOutlineColor
-            esp.nameText.Font = self.GlobalSettings.Font
-        end
-        if esp.distanceText then
-            esp.distanceText.Size = self.GlobalSettings.FontSize - 2
-            esp.distanceText.Transparency = self.GlobalSettings.Opacity
-            esp.distanceText.Outline = self.GlobalSettings.TextOutlineEnabled
-            esp.distanceText.OutlineColor = self.GlobalSettings.TextOutlineColor
-            esp.distanceText.Font = self.GlobalSettings.Font
-        end
-        setupHighlight(esp, esp.Target)
-    end
-end
-
--- Configs Globais (APIs)
-function KoltESP:SetGlobalTracerOrigin(origin)
-    if tracerOrigins[origin] then
-        self.GlobalSettings.TracerOrigin = origin
-    end
-end
-
-function KoltESP:SetGlobalESPType(typeName, enabled)
-    self.GlobalSettings[typeName] = enabled
-    self:UpdateGlobalSettings()
-end
-
-function KoltESP:SetGlobalRainbow(enable)
-    self.GlobalSettings.RainbowMode = enable
-end
-
 function KoltESP:SetGlobalOpacity(value)
-    self.GlobalSettings.Opacity = math.clamp(value, 0, 1)
-    self:UpdateGlobalSettings()
-end
-
-function KoltESP:SetGlobalFontSize(size)
-    self.GlobalSettings.FontSize = math.max(10, size)
-    self:UpdateGlobalSettings()
+    value = math.clamp(value, 0, 1)
+    self.GlobalSettings.Opacity = value
+    for _, esp in ipairs(self.Objects) do
+        esp.Opacity = value
+    end
 end
 
 function KoltESP:SetGlobalLineThickness(thick)
     self.GlobalSettings.LineThickness = math.max(1, thick)
-    self:UpdateGlobalSettings()
+    for _, esp in ipairs(self.Objects) do
+        esp.LineThickness = self.GlobalSettings.LineThickness
+    end
 end
 
-function KoltESP:SetGlobalTextOutline(enabled, color, thickness)
-    if enabled ~= nil then self.GlobalSettings.TextOutlineEnabled = enabled end
-    if color then self.GlobalSettings.TextOutlineColor = color end
-    if thickness then self.GlobalSettings.TextOutlineThickness = thickness end
-    self:UpdateGlobalSettings()
+function KoltESP:SetGlobalFontSize(size)
+    self.GlobalSettings.FontSize = math.max(10, size)
+    for _, esp in ipairs(self.Objects) do
+        esp.FontSize = self.GlobalSettings.FontSize
+    end
 end
 
 function KoltESP:SetGlobalFont(font)
     if typeof(font) == "number" and font >= 0 and font <= 3 then
         self.GlobalSettings.Font = font
-        self:UpdateGlobalSettings()
+        for _, esp in ipairs(self.Objects) do
+            esp.Font = font
+        end
     end
 end
 
--- Atualização por frame
-KoltESP.connection = RunService.RenderStepped:Connect(function()
+function KoltESP:SetGlobalTextOutline(enabled, color)
+    if enabled ~= nil then self.GlobalSettings.TextOutlineEnabled = enabled end
+    if color then self.GlobalSettings.TextOutlineColor = color end
 
+    for _, esp in ipairs(self.Objects) do
+        if enabled ~= nil then esp.TextOutlineEnabled = enabled end
+        if color then esp.TextOutlineColor = color end
+    end
+end
+
+function KoltESP:SetGlobalTracerOrigin(origin) if tracerOrigins[origin] then self.GlobalSettings.TracerOrigin = origin end end
+function KoltESP:SetGlobalESPType(typeName, enabled) self.GlobalSettings[typeName] = enabled end
+function KoltESP:SetGlobalRainbow(enable) self.GlobalSettings.RainbowMode = enable end
+
+RunService.RenderStepped:Connect(function()
     local camera = workspace.CurrentCamera
     local vs = camera.ViewportSize
     local time = tick()
@@ -602,34 +436,52 @@ KoltESP.connection = RunService.RenderStepped:Connect(function()
             continue
         end
 
+        -- atualiza propriedades visuais dinamicamente
+        if esp.tracerLine then
+            esp.tracerLine.Thickness = esp.LineThickness
+            esp.tracerLine.Transparency = esp.Opacity
+            esp.tracerLine.ZIndex = esp.DisplayOrder
+        end
+        if esp.nameText then
+            esp.nameText.Size = esp.FontSize
+            esp.nameText.Transparency = esp.Opacity
+            esp.nameText.Outline = esp.TextOutlineEnabled
+            esp.nameText.OutlineColor = esp.TextOutlineColor
+            esp.nameText.Font = esp.Font
+            esp.nameText.ZIndex = esp.DisplayOrder
+        end
+        if esp.distanceText then
+            esp.distanceText.Size = esp.FontSize - 2
+            esp.distanceText.Transparency = esp.Opacity
+            esp.distanceText.Outline = esp.TextOutlineEnabled
+            esp.distanceText.OutlineColor = esp.TextOutlineColor
+            esp.distanceText.Font = esp.Font
+            esp.distanceText.ZIndex = esp.DisplayOrder
+        end
+        
         local pos3D
         if esp.visibleParts then
             local totalPos = Vector3.zero
             local totalVolume = 0
-            local validParts = 0
             for _, part in ipairs(esp.visibleParts) do
                 if part and part.Parent then
                     local vol = part.Size.X * part.Size.Y * part.Size.Z
                     totalPos += part.Position * vol
                     totalVolume += vol
-                    validParts += 1
                 end
             end
-            if totalVolume > 0 and validParts > 0 then
+            if totalVolume > 0 then
                 pos3D = totalPos / totalVolume
             else
-                local cf = getBoundingBox(target)
-                if cf then
-                    pos3D = cf.Position
-                else
-                    continue
-                end
+                local cf, _ = getBoundingBox(target)
+                pos3D = cf and cf.Position
             end
         else
-            local cf = getBoundingBox(target)
-            if not cf then continue end
-            pos3D = cf.Position
+            local cf, _ = getBoundingBox(target)
+            if cf then pos3D = cf.Position end
         end
+
+        if not pos3D then continue end
 
         local success, pos2D = pcall(camera.WorldToViewportPoint, camera, pos3D)
         if not success or pos2D.Z <= 0 then
@@ -641,8 +493,7 @@ KoltESP.connection = RunService.RenderStepped:Connect(function()
         end
 
         local distance = (camera.CFrame.Position - pos3D).Magnitude
-        local visible = distance >= esp.MinDistance and distance <= esp.MaxDistance
-        if not visible then
+        if distance < esp.MinDistance or distance > esp.MaxDistance then
             esp.tracerLine.Visible = false
             esp.nameText.Visible = false
             esp.distanceText.Visible = false
@@ -650,13 +501,8 @@ KoltESP.connection = RunService.RenderStepped:Connect(function()
             continue
         end
 
-        -- Dependência de cor
-        local currentColor = nil
-        if esp.ColorDependency and typeof(esp.ColorDependency) == "function" then
-            currentColor = esp.ColorDependency(esp, distance, pos3D)
-        end
+        local currentColor = esp.ColorDependency and esp.ColorDependency(esp, distance, pos3D)
 
-        -- Posicionamento
         local centerX = pos2D.X
         local centerY = pos2D.Y
         local nameSize = esp.nameText.Size
@@ -664,25 +510,21 @@ KoltESP.connection = RunService.RenderStepped:Connect(function()
         local totalHeight = nameSize + distSize
         local startY = centerY - totalHeight / 2
 
-        -- Tracer
         esp.tracerLine.Visible = KoltESP.GlobalSettings.ShowTracer and esp.Types.Tracer
         esp.tracerLine.From = tracerOrigins[KoltESP.GlobalSettings.TracerOrigin](vs)
         esp.tracerLine.To = Vector2.new(pos2D.X, pos2D.Y)
         esp.tracerLine.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Tracer)
 
-        -- Name
         esp.nameText.Visible = KoltESP.GlobalSettings.ShowName and esp.Types.Name
         esp.nameText.Position = Vector2.new(centerX, startY)
         esp.nameText.Text = esp.Name
         esp.nameText.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Name)
 
-        -- Distance
         esp.distanceText.Visible = KoltESP.GlobalSettings.ShowDistance and esp.Types.Distance
         esp.distanceText.Position = Vector2.new(centerX, startY + nameSize)
         esp.distanceText.Text = esp.DistancePrefix .. string.format("%.1f", distance) .. esp.DistanceSuffix
         esp.distanceText.Color = useRainbow and rainbowColor or (currentColor or esp.Colors.Distance)
 
-        -- Highlight
         if esp.highlight then
             local showFill = KoltESP.GlobalSettings.ShowHighlightFill and esp.Types.HighlightFill
             local showOutline = KoltESP.GlobalSettings.ShowHighlightOutline and esp.Types.HighlightOutline
