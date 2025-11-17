@@ -18,6 +18,7 @@ local function getHighlightFolder()
     return highlightFolder
 end
 
+local ESP = {}
 getgenv().ESP = ESP
 getgenv().Kolt = getgenv().Kolt or {}
 getgenv().Kolt.ESP = ESP
