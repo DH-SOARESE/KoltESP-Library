@@ -1,4 +1,4 @@
-# Kolt ESP Library V1.6.5
+# Kolt ESP Library V1.7
 
 Biblioteca ESP (Extra Sensory Perception) minimalista e eficiente para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Sistema robusto focado em performance, facilidade de uso e gerenciamento otimizado de recursos.
 
@@ -113,8 +113,8 @@ KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
 ### Distância
 
 ```lua
-KoltESP.EspSettings .MaxDistance = 1000
-KoltESP.EspSettings .MinDistance = 0
+KoltESP.EspSettings.MaxDistance = 1000
+KoltESP.EspSettings.MinDistance = 0
 ```
 
 ### Controle Geral
@@ -278,7 +278,7 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 KoltESP:SetHighlightFolderName("PlayerESPHighlights")
 KoltESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
 KoltESP:SetGlobalTracerOrigin("Top")
-KoltESP.EspSettings .MaxDistance = 500
+KoltESP.EspSettings.MaxDistance = 500
 
 local function addPlayerESP(player)
     if player == game.Players.LocalPlayer then return end
