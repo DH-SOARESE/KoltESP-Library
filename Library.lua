@@ -1,10 +1,3 @@
---[[  
-    KoltESP Library v1.7
-    • Biblioteca de ESP voltada para endereços de objetos (Model e BasePart).  
-    • Oferece diversas APIs úteis para seus projetos, incluindo a visualização de todas as colisões de um alvo.  
-    • O ponto central do alvo é definido com base na parte mais visível — se houver colisões invisíveis, a prioridade será dada à parte com maior visibilidade, e não ao centro exato do modelo.
-]]
-   
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -58,7 +51,6 @@ local KoltESP = {
     }
 }
 
--- Cor arco-íris
 local function getRainbowColor(t)
     local f = 2
     return Color3.fromRGB(
@@ -569,6 +561,23 @@ end
 function KoltESP:SetGlobalESPType(typeName, enabled)
     self.EspSettings[typeName] = enabled
     self:UpdateGlobalSettings()
+
+    if not enabled then
+        local drawingMap = {
+            ShowName = "nameText",
+            ShowDistance = "distanceText",
+            ShowTracer = "tracerLine",
+        }
+        local drawingName = drawingMap[typeName]
+        if drawingName then
+            for _, esp in ipairs(self.Objects) do
+                local draw = esp[drawingName]
+                if draw then
+                    draw.Visible = false
+                end
+            end
+        end
+    end
 end
 
 function KoltESP:SetGlobalRainbow(enable)
@@ -580,13 +589,8 @@ function KoltESP:SetGlobalOpacity(value)
     self:UpdateGlobalSettings()
 end
 
-function KoltESP:SetGlobalFontSize(size)
-    self.EspSettings.FontSize = math.max(10, size)
-    self:UpdateGlobalSettings()
-end
-
 function KoltESP:SetGlobalLineThickness(thick)
-    self.EspSettings.LineThickness = math.max(1, thick)
+    self.EspSettings.LineThickness = math.max(0.1, thick)  -- agora permite tracers mais finos também
     self:UpdateGlobalSettings()
 end
 
