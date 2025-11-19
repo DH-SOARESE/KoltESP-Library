@@ -1,4 +1,4 @@
-# Kolt ESP Library V1.7
+# Kolt ESP Library V1.8
 
 Biblioteca ESP (Extra Sensory Perception) minimalista e eficiente para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Sistema robusto focado em performance, facilidade de uso e gerenciamento otimizado de recursos.
 
@@ -13,6 +13,7 @@ Biblioteca ESP (Extra Sensory Perception) minimalista e eficiente para Roblox, d
 - **Collision Opcional**: Destaque de todas as partes do alvo, incluindo invisíveis
 - **Dependência de Cor Dinâmica**: Cálculo de cores baseado em distância ou posição
 - **Suporte a Modelos e Partes**: Adição direta a qualquer Model ou BasePart no workspace
+- **Registro de Cores**: Registro prévio de cores personalizadas para aplicação automática em ESPs
 
 ## Instalação
 
@@ -72,6 +73,21 @@ KoltESP:Add(workspace.SomeModel, {
 })
 ```
 
+### Registrando Cores Personalizadas
+
+```lua
+-- Registre cores antes ou após adicionar o ESP
+KoltESP:AddToRegistry(workspace.SomeModel, {
+    TextColor = Color3.fromRGB(255, 255, 0),  -- Cor do nome
+    DistanceColor = Color3.fromRGB(255, 0, 0),
+    TracerColor = Color3.fromRGB(0, 255, 0),
+    HighlightColor = Color3.fromRGB(0, 0, 255)
+})
+
+-- As cores serão aplicadas automaticamente ao adicionar ou atualizar o ESP
+KoltESP:Add(workspace.SomeModel)
+```
+
 ---
 
 ## Configurações Globais
@@ -113,8 +129,8 @@ KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
 ### Distância
 
 ```lua
-KoltESP.GlobalSettings.MaxDistance = 1000
-KoltESP.GlobalSettings.MinDistance = 0
+KoltESP.EspSettings.MaxDistance = 1000
+KoltESP.EspSettings.MinDistance = 0
 ```
 
 ### Controle Geral
@@ -172,6 +188,28 @@ KoltESP:SetTextOutline(workspace.SomeModel, true, Color3.fromRGB(0, 0, 0), 1)
 KoltESP:Remove(workspace.SomeModel)
 ```
 
+### Registro de Cores
+
+O registro permite definir cores baseadas em variáveis que podem ser atualizadas dinamicamente. As cores são aplicadas automaticamente ao adicionar ou atualizar o ESP.
+
+```lua
+local minhaCor = Color3.fromRGB(255, 0, 0)
+
+KoltESP:AddToRegistry(workspace.SomeModel, {
+    TextColor = minhaCor,
+    DistanceColor = Color3.fromRGB(0, 255, 0),
+    TracerColor = Color3.fromRGB(0, 0, 255),
+    HighlightColor = minhaCor
+})
+
+-- Após adicionar o ESP, altere a variável e registre novamente para atualizar
+minhaCor = Color3.fromRGB(255, 255, 0)
+KoltESP:AddToRegistry(workspace.SomeModel, {
+    TextColor = minhaCor,
+    HighlightColor = minhaCor
+})
+```
+
 ---
 
 ## Referência de API
@@ -182,7 +220,15 @@ KoltESP:Remove(workspace.SomeModel)
 ```lua
 KoltESP:Add(object, config)
 ```
-Adiciona ESP a um objeto (Model ou BasePart). Verifica duplicatas e configura automaticamente.
+Adiciona ESP a um objeto (Model ou BasePart). Verifica duplicatas e configura automaticamente. Aplica cores registradas se existirem.
+
+#### AddToRegistry
+```lua
+KoltESP:AddToRegistry(object, colorConfig)
+```
+Registra cores personalizadas para um objeto. As cores são aplicadas automaticamente ao adicionar ou atualizar o ESP.
+
+- `colorConfig`: Tabela com chaves opcionais: `TextColor`, `DistanceColor`, `TracerColor`, `HighlightColor` (todas Color3).
 
 #### Remove
 ```lua
@@ -208,7 +254,7 @@ Retorna a tabela de configuração do ESP para um objeto.
 ```lua
 KoltESP:UpdateConfig(object, config)
 ```
-Atualiza configurações de um ESP existente sem recriar do zero.
+Atualiza configurações de um ESP existente sem recriar do zero. Aplica cores registradas se existirem.
 
 #### Readjustment
 ```lua
@@ -314,7 +360,7 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 KoltESP:SetHighlightFolderName("PlayerESPHighlights")
 KoltESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
 KoltESP:SetGlobalTracerOrigin("Top")
-KoltESP.GlobalSettings.MaxDistance = 500
+KoltESP.EspSettings.MaxDistance = 500
 
 local playerConnections = {}
 
@@ -376,14 +422,21 @@ game.Players.PlayerRemoving:Connect(function(player)
 end)
 ```
 
-### ESP para Objetos Específicos
+### ESP para Objetos Específicos com Registro de Cores
 
 ```lua
 local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
 
+local corDinamica = Color3.fromRGB(255, 255, 0)  -- Variável de cor
+
 local function addPartESP(partName, config)
     for _, part in pairs(workspace:GetDescendants()) do
         if part.Name == partName and (part:IsA("BasePart") or part:IsA("Model")) then
+            -- Registre cores dinâmicas
+            KoltESP:AddToRegistry(part, {
+                TextColor = corDinamica,
+                HighlightColor = corDinamica
+            })
             KoltESP:Add(part, config)
         end
     end
@@ -428,6 +481,17 @@ addPartESP("Enemy", {
         return distance < 50 and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(255, 100, 0)
     end
 })
+
+-- Atualize a cor dinamicamente
+corDinamica = Color3.fromRGB(0, 255, 255)
+for _, part in pairs(workspace:GetDescendants()) do
+    if part.Name == "Chest" then
+        KoltESP:AddToRegistry(part, {
+            TextColor = corDinamica,
+            HighlightColor = corDinamica
+        })
+    end
+end
 ```
 
 ---
@@ -495,6 +559,11 @@ Color = {
 
 ## Notas de Versão
 
+### V1.8
+- Adicionado `AddToRegistry` para registro de cores personalizadas com aplicação automática e suporte a variáveis dinâmicas
+- Atualizações na documentação e exemplos para incluir o novo recurso
+- Otimizações menores no sistema de aplicação de cores
+
 ### V1.7
 - Remoção de funções de pause/resume (EnableAll/DisableAll) para simplificação
 - Remoção de Unload para foco em uso contínuo
@@ -512,4 +581,4 @@ Color = {
 
 ---
 
-**Desenvolvido por Kolt (DH_SOARES)** | Versão 1.7 | Novembro 2025
+**Desenvolvido por Kolt (DH_SOARES)** | Versão 1.8 | Novembro 2025
