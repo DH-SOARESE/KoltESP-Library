@@ -58,6 +58,8 @@ local KoltESP = {
     }
 }
 
+local Registry = {}
+
 -- Cor arco-íris
 local function getRainbowColor(t)
     local f = 2
@@ -287,6 +289,28 @@ local function CreateDrawings(esp)
     setupHighlight(esp, esp.Target)
 end
 
+-- Adiciona ao registro
+function KoltESP:AddToRegistry(target, colorConfig)
+    if not target or not colorConfig then return end
+    Registry[target] = colorConfig
+    local esp = self:GetESP(target)
+    if esp then
+        if colorConfig.TextColor then
+            esp.Colors.Name = colorConfig.TextColor
+        end
+        if colorConfig.DistanceColor then
+            esp.Colors.Distance = colorConfig.DistanceColor
+        end
+        if colorConfig.TracerColor then
+            esp.Colors.Tracer = colorConfig.TracerColor
+        end
+        if colorConfig.HighlightColor then
+            esp.Colors.Highlight.Filled = colorConfig.HighlightColor
+            esp.Colors.Highlight.Outline = colorConfig.HighlightColor
+        end
+    end
+end
+
 -- Adiciona ESP
 function KoltESP:Add(target, config)
     if not target or not target:IsA("Instance") or not (target:IsA("Model") or target:IsA("BasePart")) then return end
@@ -326,6 +350,23 @@ function KoltESP:Add(target, config)
     }
 
     applyColors(cfg, config)
+
+    local reg = Registry[target]
+    if reg then
+        if reg.TextColor then
+            cfg.Colors.Name = reg.TextColor
+        end
+        if reg.DistanceColor then
+            cfg.Colors.Distance = reg.DistanceColor
+        end
+        if reg.TracerColor then
+            cfg.Colors.Tracer = reg.TracerColor
+        end
+        if reg.HighlightColor then
+            cfg.Colors.Highlight.Filled = reg.HighlightColor
+            cfg.Colors.Highlight.Outline = reg.HighlightColor
+        end
+    end
 
     CreateDrawings(cfg)
 
