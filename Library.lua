@@ -1,5 +1,5 @@
 --[[  
-    KoltESP Library v1.7
+    KoltESP Library v1.8
     • Biblioteca de ESP voltada para endereços de objetos (Model e BasePart).  
     • Oferece diversas APIs úteis para seus projetos, incluindo a visualização de todas as colisões de um alvo.  
     • O ponto central do alvo é definido com base na parte mais visível — se houver colisões invisíveis, a prioridade será dada à parte com maior visibilidade, e não ao centro exato do modelo.
