@@ -1,6 +1,6 @@
-# Kolt ESP Library V1.8
+# Kolt ESP Library V1.9
 
-Biblioteca ESP (Extra Sensory Perception) minimalista e eficiente para Roblox, desenvolvida por **Kolt (DH_SOARES)**. Sistema robusto focado em performance, facilidade de uso e gerenciamento otimizado de recursos.
+Biblioteca ESP (Extra Sensory Perception) minimalista e eficiente para Roblox, desenvolvida por **Kolt Hub**. Sistema robusto focado em performance, facilidade de uso e gerenciamento otimizado de recursos.
 
 ## Características Principais
 
@@ -29,7 +29,6 @@ local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SO
 2. [Configurações Globais](#configurações-globais)
 3. [Gerenciamento Avançado](#gerenciamento-avançado)
 4. [Referência de API](#referência-de-api)
-5. [Exemplos Práticos](#exemplos-práticos)
 
 ---
 
@@ -292,7 +291,7 @@ Configura o contorno do texto para um ESP individual.
 ```lua
 KoltESP:SetGlobalESPType(type, enabled)
 ```
-Tipos: `ShowTracer`, `ShowName`, `ShowDistance`, `ShowHighlightFill`, `ShowHighlightOutline`
+Tipos: `Tracer`, `Name`, `Distance`, `Filled`, `Outline`
 
 #### SetGlobalTracerOrigin
 ```lua
@@ -345,156 +344,22 @@ Configura contorno de texto global.
 ```lua
 KoltESP:SetGlobalFont(font)
 ```
-Define fonte global (0-3).
-
----
-
-## Exemplos Práticos
-
-### ESP para Jogadores (Gerenciamento Manual)
-
+#### SetGlobal Arromw Image
 ```lua
-local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
-
--- Configuração inicial
-KoltESP:SetHighlightFolderName("PlayerESPHighlights")
-KoltESP:SetGlobalHighlightTransparency({Filled = 0.7, Outline = 0.2})
-KoltESP:SetGlobalTracerOrigin("Top")
-KoltESP.EspSettings.MaxDistance = 500
-
-local playerConnections = {}
-
-local function addPlayerESP(player)
-    if player == game.Players.LocalPlayer then return end
-    
-    local function setupChar(char)
-        if not char then return end
-        task.wait()
-        KoltESP:Add(char, {
-            Name = player.Name,
-            DistancePrefix = "Dist: ",
-            DistanceSuffix = "m",
-            DisplayOrder = 10,
-            Color = {
-                Name = {144, 0, 255},
-                Distance = {144, 0, 255},
-                Tracer = {144, 0, 255},
-                Highlight = {
-                    Filled = {144, 0, 255},
-                    Outline = {200, 0, 255}
-                }
-            },
-            ColorDependency = function(esp, distance, pos3D)
-                return distance > 100 and Color3.fromRGB(255, 165, 0) or nil
-            end
-        })
-    end
-    
-    if player.Character then
-        setupChar(player.Character)
-    end
-    
-    local charAdded = player.CharacterAdded:Connect(setupChar)
-    local charRemoving = player.CharacterRemoving:Connect(function(oldChar)
-        KoltESP:Remove(oldChar)
-    end)
-    
-    playerConnections[player] = {charAdded, charRemoving}
-end
-
--- Adicionar para jogadores existentes
-for _, player in pairs(game.Players:GetPlayers()) do
-    addPlayerESP(player)
-end
-
--- Eventos
-game.Players.PlayerAdded:Connect(addPlayerESP)
-game.Players.PlayerRemoving:Connect(function(player)
-    if playerConnections[player] then
-        for _, conn in pairs(playerConnections[player]) do
-            conn:Disconnect()
-        end
-        playerConnections[player] = nil
-    end
-    if player.Character then
-        KoltESP:Remove(player.Character)
-    end
-end)
+KoltESP:SetGlobalArrowImage(ID)
 ```
-
-### ESP para Objetos Específicos com Registro de Cores
-
+#### SetGlobal Arrow Size
 ```lua
-local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
-
-local corDinamica = Color3.fromRGB(255, 255, 0)  -- Variável de cor
-
-local function addPartESP(partName, config)
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part.Name == partName and (part:IsA("BasePart") or part:IsA("Model")) then
-            -- Registre cores dinâmicas
-            KoltESP:AddToRegistry(part, {
-                TextColor = corDinamica,
-                HighlightColor = corDinamica
-            })
-            KoltESP:Add(part, config)
-        end
-    end
-end
-
--- Baús
-addPartESP("Chest", {
-    Name = "Baú",
-    DistancePrefix = "Dist: ",
-    DistanceSuffix = "m",
-    DisplayOrder = 5,
-    Types = {
-        Tracer = false,
-        HighlightFill = true
-    },
-    Color = {
-        Name = {255, 255, 0},
-        Distance = {255, 255, 0},
-        Highlight = {
-            Filled = {255, 215, 0},
-            Outline = {255, 255, 0}
-        }
-    }
-})
-
--- Inimigos
-addPartESP("Enemy", {
-    Name = "Inimigo",
-    DisplayOrder = 10,
-    Types = {
-        Distance = false,
-        HighlightOutline = true
-    },
-    Color = {
-        Tracer = {255, 0, 0},
-        Highlight = {
-            Filled = {200, 0, 0},
-            Outline = {255, 0, 0}
-        }
-    },
-    ColorDependency = function(esp, distance, pos3D)
-        return distance < 50 and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(255, 100, 0)
-    end
-})
-
--- Atualize a cor dinamicamente
-corDinamica = Color3.fromRGB(0, 255, 255)
-for _, part in pairs(workspace:GetDescendants()) do
-    if part.Name == "Chest" then
-        KoltESP:AddToRegistry(part, {
-            TextColor = corDinamica,
-            HighlightColor = corDinamica
-        })
-    end
-end
+KoltESP:SetGlobalArrowSize(Size)
 ```
-
----
+#### SetGlobal Arrow Rotation
+```lua
+KoltESP:SetGlobalArrowRotation(Rotation)
+```
+#### SetGlobal Arrow Radius 
+```lua
+KoltESP:SetGlobalArrowRadius(Radius)
+```
 
 ## Estrutura de Configuração
 
