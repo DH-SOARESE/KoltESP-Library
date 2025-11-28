@@ -19,6 +19,7 @@ end);
 
 local ArrowMain = Instance.new("ScreenGui")
 ArrowMain.Parent = GetHUI()
+ArrowMain.DisplayOrder = 10
 
 local HighlightFolderName = "Highlight Folder" 
 local highlightFolder = nil 
@@ -50,7 +51,7 @@ local KoltESP = {
         Distance = true,
         Outline = true,
         Filled = true,
-        Arrow = true,
+        Arrow = false,
         MaxDistance = math.huge,
         MinDistance = 0,
         LineThickness = 4,
