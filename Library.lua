@@ -6,7 +6,6 @@
 ]]
 
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local GuiService = game:GetService("GuiService")
@@ -116,16 +115,13 @@ local function getBoundingBox(target)
     return nil, nil
 end
 
--- Cria Drawing com pcall para segurança
+-- Cria Drawing sem pcall (seguro em Roblox)
 local function createDrawing(class, props)
-    local success, obj = pcall(Drawing.new, class)
-    if success then
-        for k, v in pairs(props) do
-            obj[k] = v
-        end
-        return obj
+    local obj = Drawing.new(class)
+    for k, v in pairs(props) do
+        obj[k] = v
     end
-    return nil
+    return obj
 end
 
 -- Função interna para obter ESP por target
@@ -278,10 +274,10 @@ end
 -- Função auxiliar para limpar drawings e setups de um ESP
 local function CleanupESP(esp)
     for _, draw in pairs(esp.drawings or {}) do
-        if draw then pcall(draw.Remove, draw) end
+        if draw then draw:Remove() end
     end
     esp.drawings = nil
-    if esp.highlight then pcall(esp.highlight.Destroy, esp.highlight) esp.highlight = nil end
+    if esp.highlight then esp.highlight:Destroy() esp.highlight = nil end
     for _, mod in ipairs(esp.ModifiedParts) do
         if mod.Part and mod.Part.Parent then
             mod.Part.Transparency = mod.OriginalTransparency
@@ -289,7 +285,7 @@ local function CleanupESP(esp)
     end
     esp.ModifiedParts = {}
     esp.visibleParts = nil
-    if esp.arrow then pcall(esp.arrow.Destroy, esp.arrow) esp.arrow = nil end
+    if esp.arrow then esp.arrow:Destroy() esp.arrow = nil end
 end
 
 -- Função auxiliar para criar drawings e setups de um ESP
@@ -387,8 +383,8 @@ function KoltESP:Add(target, config)
         LineThickness = config and config.LineThickness or self.EspSettings.LineThickness,
         FontSize = config and config.FontSize or self.EspSettings.FontSize,
         Font = config and config.Font or self.EspSettings.Font,
-        MaxDistance = config and config.MaxDistance or self.EspSettings.MaxDistance,
-        MinDistance = config and config.MinDistance or self.EspSettings.MinDistance,
+        MaxDistance = config and config.MaxDistance or nil,
+        MinDistance = config and config.MinDistance or nil,
         Collision = config and config.Collision or false,
         Decimal = config and config.Decimal or self.EspSettings.Decimal,
         fadeFactor = 0,  -- Inicia em 0 para fade-in
@@ -396,7 +392,6 @@ function KoltESP:Add(target, config)
         lastDistance = nil,
         lastCurrentColor = nil,
         lastState = nil,
-        cachedAllParts = nil,  -- Cache para partes
         lastUpdateTime = 0,  -- Para otimização de update
     }
 
@@ -447,8 +442,8 @@ function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.LineThickness = newConfig and newConfig.LineThickness or self.EspSettings.LineThickness
     esp.FontSize = newConfig and newConfig.FontSize or self.EspSettings.FontSize
     esp.Font = newConfig and newConfig.Font or self.EspSettings.Font
-    esp.MaxDistance = newConfig and newConfig.MaxDistance or self.EspSettings.MaxDistance
-    esp.MinDistance = newConfig and newConfig.MinDistance or self.EspSettings.MinDistance
+    esp.MaxDistance = newConfig and newConfig.MaxDistance or nil
+    esp.MinDistance = newConfig and newConfig.MinDistance or nil
     esp.Collision = newConfig and newConfig.Collision or false
     esp.Decimal = newConfig and newConfig.Decimal or self.EspSettings.Decimal
     esp.fadeFactor = 0
@@ -456,7 +451,6 @@ function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.lastDistance = nil
     esp.lastCurrentColor = nil
     esp.lastState = nil
-    esp.cachedAllParts = nil
     esp.lastUpdateTime = 0
 
     applyColors(esp, newConfig)
@@ -506,8 +500,12 @@ function KoltESP:UpdateConfig(target, newConfig)
     if newConfig.Font ~= nil then 
         esp.Font = newConfig.Font
     end
-    if newConfig.MaxDistance ~= nil then esp.MaxDistance = newConfig.MaxDistance end
-    if newConfig.MinDistance ~= nil then esp.MinDistance = newConfig.MinDistance end
+    if newConfig.MaxDistance ~= nil then 
+        esp.MaxDistance = newConfig.MaxDistance
+    end
+    if newConfig.MinDistance ~= nil then 
+        esp.MinDistance = newConfig.MinDistance
+    end
     if newConfig.Decimal ~= nil then esp.Decimal = newConfig.Decimal end
 
     if newConfig.Color then
@@ -779,39 +777,40 @@ KoltESP.connection = RunService.RenderStepped:Connect(function(delta)
             continue
         end
 
+        if not validTarget and esp.fadeFactor <= 0 and KoltESP.EspSettings.AutoRemoveInvalid then
+            CleanupESP(esp)
+            table.remove(KoltESP.Objects, i)
+            continue
+        end
+
         local pos3D
         local success = false
         local pos2D
         local distance = math.huge
         if validTarget then
-            if time - esp.lastUpdateTime > 0.1 then  -- Update cache a cada 0.1s para otimização
-                if esp.visibleParts then
-                    local totalPos = Vector3.zero
-                    local totalVolume = 0
-                    local validParts = 0
-                    for _, part in ipairs(esp.visibleParts) do
-                        if part and part.Parent then
-                            local vol = part.Size.X * part.Size.Y * part.Size.Z
-                            totalPos += part.Position * vol
-                            totalVolume += vol
-                            validParts += 1
-                        end
+            if esp.visibleParts then
+                local totalPos = Vector3.zero
+                local totalVolume = 0
+                local validParts = 0
+                for _, part in ipairs(esp.visibleParts) do
+                    if part and part.Parent then
+                        local vol = part.Size.X * part.Size.Y * part.Size.Z
+                        totalPos += part.Position * vol
+                        totalVolume += vol
+                        validParts += 1
                     end
-                    if totalVolume > 0 and validParts > 0 then
-                        pos3D = totalPos / totalVolume
-                    else
-                        local cf = getBoundingBox(target)
-                        if cf then
-                            pos3D = cf.Position
-                        end
-                    end
+                end
+                if totalVolume > 0 and validParts > 0 then
+                    pos3D = totalPos / totalVolume
                 else
                     local cf = getBoundingBox(target)
-                    if cf then pos3D = cf.Position end
+                    if cf then
+                        pos3D = cf.Position
+                    end
                 end
-                esp.lastUpdateTime = time
             else
-                pos3D = esp.lastPos3D or Vector3.zero  -- Use cache
+                local cf = getBoundingBox(target)
+                if cf then pos3D = cf.Position end
             end
 
             if pos3D then
@@ -820,7 +819,6 @@ KoltESP.connection = RunService.RenderStepped:Connect(function(delta)
                     success = true
                     pos2D = viewportPos
                     distance = (camera.CFrame.Position - pos3D).Magnitude
-                    esp.lastPos3D = pos3D
                 end
             end
         end
@@ -833,7 +831,9 @@ KoltESP.connection = RunService.RenderStepped:Connect(function(delta)
         local projectedPos = pos2D and Vector2.new(pos2D.X, pos2D.Y) or Vector2.new()
         local projectedOnScreen = pos2D and projectedPos.X >= 0 and projectedPos.X <= vs.X and projectedPos.Y >= 0 and projectedPos.Y <= vs.Y or false
 
-        local inDistance = distance >= esp.MinDistance and distance <= esp.MaxDistance
+        local minDist = esp.MinDistance or KoltESP.EspSettings.MinDistance
+        local maxDist = esp.MaxDistance or KoltESP.EspSettings.MaxDistance
+        local inDistance = distance >= minDist and distance <= maxDist
         local visibleCondition = success and inDistance
         local isInView = originalZ > 0 and projectedOnScreen
         local showESP = visibleCondition and isInView
