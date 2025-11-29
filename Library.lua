@@ -18,8 +18,8 @@ local GetHUI = gethui or function()
 end
 
 local ArrowMain = Instance.new("ScreenGui")
-ArrowMain.Name = "ArrowMain"
 ArrowMain.Parent = GetHUI()
+ArrowMain.IgnoreGuiInset = true
 ArrowMain.DisplayOrder = 3
 
 local HighlightFolderName = "Highlights"
@@ -27,8 +27,7 @@ local highlightFolder
 
 local function getHighlightFolder()
     if not highlightFolder then
-        local hui = GetHUI()
-        highlightFolder = hui:FindFirstChild(HighlightFolderName)
+        highlightFolder = GetHUI():FindFirstChild(HighlightFolderName)
         
         if not highlightFolder then
             highlightFolder = Instance.new("Folder")
@@ -752,14 +751,6 @@ function KoltESP:ArrowOrder(value: number)
     ArrowMain.DisplayOrder = value
 end
 
-local centerFrame = Instance.new("Frame")
-centerFrame.Name = "CenterFrame"
-centerFrame.Size = UDim2.new(0, 0, 0, 0)
-centerFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-centerFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-centerFrame.BackgroundTransparency = 1
-centerFrame.Parent = ArrowMain
-
 -- Atualização por frame (otimizada)
 KoltESP.connection = RunService.RenderStepped:Connect(function(delta)
     local camera = workspace.CurrentCamera
@@ -963,8 +954,8 @@ KoltESP.connection = RunService.RenderStepped:Connect(function(delta)
             if showArrowNow or fadingArrow then
                 esp.arrow.Visible = true
                 local arrowSize = KoltESP.EspSettings.ArrowConfig.Size
-                local margin = math.max(arrowSize.X.Offset, arrowSize.Y.Offset) / 2 + 10  -- Margem extra
-                local center = centerFrame.AbsolutePosition
+                local margin = math.max(arrowSize.X.Offset, arrowSize.Y.Offset) / 2 
+                local center = Vector2.new(vs.X/2, vs.Y/2)
                 local dir = usePos2D - center
                 local magnitude = dir.Magnitude
                 local normalizedDir = Vector2.new(0, 1)
