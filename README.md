@@ -1,449 +1,141 @@
-# Kolt ESP Library V1.9
+# Kolt ESP Library V2.0
 
-Biblioteca ESP (Extra Sensory Perception) minimalista e eficiente para Roblox, desenvolvida por **Kolt Hub**. Sistema robusto focado em performance, facilidade de uso e gerenciamento otimizado de recursos.
+Biblioteca ESP (Extra Sensory Perception) de alta performance para Roblox, desenvolvida por **Kolt Hub**.  
+Foco total em estabilidade, precisão e controle granular — sem recursos desnecessários.
 
 ## Características Principais
 
-- **ESP Completo**: Tracer, Nome, Distância e Highlight (preenchimento e outline)
-- **Performance Otimizada**: Auto-remoção de objetos inválidos, verificação de duplicatas, atualizações eficientes
-- **Customização Avançada**: Cores individuais por elemento, fontes, opacidades, espessuras
-- **Sistema de Camadas**: DisplayOrder individual para controle de sobreposição
-- **Highlights Centralizados**: Armazenamento em pasta do ReplicatedStorage com Adornee
-- **Modo Rainbow**: Cores dinâmicas automáticas
-- **Collision Opcional**: Destaque de todas as partes do alvo, incluindo invisíveis
-- **Dependência de Cor Dinâmica**: Cálculo de cores baseado em distância ou posição
-- **Suporte a Modelos e Partes**: Adição direta a qualquer Model ou BasePart no workspace
-- **Registro de Cores**: Registro prévio de cores personalizadas para aplicação automática em ESPs
+- Tracer, Nome, Distância e Highlight (Fill + Outline)
+- Sistema de distância com opção **Decimal** (ex: `123.4` ou `123`)
+- Respeito rigoroso a `MaxDistance` e `MinDistance`
+- Performance otimizada com cache inteligente e fade in/out
+- Suporte completo a Model e BasePart
+- Modo Rainbow global
+- Collision ESP (revela partes invisíveis)
+- Dependência dinâmica de cor (`ColorDependency`)
+- DisplayOrder individual
+- Highlights organizados em pasta dedicada
+- Registro de cores por objeto (`AddToRegistry`)
+- Arrow off-screen com configuração completa
 
 ## Instalação
 
 ```lua
-local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/refs/heads/main/Library.lua"))()
+local KoltESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/DH-SOARESE/KoltESP-Library/main/Library.lua"))()
 ```
 
-## Documentação
+## Configurações Globais Disponíveis
 
-### Índice
+| Configuração                     | Tipo             | Valor Padrão        | Descrição |
+|----------------------------------|------------------|---------------------|-----------|
+| `Enabled`                        | boolean          | `true`              | Ativa/desativa toda a biblioteca |
+| `Tracer`, `Name`, `Distance`     | boolean          | `true`              | Liga/desliga componentes globais |
+| `Filled`, `Outline`              | boolean          | `true`              | Highlight fill e outline |
+| `Arrow`                          | boolean          | `false`             | Seta off-screen |
+| `Decimal`                        | boolean          | `false`             | Distância com decimal (ex: 123.4) |
+| `MaxDistance` / `MinDistance`    | number           | `math.huge` / `0`   | Limites de visibilidade |
+| `TracerOrigin`                   | string           | `"Bottom"`          | `Top`, `Center`, `Bottom`, `Left`, `Right` |
+| `Opacity`                        | number           | `0.8`               | 0–1 |
+| `LineThickness`                  | number           | `1`                 | Espessura do tracer |
+| `FontSize`                       | number           | `14`                | Tamanho da fonte |
+| `Font`                           | number           | `3`                 | 0=UI, 1=System, 2=Plex, 3=Monospace |
+| `RainbowMode`                    | boolean          | `false`             | Cores arco-íris |
+| `TextOutlineEnabled`             | boolean          | `true`              | Contorno no texto |
+| `TextOutlineColor`               | Color3           | `Color3.new(0,0,0)` | Cor do contorno |
+| `ArrowConfig.Image`              | number           | `11552476728`       | ID da imagem da seta |
+| `ArrowConfig.Size`               | UDim2            | `UDim2.new(0,40,0,40)` | Tamanho da seta |
+| `ArrowConfig.Radius`             | number           | `90`                | Distância do centro da tela |
+| `ArrowConfig.RotationOffset`     | number           | `270`               | Ajuste de rotação |
 
-1. [Uso Básico](#uso-básico)
-2. [Configurações Globais](#configurações-globais)
-3. [Gerenciamento Avançado](#gerenciamento-avançado)
-4. [Referência de API](#referência-de-api)
+## API Principal
 
----
-
-## Uso Básico
-
-### Adicionando ESP Simples
-
+### Adicionar / Atualizar ESP
 ```lua
--- ESP básico com configurações padrão
-KoltESP:Add(workspace.SomeModel)
-
--- ESP com nome personalizado
-KoltESP:Add(workspace.SomeModel, {
-    Name = "Alvo Especial"
-})
+KoltESP:Add(target, config)            -- Model ou BasePart
+KoltESP:UpdateConfig(target, config)
+KoltESP:Readjustment(newTarget, oldTarget, config)
 ```
 
-### Adicionando ESP Completo
-
+### Configuração Individual (em `config`)
 ```lua
-KoltESP:Add(workspace.SomeModel, {
-    Name = "Alvo Especial",
-    Color = Color3.fromRGB(255, 0, 0),
-    Collision = true,
-    DistancePrefix = "Dist: ",
-    DistanceSuffix = "m",
-    DisplayOrder = 5,
-    Types = {
-        Tracer = true,
-        Name = true,
-        Distance = true,
-        HighlightFill = false,
-        HighlightOutline = true
-    },
-    Font = 3,
+{
+    Name = "Jogador",
+    Decimal = true,                    -- Mostra distância com decimal
+    DistancePrefix = "[",
+    DistanceSuffix = "m]",
+    MaxDistance = 1000,
+    MinDistance = 0,
+    DisplayOrder = 10,
     Opacity = 0.9,
     LineThickness = 2,
     FontSize = 16,
-    MaxDistance = 500,
-    MinDistance = 10
-})
-```
-
-### Registrando Cores Personalizadas
-
-```lua
--- Registre cores antes ou após adicionar o ESP
-KoltESP:AddToRegistry(workspace.SomeModel, {
-    TextColor = Color3.fromRGB(255, 255, 0),  -- Cor do nome
-    DistanceColor = Color3.fromRGB(255, 0, 0),
-    TracerColor = Color3.fromRGB(0, 255, 0),
-    HighlightColor = Color3.fromRGB(0, 0, 255)
-})
-
--- As cores serão aplicadas automaticamente ao adicionar ou atualizar o ESP
-KoltESP:Add(workspace.SomeModel)
-```
-
----
-
-## Configurações Globais
-
-### Componentes Visuais
-
-```lua
--- Habilitar/desabilitar componentes globalmente
-KoltESP:SetGlobalESPType("ShowTracer", true)
-KoltESP:SetGlobalESPType("ShowName", true)
-KoltESP:SetGlobalESPType("ShowDistance", true)
-KoltESP:SetGlobalESPType("ShowHighlightFill", true)
-KoltESP:SetGlobalESPType("ShowHighlightOutline", true)
-```
-
-### Aparência
-
-```lua
--- Origem do tracer
-KoltESP:SetGlobalTracerOrigin("Bottom") -- Top, Center, Bottom, Left, Right
-
--- Estilo visual
-KoltESP:SetGlobalRainbow(true)
-KoltESP:SetGlobalOpacity(0.8)
-KoltESP:SetGlobalFontSize(16)
-KoltESP:SetGlobalLineThickness(2)
-KoltESP:SetGlobalFont(3) -- 0: UI, 1: System, 2: Plex, 3: Monospace
-
--- Transparência dos highlights
-KoltESP:SetGlobalHighlightTransparency({
-    Filled = 0.5,
-    Outline = 0.3
-})
-
--- Contorno de texto
-KoltESP:SetGlobalTextOutline(true, Color3.fromRGB(0, 0, 0), 1)
-```
-
-### Distância
-
-```lua
-KoltESP.EspSettings.MaxDistance = 1000
-KoltESP.EspSettings.MinDistance = 0
-```
-
-### Controle Geral
-
-```lua
-KoltESP:Clear()  -- Remove todos os ESPs
-```
-
----
-
-## Gerenciamento Avançado
-
-### Reajustar ESP
-
-```lua
-KoltESP:Readjustment(workspace.NewModel, workspace.OldModel, {
-    Name = "Novo Alvo",
-    Color = Color3.fromRGB(0, 255, 255),
-    DisplayOrder = 8
-})
-```
-
-### Atualizar Configurações
-
-```lua
-KoltESP:UpdateConfig(workspace.SomeModel, {
-    Name = "Alvo Atualizado",
-    Color = {
-        Name = {255, 255, 0},
-        Distance = {255, 255, 0},
-        Tracer = {255, 215, 0},
-        Highlight = {
-            Filled = {255, 200, 0},
-            Outline = {255, 255, 0}
-        }
-    },
-    DisplayOrder = 3,
-    Types = {
-        Distance = false,
-        HighlightOutline = true
-    }
-})
-```
-
-### Controle Individual
-
-```lua
--- Alterar propriedades
-KoltESP:SetColor(workspace.SomeModel, Color3.fromRGB(0, 255, 0))
-KoltESP:SetName(workspace.SomeModel, "Novo Nome")
-KoltESP:SetDisplayOrder(workspace.SomeModel, 7)
-KoltESP:SetTextOutline(workspace.SomeModel, true, Color3.fromRGB(0, 0, 0), 1)
-
--- Remover
-KoltESP:Remove(workspace.SomeModel)
-```
-
-### Registro de Cores
-
-O registro permite definir cores baseadas em variáveis que podem ser atualizadas dinamicamente. As cores são aplicadas automaticamente ao adicionar ou atualizar o ESP.
-
-```lua
-local minhaCor = Color3.fromRGB(255, 0, 0)
-
-KoltESP:AddToRegistry(workspace.SomeModel, {
-    TextColor = minhaCor,
-    DistanceColor = Color3.fromRGB(0, 255, 0),
-    TracerColor = Color3.fromRGB(0, 0, 255),
-    HighlightColor = minhaCor
-})
-
--- Após adicionar o ESP, altere a variável e registre novamente para atualizar
-minhaCor = Color3.fromRGB(255, 255, 0)
-KoltESP:AddToRegistry(workspace.SomeModel, {
-    TextColor = minhaCor,
-    HighlightColor = minhaCor
-})
-```
-
----
-
-## Referência de API
-
-### Métodos Principais
-
-#### Add
-```lua
-KoltESP:Add(object, config)
-```
-Adiciona ESP a um objeto (Model ou BasePart). Verifica duplicatas e configura automaticamente. Aplica cores registradas se existirem.
-
-#### AddToRegistry
-```lua
-KoltESP:AddToRegistry(object, colorConfig)
-```
-Registra cores personalizadas para um objeto. As cores são aplicadas automaticamente ao adicionar ou atualizar o ESP.
-
-- `colorConfig`: Tabela com chaves opcionais: `TextColor`, `DistanceColor`, `TracerColor`, `HighlightColor` (todas Color3).
-
-#### Remove
-```lua
-KoltESP:Remove(object)
-```
-Remove ESP de um objeto, limpando todos os recursos associados.
-
-#### Clear
-```lua
-KoltESP:Clear()
-```
-Remove todos os ESPs ativos.
-
-#### GetESP
-```lua
-local esp = KoltESP:GetESP(object)
-```
-Retorna a tabela de configuração do ESP para um objeto.
-
-### Métodos de Atualização
-
-#### UpdateConfig
-```lua
-KoltESP:UpdateConfig(object, config)
-```
-Atualiza configurações de um ESP existente sem recriar do zero. Aplica cores registradas se existirem.
-
-#### Readjustment
-```lua
-KoltESP:Readjustment(newObject, oldObject, config)
-```
-Transfere ESP de um objeto antigo para um novo, com configurações atualizadas.
-
-#### SetColor
-```lua
-KoltESP:SetColor(object, color)
-```
-Define uma cor única para todos os elementos do ESP.
-
-#### SetName
-```lua
-KoltESP:SetName(object, newName)
-```
-Atualiza o nome exibido no ESP.
-
-#### SetDisplayOrder
-```lua
-KoltESP:SetDisplayOrder(object, displayOrder)
-```
-Define a ordem de exibição (ZIndex) para o ESP.
-
-#### SetTextOutline
-```lua
-KoltESP:SetTextOutline(object, enabled, color, thickness)
-```
-Configura o contorno do texto para um ESP individual.
-
-### Métodos de Configuração Global
-
-#### SetGlobalESPType
-```lua
-KoltESP:SetGlobalESPType(type, enabled)
-```
-Tipos: `Tracer`, `Name`, `Distance`, `Filled`, `Outline`
-
-#### SetGlobalTracerOrigin
-```lua
-KoltESP:SetGlobalTracerOrigin(origin)
-```
-Origens: `Top`, `Center`, `Bottom`, `Left`, `Right`
-
-#### SetGlobalHighlightTransparency
-```lua
-KoltESP:SetGlobalHighlightTransparency({Filled = 0.5, Outline = 0.3})
-```
-
-#### SetHighlightFolderName
-```lua
-KoltESP:SetHighlightFolderName(name)
-```
-Define nome da pasta de highlights no ReplicatedStorage.
-
-#### SetGlobalRainbow
-```lua
-KoltESP:SetGlobalRainbow(enable)
-```
-Ativa/desativa modo rainbow global.
-
-#### SetGlobalOpacity
-```lua
-KoltESP:SetGlobalOpacity(value)
-```
-Define opacidade global (0-1).
-
-#### SetGlobalFontSize
-```lua
-KoltESP:SetGlobalFontSize(size)
-```
-Define tamanho da fonte global.
-
-#### SetGlobalLineThickness
-```lua
-KoltESP:SetGlobalLineThickness(thick)
-```
-Define espessura da linha do tracer global.
-
-#### SetGlobalTextOutline
-```lua
-KoltESP:SetGlobalTextOutline(enabled, color, thickness)
-```
-Configura contorno de texto global.
-
-#### SetGlobalFont
-```lua
-KoltESP:SetGlobalFont(font)
-```
-#### SetGlobal Arromw Image
-```lua
-KoltESP:SetGlobalArrowImage(ID)
-```
-#### SetGlobal Arrow Size
-```lua
-KoltESP:SetGlobalArrowSize(Size)
-```
-#### SetGlobal Arrow Rotation
-```lua
-KoltESP:SetGlobalArrowRotation(Rotation)
-```
-#### SetGlobal Arrow Radius 
-```lua
-KoltESP:SetGlobalArrowRadius(Radius)
-```
-
-## Estrutura de Configuração
-
-### Config Completo
-
-```lua
-{
-    -- Identificação
-    Name = "Nome Personalizado",
-    
-    -- Visual
-    Color = Color3.fromRGB(255, 255, 255), -- ou tabela detalhada
-    Font = 3,              -- 0: UI, 1: System, 2: Plex, 3: Monospace
-    Opacity = 0.8,
-    LineThickness = 1.5,
-    FontSize = 14,
-    DisplayOrder = 0,
-    
-    -- Distância
-    DistancePrefix = "Dist: ",
-    DistanceSuffix = "m",
-    MaxDistance = math.huge,
-    MinDistance = 0,
-    
-    -- Tipos de ESP
-    Types = {
+    Font = 3,
+    Collision = true,                  -- Revela partes invisíveis
+    Color = Color3 ou tabela detalhada,
+    Types = {                          -- Todos true por padrão
         Tracer = true,
         Name = true,
         Distance = true,
         HighlightFill = true,
         HighlightOutline = true
     },
-    
-    -- Outline de texto
-    TextOutlineEnabled = true,
-    TextOutlineColor = Color3.fromRGB(0, 0, 0),
-    TextOutlineThickness = 1,
-    
-    -- Recursos especiais
-    Collision = false,
-    ColorDependency = function(esp, distance, pos3D)
-        return Color3.new(1, 1, 1)
+    ColorDependency = function(esp, distance, pos3D) -- cor dinâmica
+        return distance < 100 and Color3.new(1,0,0) or Color3.new(0,1,0)
     end
 }
 ```
 
-### Estrutura de Cores Detalhada
-
+### Métodos de Controle Individual
 ```lua
-Color = {
-    Name = {255, 255, 255},
-    Distance = {255, 255, 255},
-    Tracer = {0, 255, 0},
-    Highlight = {
-        Filled = {100, 144, 0},
-        Outline = {0, 255, 0}
-    }
-}
+KoltESP:SetColor(target, Color3)
+KoltESP:SetName(target, "Novo Nome")
+KoltESP:SetDisplayOrder(target, number)
+KoltESP:SetTextOutline(target, enabled, Color3)
+
+KoltESP:Remove(target)
+KoltESP:GetESP(target) → retorna tabela de config
 ```
 
----
+### Registro de Cores (Atualização Automática)
+```lua
+KoltESP:AddToRegistry(target, {
+    TextColor = Color3,
+    DistanceColor = Color3,
+    TracerColor = Color3,
+    HighlightColor = Color3
+})
+```
 
-## Notas de Versão
+### Configurações Globais (Principais)
+```lua
+KoltESP.EspSettings.Decimal = true                 -- Distância com decimal globalmente
+KoltESP.EspSettings.MaxDistance = 1500
+KoltESP.EspSettings.MinDistance = 5
 
-### V1.8
-- Adicionado `AddToRegistry` para registro de cores personalizadas com aplicação automática e suporte a variáveis dinâmicas
-- Atualizações na documentação e exemplos para incluir o novo recurso
-- Otimizações menores no sistema de aplicação de cores
+KoltESP:SetGlobalESPType("Tracer", false)          -- Desliga tracer global
+KoltESP:SetGlobalTracerOrigin("Bottom")
+KoltESP:SetGlobalRainbow(true)
+KoltESP:SetGlobalOpacity(0.8)
+KoltESP:SetGlobalFontSize(16)
+KoltESP:SetGlobalLineThickness(2)
+KoltESP:SetGlobalTextOutline(true, Color3.new(0,0,0))
 
-### V1.7
-- Remoção de funções de pause/resume (EnableAll/DisableAll) para simplificação
-- Remoção de Unload para foco em uso contínuo
-- Remoção de suporte automático a jogadores (AddToPlayer); agora gerencie manualmente via eventos
-- Otimização adicional no loop de renderização
-- Melhoria na documentação e exemplos
+-- Arrow
+KoltESP.EspSettings.Arrow = true
+KoltESP:SetGlobalArrowImage(11552476728)
+KoltESP:SetGlobalArrowSize(50)
+KoltESP:SetGlobalArrowRadius(100)
+KoltESP:SetGlobalArrowRotation(270)
+```
 
-### V1.6.5
-- Otimização de performance no loop de renderização
-- Correção de referência de câmera
-- Remoção de containers desnecessários
-- Novas personalizações por ESP (Font, Opacity, LineThickness, FontSize, MaxDistance, MinDistance)
-- Sistema de pause/resume otimizado
-- Função Unload segura
+### Limpeza
+```lua
+KoltESP:Remove(target)
+KoltESP:Clear()        -- Remove tudo
+KoltESP:Toggle(false)  -- Pausa tudo (mantém objetos)
+```
+```
 
----
-
-**Desenvolvido por Kolt (DH_SOARES)** | Versão 1.8 | Novembro 2025
+**Desenvolvido por Kolt Hub**  
+ **Versão 2.0**
+ ```
