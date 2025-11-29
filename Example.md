@@ -1,4 +1,4 @@
-# Exemplos Práticos - KoltESP Library v1.9
+# Exemplos Práticos - KoltESP Library v2.0
 
 ## Índice
 1. [ESP Básico para Jogadores](#esp-básico-para-jogadores)
