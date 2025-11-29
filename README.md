@@ -120,6 +120,8 @@ KoltESP:SetGlobalFontSize(16)
 KoltESP:SetGlobalLineThickness(2)
 KoltESP:SetGlobalTextOutline(true, Color3.new(0,0,0))
 
+KoltESP:SetGlobalESPFadeInTime(time)
+KoltESP:SetGlobalESPFadeTime(time)
 -- Arrow
 KoltESP.EspSettings.Arrow = true
 KoltESP:SetGlobalArrowImage(11552476728)
