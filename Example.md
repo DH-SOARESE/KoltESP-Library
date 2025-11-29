@@ -2320,8 +2320,7 @@ KoltESP:SetName(target, name)         -- Define nome
 KoltESP:AddToRegistry(target, colors) -- Registra cores dinâmicas
 
 -- Configurações globais
-KoltESP:Enable()                      -- Ativa ESP
-KoltESP:Disable()                     -- Desativa ESP
+KoltESP:Toggle(true)                      -- Ativa/Desativa ESP
 KoltESP:SetGlobalTracerOrigin(origin) -- Define origem tracers
 KoltESP:SetGlobalRainbow(bool)        -- Ativa modo arco-íris
 KoltESP:SetGlobalOpacity(value)       -- Define opacidade
