@@ -61,11 +61,9 @@ local KoltESP = {
         Opacity = 0.8,
         FontSize = 14,
         Font = 3,
-        AutoRemoveInvalid = true,
         TextOutlineEnabled = true,
         TextOutlineColor = Color3.fromRGB(0, 0, 0),
         
-        ESPFadeTime = 0,
         ESPFadeInTime = 0.5,
         RainbowMode = false,
         
@@ -738,11 +736,6 @@ function KoltESP:SetGlobalESPFadeInTime(time: number)
     self:UpdateGlobalSettings()
 end
 
-function KoltESP:SetGlobalESPFadeTime(time: number)
-    self.EspSettings.ESPFadeTime = time
-    self:UpdateGlobalSettings()
-end
-
 function KoltESP:Toggle(state: boolean)
     self.EspSettings.Enabled = state
 end
@@ -856,11 +849,7 @@ KoltESP.connection = RunService.RenderStepped:Connect(function(delta)
             esp.lastCurrentColor = currentColor
             esp.lastState = showESP and "onscreen" or "offscreen"
         else
-            if KoltESP.EspSettings.ESPFadeTime > 0 then
-                esp.fadeFactor = math.max(0, esp.fadeFactor - delta / KoltESP.EspSettings.ESPFadeTime)
-            else
-                esp.fadeFactor = 0
-            end
+            esp.fadeFactor = 0
         end
 
         if esp.fadeFactor <= 0 then
@@ -869,7 +858,7 @@ KoltESP.connection = RunService.RenderStepped:Connect(function(delta)
             end
             if esp.highlight then esp.highlight.Enabled = false end
             if esp.arrow then esp.arrow.Visible = false end
-            if not validTarget and KoltESP.EspSettings.AutoRemoveInvalid then
+            if not validTarget then
                 CleanupESP(esp)
                 table.remove(KoltESP.Objects, i)
             end
