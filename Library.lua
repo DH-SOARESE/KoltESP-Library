@@ -389,6 +389,7 @@ function KoltESP:Add(target, config)
         MinDistance = config and config.MinDistance or self.EspSettings.MinDistance,
         Collision = config and config.Collision or false,
         Decimal = config and config.Decimal or self.EspSettings.Decimal,
+        Center = config and config.Center or nil,
         fadeFactor = 0,  -- Inicia em 0 para fade-in
         lastPos2D = nil,
         lastDistance = nil,
@@ -449,6 +450,7 @@ function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.MinDistance = newConfig and newConfig.MinDistance or self.EspSettings.MinDistance
     esp.Collision = newConfig and newConfig.Collision or false
     esp.Decimal = newConfig and newConfig.Decimal or self.EspSettings.Decimal
+    esp.Center = newConfig and newConfig.Center or nil
     esp.fadeFactor = 0
     esp.lastPos2D = nil
     esp.lastDistance = nil
@@ -507,6 +509,7 @@ function KoltESP:UpdateConfig(target, newConfig)
     if newConfig.MaxDistance ~= nil then esp.MaxDistance = newConfig.MaxDistance end
     if newConfig.MinDistance ~= nil then esp.MinDistance = newConfig.MinDistance end
     if newConfig.Decimal ~= nil then esp.Decimal = newConfig.Decimal end
+    if newConfig.Center ~= nil then esp.Center = newConfig.Center end
 
     if newConfig.Color then
         applyColors(esp, newConfig)
@@ -774,31 +777,45 @@ KoltESP.connection = RunService.RenderStepped:Connect(function(delta)
         local distance = math.huge
         if validTarget then
             if time - esp.lastUpdateTime > 0.1 then  -- Update cache a cada 0.1s para otimização
-                if esp.visibleParts then
-                    local totalPos = Vector3.zero
-                    local totalVolume = 0
-                    local validParts = 0
-                    for _, part in ipairs(esp.visibleParts) do
-                        if part and part.Parent then
-                            local vol = part.Size.X * part.Size.Y * part.Size.Z
-                            totalPos += part.Position * vol
-                            totalVolume += vol
-                            validParts += 1
-                        end
-                    end
-                    if totalVolume > 0 and validParts > 0 then
-                        pos3D = totalPos / totalVolume
-                    else
-                        local cf = getBoundingBox(target)
-                        if cf then
+                if esp.Center then
+                    if typeof(esp.Center) == "Vector3" then
+                        pos3D = esp.Center
+                    elseif typeof(esp.Center) == "Instance" then
+                        if esp.Center:IsA("BasePart") then
+                            pos3D = esp.Center.Position
+                        elseif esp.Center:IsA("Model") then
+                            local cf = esp.Center:GetBoundingBox()
                             pos3D = cf.Position
                         end
                     end
                 else
-                    local cf = getBoundingBox(target)
-                    if cf then pos3D = cf.Position end
+                    if esp.visibleParts then
+                        local totalPos = Vector3.zero
+                        local totalVolume = 0
+                        local validParts = 0
+                        for _, part in ipairs(esp.visibleParts) do
+                            if part and part.Parent then
+                                local vol = part.Size.X * part.Size.Y * part.Size.Z
+                                totalPos += part.Position * vol
+                                totalVolume += vol
+                                validParts += 1
+                            end
+                        end
+                        if totalVolume > 0 and validParts > 0 then
+                            pos3D = totalPos / totalVolume
+                        else
+                            local cf = getBoundingBox(target)
+                            if cf then
+                                pos3D = cf.Position
+                            end
+                        end
+                    else
+                        local cf = getBoundingBox(target)
+                        if cf then pos3D = cf.Position end
+                    end
                 end
                 esp.lastUpdateTime = time
+                esp.lastPos3D = pos3D
             else
                 pos3D = esp.lastPos3D or Vector3.zero  -- Use cache
             end
