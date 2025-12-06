@@ -1,7 +1,12 @@
-# Kolt ESP Library V2.0
+# Kolt ESP Library V2.1
 
 Biblioteca ESP (Extra Sensory Perception) de alta performance para Roblox, desenvolvida por **Kolt Hub**.  
 Foco total em estabilidade, precisão e controle granular — sem recursos desnecessários. Otimizada para jogos competitivos, com suporte a visualizações personalizadas e integração fácil.
+
+## Novidades na V2.1
+- Adicionada a função `:ThereisEsp(target)`: Verifica se já existe um ESP ativo para o alvo, retornando `true` ou `false`. Útil para evitar duplicatas ao adicionar ESP dinamicamente.
+- Melhoria na documentação e exemplos de uso, com foco em cenários reais como verificação antes de adicionar ESP.
+- Otimização geral de performance e correções menores para maior estabilidade.
 
 ## Novidades na V2.0
 - Adicionado suporte a ponto central personalizado (`Center`) para maior precisão em alvos complexos.
@@ -21,6 +26,7 @@ Foco total em estabilidade, precisão e controle granular — sem recursos desne
 - **Personalização Avançada**: DisplayOrder individual, pasta dedicada para highlights e registro de cores por objeto.
 - **Arrow Off-Screen**: Configuração completa de imagem, tamanho, raio e rotação.
 - **Ponto Central Customizado**: Defina uma posição ou instância específica para o centro do ESP.
+- **Verificação de Existência**: Use `:ThereisEsp()` para checar se um alvo já tem ESP antes de adicionar.
 
 ## Instalação
 
@@ -60,6 +66,19 @@ Todas as configurações globais estão em `KoltESP.EspSettings`. Use os método
 
 ## API Principal
 
+### Verificar Existência de ESP
+```lua
+local existe = KoltESP:ThereisEsp(target)  -- Retorna true se já existir ESP para o target
+```
+Exemplo:
+```lua
+if KoltESP:ThereisEsp(workspace.Banana) then
+    print("Já existe ESP nessa banana!")
+else
+    KoltESP:Add(workspace.Banana, { Name = "Banana Especial" })
+end
+```
+
 ### Adicionar um ESP
 ```lua
 KoltESP:Add(target, config)  -- target: Model ou BasePart; config: tabela opcional
@@ -67,11 +86,13 @@ KoltESP:Add(target, config)  -- target: Model ou BasePart; config: tabela opcion
 
 Exemplo:
 ```lua
-KoltESP:Add(workspace.ModelAlvo, {
-    Name = "Alvo Principal",
-    Collision = true,
-    Center = workspace.PartCentral  -- Ou Vector3.new(0,0,0)
-})
+if not KoltESP:ThereisEsp(workspace.ModelAlvo) then
+    KoltESP:Add(workspace.ModelAlvo, {
+        Name = "Alvo Principal",
+        Collision = true,
+        Center = workspace.PartCentral  -- Ou Vector3.new(0,0,0)
+    })
+end
 ```
 
 ### Atualizar Configuração
@@ -183,4 +204,4 @@ KoltESP:SetHighlightFolderName("MyHighlights")
 - `KoltESP:ArrowOrder(number)`: Define ordem de display da tela de arrows.
 
 **Desenvolvido por Kolt Hub**  
-**Versão 2.0** - Atualizado em 03/12/2025
+**Versão 2.1** - Atualizado em 06/12/2025
