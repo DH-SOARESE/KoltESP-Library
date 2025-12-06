@@ -1,9 +1,9 @@
 --[[  
-    KoltESP Library v2.0
+    KoltESP Library v2.1
     • Biblioteca de ESP voltada para endereços de objetos (Model e BasePart).  
     • Oferece diversas APIs úteis para seus projetos, incluindo a visualização de todas as colisões de um alvo.  
     • O ponto central do alvo é definido com base na parte mais visível — se houver colisões invisíveis, a prioridade será dada à parte com maior visibilidade, e não ao centro exato do modelo.
-]]
+    ]]
 
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -134,6 +134,11 @@ function KoltESP:GetESP(target)
     return nil
 end
 
+-- Função para verificar se existe ESP para o target
+function KoltESP:ThereisEsp(target)
+    return self:GetESP(target) ~= nil
+end
+
 -- Configura o nome da pasta de highlights
 function KoltESP:SetHighlightFolderName(name)
     if typeof(name) == "string" and name ~= "" then
@@ -254,23 +259,48 @@ local function applyColors(cfg, config)
     end
 end
 
--- Função auxiliar para setup de collision
-local function setupCollision(esp, target, collision, allParts)
-    if collision then
-        for _, part in ipairs(allParts) do
-            if part.Transparency == 1 then
-                table.insert(esp.ModifiedParts, {Part = part, OriginalTransparency = part.Transparency})
-                part.Transparency = 0.99
-            end
-        end
-    else
-        esp.visibleParts = {}
-        for _, part in ipairs(allParts) do
-            if part.Transparency < 0.99 then
-                table.insert(esp.visibleParts, part)
-            end
+-- Função auxiliar para setup de collision handlers
+local function setupCollisionHandlers(esp)
+    esp.ModifiedParts = {}
+    esp.connections = {}
+    esp.addedHumanoid = nil
+
+    if esp.Target:IsA("Model") and not esp.Target:FindFirstChildOfClass("Humanoid") then
+        esp.addedHumanoid = Instance.new("Humanoid")
+        esp.addedHumanoid.Name = "ESP_Humanoid"
+        esp.addedHumanoid.Parent = esp.Target
+        esp.addedHumanoid.DisplayName = ""
+        esp.addedHumanoid.Health = 0
+        esp.addedHumanoid.MaxHealth = 0
+        esp.addedHumanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+        esp.addedHumanoid.NameDisplayDistance = 0
+        esp.addedHumanoid.HealthDisplayDistance = 0
+    end
+
+    local function modifyPart(part)
+        if part:IsA("BasePart") and part.Transparency >= 1 then
+            table.insert(esp.ModifiedParts, {Part = part, OriginalTransparency = part.Transparency})
+            part.Transparency = 0.99
         end
     end
+
+    local allParts = collectBaseParts(esp.Target)
+    for _, part in ipairs(allParts) do
+        modifyPart(part)
+    end
+
+    local addedConn = esp.Target.DescendantAdded:Connect(modifyPart)
+    table.insert(esp.connections, addedConn)
+
+    local removingConn = esp.Target.DescendantRemoving:Connect(function(desc)
+        for i = #esp.ModifiedParts, 1, -1 do
+            if esp.ModifiedParts[i].Part == desc then
+                desc.Transparency = esp.ModifiedParts[i].OriginalTransparency
+                table.remove(esp.ModifiedParts, i)
+            end
+        end
+    end)
+    table.insert(esp.connections, removingConn)
 end
 
 -- Função auxiliar para limpar drawings e setups de um ESP
@@ -286,15 +316,21 @@ local function CleanupESP(esp)
         end
     end
     esp.ModifiedParts = {}
-    esp.visibleParts = nil
+    if esp.connections then
+        for _, conn in ipairs(esp.connections) do
+            conn:Disconnect()
+        end
+        esp.connections = nil
+    end
     if esp.arrow then pcall(esp.arrow.Destroy, esp.arrow) esp.arrow = nil end
+    if esp.addedHumanoid then
+        esp.addedHumanoid:Destroy()
+        esp.addedHumanoid = nil
+    end
 end
 
 -- Função auxiliar para criar drawings e setups de um ESP
 local function CreateDrawings(esp)
-    local allParts = collectBaseParts(esp.Target)
-    setupCollision(esp, esp.Target, esp.Collision, allParts)
-
     esp.drawings = {}
 
     esp.drawings.tracerLine = createDrawing("Line", {
@@ -395,7 +431,6 @@ function KoltESP:Add(target, config)
         lastDistance = nil,
         lastCurrentColor = nil,
         lastState = nil,
-        cachedAllParts = nil,  -- Cache para partes
         lastUpdateTime = 0,  -- Para otimização de update
     }
 
@@ -419,6 +454,9 @@ function KoltESP:Add(target, config)
     end
 
     CreateDrawings(cfg)
+    if cfg.Collision then
+        setupCollisionHandlers(cfg)
+    end
 
     table.insert(self.Objects, cfg)
 end
@@ -448,7 +486,6 @@ function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.Font = newConfig and newConfig.Font or self.EspSettings.Font
     esp.MaxDistance = newConfig and newConfig.MaxDistance or self.EspSettings.MaxDistance
     esp.MinDistance = newConfig and newConfig.MinDistance or self.EspSettings.MinDistance
-    esp.Collision = newConfig and newConfig.Collision or false
     esp.Decimal = newConfig and newConfig.Decimal or self.EspSettings.Decimal
     esp.Center = newConfig and newConfig.Center or nil
     esp.fadeFactor = 0
@@ -456,7 +493,6 @@ function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
     esp.lastDistance = nil
     esp.lastCurrentColor = nil
     esp.lastState = nil
-    esp.cachedAllParts = nil
     esp.lastUpdateTime = 0
 
     applyColors(esp, newConfig)
@@ -469,15 +505,18 @@ function KoltESP:Readjustment(newTarget, oldTarget, newConfig)
         HighlightOutline = newConfig and newConfig.Types and newConfig.Types.HighlightOutline == false and false or true,
     }
 
+    esp.Collision = newConfig and newConfig.Collision or false
+
     CreateDrawings(esp)
+    if esp.Collision then
+        setupCollisionHandlers(esp)
+    end
 end
 
 -- Atualiza config de um ESP existente sem mudar o target
 function KoltESP:UpdateConfig(target, newConfig)
     local esp = self:GetESP(target)
     if not esp then return end
-
-    local needsRecreate = false
 
     if newConfig.Name then esp.Name = newConfig.Name end
     if newConfig.DistancePrefix then esp.DistancePrefix = newConfig.DistancePrefix end
@@ -525,9 +564,28 @@ function KoltESP:UpdateConfig(target, newConfig)
 
     local newCollision = newConfig.Collision
     if newCollision ~= nil and newCollision ~= esp.Collision then
-        CleanupESP(esp)
+        if esp.Collision then
+            if esp.connections then
+                for _, conn in ipairs(esp.connections) do
+                    conn:Disconnect()
+                end
+                esp.connections = nil
+            end
+            for _, mod in ipairs(esp.ModifiedParts) do
+                if mod.Part and mod.Part.Parent then
+                    mod.Part.Transparency = mod.OriginalTransparency
+                end
+            end
+            esp.ModifiedParts = {}
+            if esp.addedHumanoid then
+                esp.addedHumanoid:Destroy()
+                esp.addedHumanoid = nil
+            end
+        end
         esp.Collision = newCollision
-        CreateDrawings(esp)
+        if newCollision then
+            setupCollisionHandlers(esp)
+        end
     end
 
     if esp.drawings then
@@ -776,7 +834,7 @@ KoltESP.connection = RunService.RenderStepped:Connect(function(delta)
         local pos2D
         local distance = math.huge
         if validTarget then
-            if time - esp.lastUpdateTime > 0.1 then  -- Update cache a cada 0.1s para otimização
+            if time - esp.lastUpdateTime >= 0.05 then
                 if esp.Center then
                     if typeof(esp.Center) == "Vector3" then
                         pos3D = esp.Center
@@ -789,33 +847,35 @@ KoltESP.connection = RunService.RenderStepped:Connect(function(delta)
                         end
                     end
                 else
-                    if esp.visibleParts then
-                        local totalPos = Vector3.zero
-                        local totalVolume = 0
-                        local validParts = 0
-                        for _, part in ipairs(esp.visibleParts) do
-                            if part and part.Parent then
-                                local vol = part.Size.X * part.Size.Y * part.Size.Z
-                                totalPos += part.Position * vol
-                                totalVolume += vol
-                                validParts += 1
-                            end
+                    local allParts = collectBaseParts(target)
+                    local useParts = {}
+                    for _, part in ipairs(allParts) do
+                        if esp.Collision or part.Transparency < 0.99 then
+                            table.insert(useParts, part)
                         end
-                        if totalVolume > 0 and validParts > 0 then
-                            pos3D = totalPos / totalVolume
-                        else
-                            local cf = getBoundingBox(target)
-                            if cf then
-                                pos3D = cf.Position
-                            end
+                    end
+                    local totalPos = Vector3.zero
+                    local totalVolume = 0
+                    local validParts = 0
+                    for _, part in ipairs(useParts) do
+                        if part and part.Parent then
+                            local vol = part.Size.X * part.Size.Y * part.Size.Z
+                            totalPos += part.Position * vol
+                            totalVolume += vol
+                            validParts += 1
                         end
+                    end
+                    if totalVolume > 0 and validParts > 0 then
+                        pos3D = totalPos / totalVolume
                     else
                         local cf = getBoundingBox(target)
-                        if cf then pos3D = cf.Position end
+                        if cf then
+                            pos3D = cf.Position
+                        end
                     end
                 end
-                esp.lastUpdateTime = time
                 esp.lastPos3D = pos3D
+                esp.lastUpdateTime = time
             else
                 pos3D = esp.lastPos3D or Vector3.zero  -- Use cache
             end
@@ -826,7 +886,6 @@ KoltESP.connection = RunService.RenderStepped:Connect(function(delta)
                     success = true
                     pos2D = viewportPos
                     distance = (camera.CFrame.Position - pos3D).Magnitude
-                    esp.lastPos3D = pos3D
                 end
             end
         end
